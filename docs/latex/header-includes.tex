@@ -1,0 +1,43 @@
+% Pandoc (LuaLaTeX) já carrega fontspec e babel[brazilian] via lang: pt-BR no frontmatter.
+% Este arquivo adiciona apenas o que o template padrão não configura.
+
+% Geometria A4 com margens confortáveis
+\usepackage[a4paper, top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm]{geometry}
+
+% Quebra automática de linhas em blocos de código
+% "Highlighting" é o ambiente que Pandoc usa com syntax highlighting
+\usepackage{fvextra}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{%
+  breaklines=true,%
+  breakanywhere=true,%
+  breaksymbol={},%
+  commandchars=\\\{\}%
+}
+
+% Cores (necessário antes de hyperref)
+\usepackage{xcolor}
+
+% Tabelas — wrap automático de texto nas células
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+% Cabeçalho e rodapé personalizados
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textit{WBA Windows Toolkit}}
+\fancyhead[R]{\small\textit{Manual do Operador}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Fonte monoespaçada para blocos de código (fontspec já foi carregado pelo Pandoc)
+\AtBeginDocument{%
+  \IfFontExistsTF{Libertinus Mono}{%
+    \setmonofont{Libertinus Mono}[Scale=0.9]%
+  }{%
+    \setmonofont{Latin Modern Mono}[Scale=0.9]%
+  }%
+}

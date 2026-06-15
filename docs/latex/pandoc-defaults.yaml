@@ -1,0 +1,10 @@
+pdf-engine: lualatex
+variables:
+  papersize: a4
+  fontsize: 11pt
+  toc: true
+  toc-depth: 2
+include-in-header:
+  - docs/latex/header-includes.tex
+highlight-style: tango
+number-sections: false

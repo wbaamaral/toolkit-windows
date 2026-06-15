@@ -258,7 +258,8 @@ módulo, essas funções podem ser chamadas diretamente no PowerShell.
 ```powershell
 Import-Module .\modules\WbaToolkit.Networking\WbaToolkit.Networking.psd1 -Force
 
-$report = Invoke-TargetConnectivityTest -TargetAddress 192.168.5.10 -Protocol TCP -PortSpec '80,443'
+$report = Invoke-TargetConnectivityTest `
+    -TargetAddress 192.168.5.10 -Protocol TCP -PortSpec '80,443'
 Show-ConnectivityReport -Report $report
 ```
 
@@ -310,7 +311,8 @@ C:\ProgramData\WBA\WindowsToolkit\config.json
 Quando quiser alterar apenas uma execução, use o parâmetro do próprio script:
 
 ```powershell
-.\maintenance\Diagnostico-Reparo-HD100.ps1 -DiretorioSaida "D:\Atendimentos\Cliente01" -GerarHtml
+.\maintenance\Diagnostico-Reparo-HD100.ps1 `
+    -DiretorioSaida "D:\Atendimentos\Cliente01" -GerarHtml
 ```
 
 Essa escolha não altera a configuração permanente.
@@ -646,7 +648,8 @@ Somente resumo rápido:
 Somente Markdown:
 
 ```powershell
-.\inventory\Inventario-Hardware-Software.ps1 -SomenteHardwareDrivers -FormatoResumoHardwareDrivers Markdown
+.\inventory\Inventario-Hardware-Software.ps1 `
+    -SomenteHardwareDrivers -FormatoResumoHardwareDrivers Markdown
 ```
 
 ### 8.4. Relatórios gerados
