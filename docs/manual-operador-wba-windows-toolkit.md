@@ -61,11 +61,19 @@ depois suas funções ficam disponíveis para uso.
 
 Exemplos de módulos do projeto:
 
-| Módulo | Caminho | Finalidade |
-|---|---|---|
-| `WbaToolkit.Core` | `modules\WbaToolkit.Core\WbaToolkit.Core.psd1` | Funções comuns: mensagens, segurança, formatação, manual HTML |
-| `WbaToolkit.Networking` | `modules\WbaToolkit.Networking\WbaToolkit.Networking.psd1` | Testes de rede, relatórios de conectividade |
-| `WbaToolkit.Startup` | `modules\WbaToolkit.Startup\WbaToolkit.Startup.psd1` | Gerenciamento de itens de inicialização e serviços do Windows |
+| Módulo | Finalidade |
+|---|---|
+| `WbaToolkit.Core` | Funções comuns: mensagens, segurança, formatação, portal HTML |
+| `WbaToolkit.Networking` | Diagnóstico de conectividade e relatórios de rede |
+| `WbaToolkit.Startup` | Gerenciamento de itens de inicialização e serviços do Windows |
+
+Caminhos para importação:
+
+```powershell
+modules\WbaToolkit.Core\WbaToolkit.Core.psd1
+modules\WbaToolkit.Networking\WbaToolkit.Networking.psd1
+modules\WbaToolkit.Startup\WbaToolkit.Startup.psd1
+```
 
 ### 1.4. Quando usar PowerShell como Administrador
 
@@ -398,7 +406,7 @@ Export-ToolkitDocumentation -Mode Portal -Force
 
 | Erro | Causa | Como resolver |
 |---|---|---|
-| Comando não reconhecido | Módulo não importado | Execute `Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1 -Force` |
+| Comando não reconhecido | Módulo não importado | Importe o `WbaToolkit.Core` (ver §3.1) |
 | Diretório já existe | Falta `-Force` | Adicione `-Force` ao comando |
 | Pasta errada gerada | PowerShell em diretório diferente | Execute `Set-Location C:\ti\wba-windows-toolkit` antes |
 | HTML sem estilo | Arquivo errado aberto | Abra `index.html` na raiz de `docs\portal\` |
@@ -454,7 +462,7 @@ Esse modo é o mais seguro para começar. Ele gera relatório e não aplica corr
 | `Diagnostico` | Coleta dados e gera relatório | Primeiro atendimento |
 | `Assistido` | Coleta dados e oferece ações interativas | Técnico acompanhado ou operador treinado |
 | `Relatorio` | Regera relatório usando execução anterior | Quando quiser recriar HTML |
-| `Rollback` | Reativa entradas de inicialização desabilitadas pelo HD100 | Quando uma desativação de teste precisar ser revertida |
+| `Rollback` | Reativa entradas desabilitadas pelo HD100 | Para reverter desativação de teste |
 
 ### 7.6. Exemplos de uso
 
@@ -1484,7 +1492,7 @@ Start-Process .\docs\portal\index.html
 | UsoClient sem progresso visível | Comportamento normal do Windows | Verificar em Configurações > Windows Update |
 | DISM ou SFC demora muito | Normal em alguns computadores | Aguardar; não interromper |
 | CHKDSK agendado no próximo boot | Verificação agendada | Avisar o usuário antes de reiniciar |
-| Relatório HTML não abre | Caminho de arquivo incorreto | Abrir `index.html` ou `relatorio-hd100.html` na pasta correta |
+| Relatório HTML não abre | Caminho incorreto | Abrir `index.html` ou `relatorio-hd100.html` na pasta correta |
 
 ## 22. Regras de segurança para operador
 
