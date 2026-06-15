@@ -203,7 +203,8 @@ módulo, essas funções podem ser chamadas diretamente no PowerShell.
 | `Set-ToolkitReportsRoot` | Salva a raiz padrão de relatórios |
 | `Get-ToolkitReportsRoot` | Resolve a raiz de relatórios a ser usada |
 | `Initialize-ToolkitReportSession` | Cria uma sessão padronizada de relatório |
-| `Export-ToolkitFunctionDocs` | Gera manual HTML local dos módulos e scripts |
+| `Export-ToolkitFunctionDocs` | Gera referência HTML das funções com CBH |
+| `Export-ToolkitDocumentation` | Gera portal HTML offline completo (modos All, Portal, TechnicalReference) |
 | `Read-UserInput` | Solicita entrada do operador com suporte a valor padrão |
 | `Get-Utf8BomEncoding` | Retorna encoding UTF-8 com BOM para gravação de arquivos |
 | `Write-TextFileUtf8` | Grava ou acrescenta texto em arquivo UTF-8 com BOM |
@@ -306,20 +307,19 @@ Quando quiser alterar apenas uma execução, use o parâmetro do próprio script
 
 Essa escolha não altera a configuração permanente.
 
-## 6. Como gerar o manual HTML local
+## 6. Como gerar o portal de documentação HTML local
 
 ### 6.1. O que a função faz
 
-A função `Export-ToolkitFunctionDocs` gera um conjunto de páginas HTML locais com:
+A função `Export-ToolkitDocumentation` gera um portal HTML local completo com:
 
-- índice principal;
-- página por módulo;
-- página por função;
-- página por script operacional;
+- portal operacional com cards de ação e catálogo de scripts;
+- guia do operador em HTML;
+- referência técnica com CBH de todas as funções públicas;
 - links entre funções relacionadas;
 - documentação extraída dos comentários internos dos scripts e funções.
 
-Ela não envia dados para a internet. O resultado é um diretório local que pode ser aberto no navegador.
+O resultado é um diretório local que pode ser aberto no navegador sem internet.
 
 ### 6.2. Quando usar
 
@@ -330,9 +330,9 @@ Exemplos de uso:
 - entregar documentação para um técnico;
 - consultar funções disponíveis;
 - abrir manual no navegador durante atendimento;
-- gerar material local em um computador sem internet.
+- gerar material local em computador sem internet.
 
-### 6.3. Como gerar o manual padrão
+### 6.3. Como gerar o portal padrão
 
 Entre na raiz do projeto:
 
@@ -346,63 +346,62 @@ Importe o módulo principal:
 Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1 -Force
 ```
 
-Gere o manual:
+Gere o portal completo (portal operacional + referência técnica):
 
 ```powershell
-Export-ToolkitFunctionDocs -OutputPath .\docs-html -Force
+Export-ToolkitDocumentation -Mode All -Force
 ```
 
 Abra no navegador:
 
 ```powershell
-Start-Process .\docs-html\index.html
+Start-Process .\docs\portal\index.html
 ```
 
 ### 6.4. Onde ficam os arquivos
 
-Por padrão, se usar `.\docs-html`, a estrutura será:
+O portal é gerado em `.\docs\portal\` por padrão:
 
 ```text
-docs-html\
-├── index.html
-├── functions\
-├── modules\
-└── scripts\
+docs\portal\
+├── index.html          portal operacional com cards de ação
+├── operador.html       guia do operador
+└── referencia\
+    └── index.html      referência técnica CBH
 ```
 
-O arquivo principal é:
-
-```text
-docs-html\index.html
-```
-
-### 6.5. Como atualizar o manual
+### 6.5. Como atualizar o portal
 
 Sempre que novos scripts ou funções forem adicionados, gere novamente:
 
 ```powershell
-Export-ToolkitFunctionDocs -OutputPath .\docs-html -Force
+Export-ToolkitDocumentation -Mode All -Force
 ```
 
-O parâmetro `-Force` permite recriar o diretório mesmo que ele já exista.
+O parâmetro `-Force` permite recriar o diretório mesmo que já exista.
 
-### 6.6. Como gerar em outra pasta
+### 6.6. Modos disponíveis
 
-Exemplo:
+| Modo | O que gera |
+|---|---|
+| `All` | Portal operacional + referência técnica (padrão completo) |
+| `Portal` | Somente o portal operacional e guia do operador |
+| `TechnicalReference` | Somente a referência técnica CBH |
+
+Exemplo com modo específico:
 
 ```powershell
-Export-ToolkitFunctionDocs -OutputPath C:\ti\manual-wba -Force
-Start-Process C:\ti\manual-wba\index.html
+Export-ToolkitDocumentation -Mode Portal -Force
 ```
 
 ### 6.7. Erros comuns
 
-| Erro | Causa comum | Como resolver |
+| Erro | Causa | Como resolver |
 |---|---|---|
-| `Export-ToolkitFunctionDocs não é reconhecido` | Módulo `WbaToolkit.Core` não foi importado | Rode `Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1 -Force` |
-| Diretório de saída já existe | A função evita sobrescrever sem permissão | Use `-Force` |
-| Caminho gerado em pasta errada | PowerShell estava em outro diretório | Rode `Set-Location C:\ti\wba-windows-toolkit` antes |
-| HTML abre sem estilo esperado | Arquivo aberto incorreto | Abra `index.html` na raiz do diretório gerado |
+| Comando não reconhecido | Módulo não importado | Execute `Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1 -Force` |
+| Diretório já existe | Falta `-Force` | Adicione `-Force` ao comando |
+| Pasta errada gerada | PowerShell em diretório diferente | Execute `Set-Location C:\ti\wba-windows-toolkit` antes |
+| HTML sem estilo | Arquivo errado aberto | Abra `index.html` na raiz de `docs\portal\` |
 
 ## 7. Script `Diagnostico-Reparo-HD100.ps1`
 
@@ -859,13 +858,13 @@ Use quando houver:
 ### 11.3. Diagnóstico geral de internet
 
 ```powershell
-.\diagnostics\Testar-Conectividade-Internet.ps1
+.\diagnostics\networking\Testar-Conectividade-Internet.ps1
 ```
 
 Com detalhes:
 
 ```powershell
-.\diagnostics\Testar-Conectividade-Internet.ps1 -Detalhado
+.\diagnostics\networking\Testar-Conectividade-Internet.ps1 -Detalhado
 ```
 
 ### 11.4. Teste direcionado por alvo
@@ -1098,9 +1097,298 @@ Configurações > Windows Update
 - Se Chocolatey falhar por timeout, tente novamente mais tarde.
 - Não desligue o computador durante instalação de atualização.
 
-## 14. Fluxo de atendimento recomendado
+## 14. Script `Preparar-Imagem-Windows.ps1`
 
-### 14.1. Quando o problema é disco 100%
+### 14.1. Finalidade
+
+O script `Preparar-Imagem-Windows.ps1` aplica tweaks no perfil Default do Windows e,
+opcionalmente, inicia o sysprep para preparar uma imagem corporativa.
+
+### 14.2. Quando usar
+
+Use quando precisar:
+
+- criar uma imagem padronizada para distribuição em lote;
+- aplicar configurações ao perfil Default antes de capturar imagem;
+- validar o efeito dos tweaks antes de acionar o sysprep.
+
+### 14.3. Modos de execução
+
+| Parâmetro | O que faz |
+|---|---|
+| `-ApenasDryRun` | Simula tweaks sem alterar o sistema (obrigatório antes da primeira execução) |
+| `-SemSysprep` | Aplica tweaks no perfil Default mas não inicia o sysprep |
+| (nenhum) | Aplica tweaks e inicia o sysprep |
+
+### 14.4. Exemplos de uso
+
+Simulação obrigatória antes da primeira execução:
+
+```powershell
+.\maintenance\Preparar-Imagem-Windows.ps1 -ApenasDryRun
+```
+
+Apenas aplicar tweaks, sem sysprep:
+
+```powershell
+.\maintenance\Preparar-Imagem-Windows.ps1 -SemSysprep
+```
+
+Execução completa (tweaks + sysprep):
+
+```powershell
+.\maintenance\Preparar-Imagem-Windows.ps1
+```
+
+---
+
+## 15. Script `Configurar-Idioma-Regional.ps1`
+
+### 15.1. Finalidade
+
+O script `Configurar-Idioma-Regional.ps1` padroniza idioma, locale regional e fuso horário
+de instalações Windows 10/11 para o padrão brasileiro (pt-BR).
+
+### 15.2. Quando usar
+
+Use quando precisar:
+
+- padronizar o idioma em uma nova instalação;
+- corrigir locale regional em máquina com configuração incorreta;
+- implantar configuração de idioma via automação (GPO, SCCM);
+- ajustar fuso horário para uma região específica.
+
+### 15.3. Principais parâmetros
+
+| Parâmetro | O que faz |
+|---|---|
+| `-Silent` | Sem interação; para automação |
+| `-NoReboot` | Não reinicia ao final |
+| `-TimeZone` | Define fuso (padrão: UTC-4) |
+| `-ListTimeZones` | Lista fusos disponíveis |
+
+### 15.4. Exemplos de uso
+
+Configuração padrão (pt-BR, UTC-4):
+
+```powershell
+.\configuration\Configurar-Idioma-Regional.ps1
+```
+
+Modo silencioso sem reboot (automação):
+
+```powershell
+.\configuration\Configurar-Idioma-Regional.ps1 -Silent -NoReboot
+```
+
+Fuso de Brasília (UTC-3):
+
+```powershell
+.\configuration\Configurar-Idioma-Regional.ps1 -TimeZone "E. South America Standard Time"
+```
+
+Listar fusos do Brasil:
+
+```powershell
+.\configuration\Configurar-Idioma-Regional.ps1 -ListTimeZones
+```
+
+---
+
+## 16. Script `Analise-Espaco-Disco.ps1`
+
+### 16.1. Finalidade
+
+O script `Analise-Espaco-Disco.ps1` varre os volumes locais, identifica as 20 maiores pastas
+e os 10 maiores arquivos e estima categorias de espaço desperdiçado. Gera relatório HTML.
+
+### 16.2. Quando usar
+
+Use quando precisar:
+
+- identificar o que ocupa mais espaço no disco;
+- detectar categorias de limpeza (temp, cache, dumps, Windows.old);
+- gerar evidência antes de uma limpeza manual;
+- documentar uso de disco por pasta.
+
+### 16.3. Exemplos de uso
+
+Varrer todos os volumes locais:
+
+```powershell
+.\utilities\Analise-Espaco-Disco.ps1
+```
+
+Varrer somente o volume C:
+
+```powershell
+.\utilities\Analise-Espaco-Disco.ps1 -Drive C
+```
+
+Sem conversão para PDF:
+
+```powershell
+.\utilities\Analise-Espaco-Disco.ps1 -NaoPDF
+```
+
+Salvar em pasta específica:
+
+```powershell
+.\utilities\Analise-Espaco-Disco.ps1 -OutputDir "D:\Relatorios"
+```
+
+---
+
+## 17. Script `Remover-Perfis-Inativos.ps1`
+
+### 17.1. Finalidade
+
+O script `Remover-Perfis-Inativos.ps1` lista perfis de usuário locais com espaço em disco
+e permite remover interativamente perfis antigos, inativos ou órfãos.
+
+### 17.2. Quando usar
+
+Use quando precisar:
+
+- recuperar espaço de perfis de usuários que não usam mais o computador;
+- remover perfis órfãos (conta do domínio excluída);
+- limpar máquina compartilhada com perfis acumulados;
+- verificar quais perfis existem e quanto ocupam.
+
+### 17.3. Principais parâmetros
+
+| Parâmetro | O que faz |
+|---|---|
+| `-DryRun` | Lista o que seria removido sem alterar nada |
+| `-Silent` | Remove órfãos e inativos sem confirmação manual |
+| `-ExcludeProfile` | Lista de perfis a preservar |
+
+### 17.4. Exemplos de uso
+
+Simulação — ver o que seria removido:
+
+```powershell
+.\utilities\Remover-Perfis-Inativos.ps1 -DryRun
+```
+
+Modo interativo (padrão):
+
+```powershell
+.\utilities\Remover-Perfis-Inativos.ps1
+```
+
+Automático sem interação:
+
+```powershell
+.\utilities\Remover-Perfis-Inativos.ps1 -Silent
+```
+
+Excluindo perfis específicos:
+
+```powershell
+.\utilities\Remover-Perfis-Inativos.ps1 -ExcludeProfile "svc.backup","adm.temp"
+```
+
+---
+
+## 18. Script `Diagnostico-GPO-Client.ps1`
+
+### 18.1. Finalidade
+
+O script `Diagnostico-GPO-Client.ps1` diagnostica falhas de aplicação de GPO em clientes
+Windows, verificando canal seguro, conectividade com DC, SYSVOL, GPOs aplicadas e eventos.
+
+### 18.2. Quando usar
+
+Use quando:
+
+- o usuário reclamar que políticas de grupo não estão sendo aplicadas;
+- `gpupdate /force` falhar ou não surtir efeito;
+- houver erros de canal seguro ou autenticação no domínio;
+- a máquina aparecer como fora do domínio.
+
+### 18.3. Principais parâmetros
+
+| Parâmetro | O que faz |
+|---|---|
+| `-DomainFQDN` | FQDN do domínio (detecção automática se omitido) |
+| `-DCName` | DC preferencial (detecção automática se omitido) |
+| `-SkipReparo` | Somente diagnóstico; sem oferecer reparos |
+
+### 18.4. Exemplos de uso
+
+Diagnóstico com detecção automática:
+
+```powershell
+.\active-directory\Diagnostico-GPO-Client.ps1
+```
+
+Somente leitura com DC específico:
+
+```powershell
+.\active-directory\Diagnostico-GPO-Client.ps1 -DCName DC01 -SkipReparo
+```
+
+Com FQDN do domínio informado:
+
+```powershell
+.\active-directory\Diagnostico-GPO-Client.ps1 -DomainFQDN contoso.local
+```
+
+---
+
+## 19. Script `Testa-Repara-ContaMaquinaAD.ps1`
+
+### 19.1. Finalidade
+
+O script `Testa-Repara-ContaMaquinaAD.ps1` executa sequência interativa de testes para validar
+e reparar a conta de máquina e o canal seguro no domínio Active Directory.
+
+### 19.2. Quando usar
+
+Use quando:
+
+- a máquina não conseguir autenticar no domínio;
+- o canal seguro estiver quebrado (`Test-ComputerSecureChannel` retorna `$false`);
+- tickets Kerberos da conta de computador falharem;
+- `net ads testjoin` indicar falha.
+
+### 19.3. Principais parâmetros
+
+| Parâmetro | O que faz |
+|---|---|
+| `-DomainFqdn` | FQDN do domínio (detecção automática se omitido) |
+| `-DomainNetBIOS` | NetBIOS do domínio |
+| `-PreferredDc` | IP ou nome do DC preferencial |
+| `-DnsServers` | Lista de DNS a usar nos testes |
+
+### 19.4. Exemplos de uso
+
+Diagnóstico com detecção automática:
+
+```powershell
+.\active-directory\Testa-Repara-ContaMaquinaAD.ps1
+```
+
+Com domínio e DC específicos:
+
+```powershell
+.\active-directory\Testa-Repara-ContaMaquinaAD.ps1 `
+    -DomainFqdn contoso.local -PreferredDc DC01
+```
+
+Com DNS específico:
+
+```powershell
+.\active-directory\Testa-Repara-ContaMaquinaAD.ps1 `
+    -DomainFqdn contoso.local -DnsServers 192.168.1.7
+```
+
+---
+
+## 20. Fluxo de atendimento recomendado
+
+### 20.1. Quando o problema é disco 100%
 
 1. Abrir PowerShell como Administrador.
 2. Entrar na pasta do toolkit.
@@ -1121,7 +1409,7 @@ Configurações > Windows Update
 7. Desabilitar apenas uma entrada de inicialização por vez.
 8. Reiniciar e testar.
 
-### 14.2. Quando o problema é pouco espaço em disco
+### 20.2. Quando o problema é pouco espaço em disco
 
 1. Executar:
 
@@ -1132,7 +1420,7 @@ Configurações > Windows Update
 2. Verificar o log em `C:\WBA\Relatorios\Maintenance\<timestamp>\logs`.
 3. Confirmar espaço livre depois da execução.
 
-### 14.3. Quando o problema é sistema desatualizado
+### 20.3. Quando o problema é sistema desatualizado
 
 1. Executar:
 
@@ -1143,7 +1431,7 @@ Configurações > Windows Update
 2. Conferir Windows Update nas Configurações.
 3. Reiniciar se o Windows solicitar.
 
-### 14.4. Quando o problema é tela preta ou travamento gráfico
+### 20.4. Quando o problema é tela preta ou travamento gráfico
 
 1. Executar:
 
@@ -1166,7 +1454,7 @@ Configurações > Windows Update
 
 5. Depois da intervenção, executar o resumo novamente e comparar a versão do driver.
 
-### 14.5. Quando precisa de manual local
+### 20.5. Quando precisa de portal de documentação local
 
 1. Importar módulo:
 
@@ -1174,31 +1462,31 @@ Configurações > Windows Update
 Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1 -Force
 ```
 
-2. Gerar manual:
+2. Gerar portal:
 
 ```powershell
-Export-ToolkitFunctionDocs -OutputPath .\docs-html -Force
+Export-ToolkitDocumentation -Mode All -Force
 ```
 
 3. Abrir:
 
 ```powershell
-Start-Process .\docs-html\index.html
+Start-Process .\docs\portal\index.html
 ```
 
-## 15. Mensagens comuns e o que fazer
+## 21. Mensagens comuns e o que fazer
 
-| Mensagem ou situação | O que significa | O que fazer |
+| Situação | Causa | Ação |
 |---|---|---|
-| Script bloqueado por política | Windows bloqueou execução | Rodar `Set-ExecutionPolicy Bypass -Scope Process -Force` |
-| Precisa de administrador | O script exige elevação | Abrir PowerShell como Administrador |
-| Chocolatey não encontrado | O computador não tem Chocolatey | A etapa será ignorada |
-| UsoClient não mostra progresso | Comportamento normal do Windows | Verificar em Configurações |
-| DISM/SFC demora | Normal em alguns computadores | Aguardar conclusão |
-| CHKDSK informa agendamento | Verificação será no próximo boot | Avisar usuário antes de reiniciar |
-| Relatório HTML não abre | Caminho incorreto | Abrir o arquivo `index.html` ou `relatorio-hd100.html` correto |
+| Script bloqueado por política | Windows bloqueou execução | `Set-ExecutionPolicy Bypass -Scope Process -Force` |
+| Precisa de administrador | Script exige elevação | Abrir PowerShell como Administrador |
+| Chocolatey não encontrado | Não instalado no computador | A etapa é ignorada automaticamente |
+| UsoClient sem progresso visível | Comportamento normal do Windows | Verificar em Configurações > Windows Update |
+| DISM ou SFC demora muito | Normal em alguns computadores | Aguardar; não interromper |
+| CHKDSK agendado no próximo boot | Verificação agendada | Avisar o usuário antes de reiniciar |
+| Relatório HTML não abre | Caminho de arquivo incorreto | Abrir `index.html` ou `relatorio-hd100.html` na pasta correta |
 
-## 16. Regras de segurança para operador
+## 22. Regras de segurança para operador
 
 1. Comece sempre pelo modo diagnóstico.
 2. Leia o resumo antes de executar correções.
@@ -1211,7 +1499,7 @@ Start-Process .\docs-html\index.html
 9. Guarde o caminho do relatório e do log.
 10. Em dúvida, pare e escale para um técnico mais experiente.
 
-## 17. Checklist rápido
+## 23. Checklist rápido
 
 Antes de executar:
 

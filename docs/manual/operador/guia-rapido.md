@@ -1,116 +1,239 @@
 # Guia Rápido do Operador — WBA Windows Toolkit
 
-Autor: **wbaamaral**
+Autor: **wbaamaral** — v1.1.3
 
-Para o manual completo, consulte [`../manual-operador-wba-windows-toolkit.md`](../../manual-operador-wba-windows-toolkit.md).
+Manual completo: [`docs/manual-operador-wba-windows-toolkit.md`](../../manual-operador-wba-windows-toolkit.md)
+
+---
 
 ## Pré-requisitos
 
 ```powershell
 # 1. Abrir PowerShell como Administrador
 # 2. Navegar até a raiz do toolkit
-cd C:\WBA\wba-windows-toolkit
+cd C:\ti\wba-windows-toolkit
 
-# 3. Liberar execução de scripts (sessão atual)
+# 3. Liberar execução de scripts (somente esta sessão)
 Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
 
-# 4. Importar módulo principal
-Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psm1
+# 4. Importar módulo principal (quando necessário)
+Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1 -Force
 ```
 
-## Diagnóstico de rede
+---
+
+## Scripts operacionais
+
+### Diagnóstico de rede
 
 ```powershell
+# Diagnóstico padrão:
 .\diagnostics\networking\Testar-Conectividade-Internet.ps1
-# Com relatório HTML:
-.\diagnostics\networking\Testar-Conectividade-Internet.ps1 -GerarRelatorioHtml
+
+# Com detalhes adicionais no console:
+.\diagnostics\networking\Testar-Conectividade-Internet.ps1 -Detalhado
 ```
 
-## Diagnóstico de disco (HD100)
+### Diagnóstico de disco (HD100)
 
 ```powershell
-# Diagnóstico completo
+# Diagnóstico padrão:
 .\maintenance\Diagnostico-Reparo-HD100.ps1
 
-# Apenas diagnóstico, sem ações
-.\maintenance\Diagnostico-Reparo-HD100.ps1 -ApenasRelatorio
+# Com relatório HTML:
+.\maintenance\Diagnostico-Reparo-HD100.ps1 -GerarHtml
+
+# Modo assistido (oferece ações de reparo):
+.\maintenance\Diagnostico-Reparo-HD100.ps1 -Modo Assistido -GerarHtml
+
+# Simulação sem executar comandos externos:
+.\maintenance\Diagnostico-Reparo-HD100.ps1 -DryRun
 ```
 
-## Diagnóstico de driver gráfico
+### Diagnóstico de driver gráfico
 
 ```powershell
+# Diagnóstico padrão:
 .\diagnostics\Diagnostico-Driver-Grafico.ps1
+
+# Com relatório HTML:
+.\diagnostics\Diagnostico-Driver-Grafico.ps1 -GerarHtml
+
+# Coleta completa (HTML + DXDiag + exportação de log de eventos):
+.\diagnostics\Diagnostico-Driver-Grafico.ps1 -GerarHtml -ColetarDxDiag -ExportarEvtx
 ```
 
-## Gerenciar inicialização
+### Inventário de hardware/software
 
 ```powershell
-# Abre menu interativo
-.\maintenance\Gerenciar-Inicializacao-Windows.ps1
-```
-
-## Inventário de hardware/software
-
-```powershell
-# Inventário completo
+# Inventário completo (HTML + PDF quando Chrome ou Edge disponível):
 .\inventory\Inventario-Hardware-Software.ps1
 
-# Apenas hardware e drivers (resumo)
+# Sem PDF (somente HTML):
+.\inventory\Inventario-Hardware-Software.ps1 -NaoPDF
+
+# Somente resumo de hardware e drivers:
 .\inventory\Inventario-Hardware-Software.ps1 -SomenteHardwareDrivers
 
-# Com HTML
-.\inventory\Inventario-Hardware-Software.ps1 -GerarHtml
+# Inventário completo + resumo de hardware/drivers:
+.\inventory\Inventario-Hardware-Software.ps1 -GerarResumoHardwareDrivers
 ```
 
-## Limpeza do Windows
+### Gerenciar inicialização
 
 ```powershell
-.\maintenance\limpeza-windows.ps1
+# Somente visualização (padrão):
+.\maintenance\Gerenciar-Inicializacao-Windows.ps1
+
+# Com relatório HTML:
+.\maintenance\Gerenciar-Inicializacao-Windows.ps1 -GerarHtml
+
+# Modo assistido (permite desabilitar/habilitar entradas):
+.\maintenance\Gerenciar-Inicializacao-Windows.ps1 -Modo Assistido
+
+# Simulação sem alterar o sistema:
+.\maintenance\Gerenciar-Inicializacao-Windows.ps1 -Modo Assistido -DryRun
 ```
 
-## Atualizar Windows
+### Limpeza do Windows
 
 ```powershell
-.\updates\upgrade-windows.ps1
+# Limpeza conservadora sem reiniciar (recomendado):
+.\maintenance\limpeza-windows.ps1 -NoReboot
+
+# Somente reparar sistema (SFC + DISM):
+.\maintenance\limpeza-windows.ps1 -RepararSistema -NoReboot
+
+# Limpeza sem SFC/DISM:
+.\maintenance\limpeza-windows.ps1 -NoSfc -NoReboot
+
+# Liberar espaço do hiberfil.sys (desativa hibernação):
+.\maintenance\limpeza-windows.ps1 -DisableHibernation -NoReboot
 ```
 
-## Remover perfis inativos
+### Preparar imagem corporativa (sysprep)
 
 ```powershell
-.\utilities\Remover-Perfis-Inativos.ps1
-```
+# Simulação obrigatória antes de qualquer execução:
+.\maintenance\Preparar-Imagem-Windows.ps1 -ApenasDryRun
 
-## Preparar imagem corporativa (sysprep)
+# Aplicar tweaks sem iniciar sysprep:
+.\maintenance\Preparar-Imagem-Windows.ps1 -SemSysprep
 
-```powershell
-# Executa tweaks de perfil Default e inicia sysprep
+# Execução completa (tweaks de perfil Default + sysprep):
 .\maintenance\Preparar-Imagem-Windows.ps1
 ```
 
-## Configurar pasta de relatórios
+### Configurar idioma e região
 
 ```powershell
-Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psm1
+# Configuração padrão (pt-BR, UTC-4):
+.\configuration\Configurar-Idioma-Regional.ps1
+
+# Modo silencioso sem reboot (automação, GPO, SCCM):
+.\configuration\Configurar-Idioma-Regional.ps1 -Silent -NoReboot
+
+# Fuso de Brasília (UTC-3):
+.\configuration\Configurar-Idioma-Regional.ps1 -TimeZone "E. South America Standard Time"
+
+# Listar fusos disponíveis do Brasil:
+.\configuration\Configurar-Idioma-Regional.ps1 -ListTimeZones
+```
+
+### Análise de espaço em disco
+
+```powershell
+# Varrer todos os volumes locais:
+.\utilities\Analise-Espaco-Disco.ps1
+
+# Varrer somente C::
+.\utilities\Analise-Espaco-Disco.ps1 -Drive C
+
+# Sem conversão para PDF:
+.\utilities\Analise-Espaco-Disco.ps1 -NaoPDF
+```
+
+### Remover perfis inativos
+
+```powershell
+# Simulação — lista o que seria removido sem alterar nada:
+.\utilities\Remover-Perfis-Inativos.ps1 -DryRun
+
+# Modo interativo (padrão):
+.\utilities\Remover-Perfis-Inativos.ps1
+
+# Automático (remove órfãos e inativos sem confirmação):
+.\utilities\Remover-Perfis-Inativos.ps1 -Silent
+```
+
+### Atualizar Windows
+
+```powershell
+# Atualização completa (Windows Update + Chocolatey):
+.\updates\upgrade-windows.ps1 -PauseAtEnd
+
+# Somente Windows Update:
+.\updates\upgrade-windows.ps1 -NoChocolatey -PauseAtEnd
+
+# Somente Chocolatey:
+.\updates\upgrade-windows.ps1 -NoWindowsUpdate -PauseAtEnd
+```
+
+### Diagnóstico de GPO
+
+```powershell
+# Detecção automática de domínio e DC:
+.\active-directory\Diagnostico-GPO-Client.ps1
+
+# Somente leitura com DC específico:
+.\active-directory\Diagnostico-GPO-Client.ps1 -DCName DC01 -SkipReparo
+
+# Com FQDN do domínio informado:
+.\active-directory\Diagnostico-GPO-Client.ps1 -DomainFQDN contoso.local
+```
+
+### Reparo de conta de máquina no domínio
+
+```powershell
+# Detecção automática de domínio e DC:
+.\active-directory\Testa-Repara-ContaMaquinaAD.ps1
+
+# Com domínio e DC específicos:
+.\active-directory\Testa-Repara-ContaMaquinaAD.ps1 `
+    -DomainFqdn contoso.local -PreferredDc DC01
+
+# Com DNS específico:
+.\active-directory\Testa-Repara-ContaMaquinaAD.ps1 `
+    -DomainFqdn contoso.local -DnsServers 192.168.1.7
+```
+
+---
+
+## Pasta de relatórios
+
+Caminho padrão: `C:\WBA\Relatorios\<Script>\<timestamp>\`
+
+```powershell
+Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1 -Force
+
+# Definir pasta padrão permanente:
 Set-ToolkitReportsRoot -Path "D:\Relatorios"
+
+# Consultar pasta atual:
 Get-ToolkitReportsRoot
 ```
 
-## Onde encontrar relatórios
-
-Padrão: `C:\WBA\Relatorios\<Script>\<timestamp>\`
-
-- Logs: `logs\`
-- Relatórios HTML: `<nome-relatorio>.html`
-- Backups: `backups\`
+---
 
 ## Gerar portal de documentação HTML
 
 ```powershell
-Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1
+Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1 -Force
+
 # Portal completo (portal operacional + referência técnica):
 Export-ToolkitDocumentation -Mode All -Force
-# Abre em: .\docs\portal\index.html
+# Resultado em: .\docs\portal\index.html
 
-# Apenas portal operacional (mais rápido):
+# Somente portal operacional:
 Export-ToolkitDocumentation -Mode Portal -Force
 ```
