@@ -3,6 +3,10 @@
 CLAUDE.md
 .env
 
+# Artefatos gerados pelo pipeline LaTeX (docs/latex/build/)
+docs/latex/build/*
+!docs/latex/build/.gitkeep
+
 # ---> Kate
 # Swap Files #
 .*.kate-swp
