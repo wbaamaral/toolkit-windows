@@ -5,6 +5,6 @@ variables:
   toc: true
   toc-depth: 2
 include-in-header:
-  - docs/latex/header-includes.tex
+  - docs/latex/preambulo.tex
 highlight-style: tango
 number-sections: false

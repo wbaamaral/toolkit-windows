@@ -1,11 +1,18 @@
-% Pandoc (LuaLaTeX) já carrega fontspec e babel[brazilian] via lang: pt-BR no frontmatter.
-% Este arquivo adiciona apenas o que o template padrão não configura.
+% preambulo.tex — WBA Windows Toolkit
+% Carregado via --include-in-header pelo pipeline Pandoc + LuaLaTeX.
+%
+% fontspec e babel[brazilian] são injetados automaticamente pelo template
+% Pandoc quando pdf-engine=lualatex e lang=pt-BR estão definidos.
+% Estão declarados abaixo apenas para documentação; descomente se este
+% arquivo for usado fora do pipeline Pandoc:
+%   \usepackage{fontspec}
+%   \usepackage[brazilian]{babel}
 
 % Geometria A4 com margens confortáveis
 \usepackage[a4paper, top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm]{geometry}
 
 % Quebra automática de linhas em blocos de código
-% "Highlighting" é o ambiente que Pandoc usa com syntax highlighting
+% O ambiente "Highlighting" é gerado pelo Pandoc para syntax highlighting
 \usepackage{fvextra}
 \DefineVerbatimEnvironment{Highlighting}{Verbatim}{%
   breaklines=true,%
@@ -14,10 +21,13 @@
   commandchars=\\\{\}%
 }
 
-% Cores (necessário antes de hyperref)
+% Cores
 \usepackage{xcolor}
 
-% Tabelas — wrap automático de texto nas células
+% Links clicáveis
+\usepackage[colorlinks=true, linkcolor=black, urlcolor=blue!60!black, citecolor=black]{hyperref}
+
+% Tabelas com wrap automático de texto nas células
 \usepackage{longtable}
 \usepackage{booktabs}
 \usepackage{array}
@@ -33,7 +43,8 @@
 \renewcommand{\headrulewidth}{0.4pt}
 \renewcommand{\footrulewidth}{0pt}
 
-% Fonte monoespaçada para blocos de código (fontspec já foi carregado pelo Pandoc)
+% Fonte monoespaçada para blocos de código
+% fontspec já foi carregado pelo template Pandoc neste ponto
 \AtBeginDocument{%
   \IfFontExistsTF{Libertinus Mono}{%
     \setmonofont{Libertinus Mono}[Scale=0.9]%
