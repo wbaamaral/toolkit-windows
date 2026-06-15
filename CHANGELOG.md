@@ -4,6 +4,22 @@
 
 
 
+## [v1.1.4] — 2026-06-14
+
+### Adicionado
+- `tools/build-pdf.sh`: pipeline de geração de PDF via Pandoc + LuaLaTeX em dois passos (pandoc → .tex, latexmk → PDF); validação de acentuação escapada; documentação de dependências TeX Live
+- `docs/latex/preambulo.tex`: preâmbulo LaTeX alinhado ao ADR 0019; quebra automática de linhas em blocos de código (`fvextra`); margens A4; cabeçalho/rodapé; tabelas com wrap
+- `docs/latex/pandoc-defaults.yaml`: configuração do pipeline Pandoc (LuaLaTeX, sumário, highlight tango)
+- `docs/latex/build/.gitkeep`: diretório de build LaTeX rastreado no git
+
+### Alterado
+- `docs/manual-operador-wba-windows-toolkit.md`: alinhado com v1.1.3; 6 novas seções para scripts ausentes (Preparar-Imagem, Configurar-Idioma, Analise-Espaco, Remover-Perfis, Diagnostico-GPO, Testa-Repara-ContaMaquinaAD); parâmetros corrigidos; tabelas largas corrigidas; linhas longas de código quebradas com continuação PS5
+- `docs/manual/operador/guia-rapido.md`: todos os 13 scripts documentados com parâmetros corretos
+- `docs/manual-operador-wba-windows-toolkit.pdf`: regenerado com pipeline LaTeX; margens respeitadas; blocos de código com quebra automática; tabelas sem overflow
+
+### Removido
+- `docs/latex/header-includes.tex`: substituído por `preambulo.tex` (renomeação para nome canônico da spec)
+
 ## [v1.1.3] — 2026-06-14
 
 ### Alterado
