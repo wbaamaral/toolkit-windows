@@ -1,6 +1,6 @@
-# WBA Windows Toolkit — v1.1.3
+# WBA Windows Toolkit — v1.1.4
 
-> **v1.1.3** · PowerShell 5.1 · Windows 10 / Server 2016+
+> **v1.1.4** · PowerShell 5.1 · Windows 10 / Server 2016+
 
 ---
 
@@ -55,16 +55,18 @@
 
 ## 📋 O que mudou nesta versão
 
+### v1.1.4 — Pipeline LaTeX e Manual do Operador revisado
+- `tools/build-pdf.sh`: pipeline de geração de PDF em dois passos (Pandoc → .tex, latexmk → PDF) com validação de acentuação e documentação de dependências
+- `docs/latex/preambulo.tex`: preâmbulo alinhado ao ADR 0019 — quebra automática em blocos de código, margens A4, cabeçalho/rodapé, tabelas com wrap
+- `docs/manual-operador-wba-windows-toolkit.md`: revisão completa — 6 novas seções de scripts, parâmetros corrigidos, tabelas sem overflow
+- `docs/manual-operador-wba-windows-toolkit.pdf`: regenerado com pipeline LaTeX; margens e blocos de código corrigidos
+
 ### v1.1.3 — RELEASE-NOTES.md atualizado para a versão corrente
 - `RELEASE-NOTES.md` reflete a v1.1.3 e aplica a janela deslizante definida no processo de release
 
 ### v1.1.2 — Processo de release e artefatos formalizados
 - `RELEASE-NOTES.md`: documento de apresentação da release publicado como corpo no Codeberg
 - `tools/publish-codeberg-release.sh`: publica release via API do Codeberg (curl + Python)
-- `spec-win-toolkit`: `processo-release.md` reescrito; ADR 0018 atualizado; `template-release-notes.md` criado
-
-### v1.1.1 — Correções de documentação
-- `docs/manual/` atualizado para refletir `Export-ToolkitDocumentation`: contagem de funções corrigida (23→24), exemplos atualizados, seção de portal HTML no guia rápido
 
 ---
 
