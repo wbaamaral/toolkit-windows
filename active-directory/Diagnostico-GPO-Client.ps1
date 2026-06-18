@@ -22,7 +22,8 @@ param(
     [string]$DomainFQDN  = '',
     [string]$DCName      = '',
     [switch]$SkipReparo,
-    [string]$DiretorioSaida
+    [Alias('DiretorioSaida')]
+    [string]$Path
 )
 
 Set-StrictMode -Version 2.0
@@ -72,7 +73,7 @@ function Add-Result {
 # Preparacao
 # ---------------------------------------------------------------------------
 $Timestamp  = Get-Date -Format 'yyyy-MM-dd_HHmmss'
-$ReportSession = Initialize-ToolkitReportSession -ReportsRoot $DiretorioSaida -ModuleName 'ActiveDirectory' -ExecutionName $Timestamp
+$ReportSession = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'ActiveDirectory' -ExecutionName $Timestamp
 $LogDir     = $ReportSession.LogsPath
 $LogFile    = Join-Path $LogDir "DiagGPO-$Timestamp.log"
 $HtmlReport = Join-Path $ReportSession.Path "GPOResult-$Timestamp.html"

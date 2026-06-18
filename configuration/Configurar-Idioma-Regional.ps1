@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
     Padroniza idioma, locale regional e fuso horario de instalacoes Windows 10/11 Pro+ para pt-BR.
@@ -60,7 +60,8 @@ param (
 
     [string]$TimeZone = "SA Western Standard Time",
 
-    [string]$DiretorioSaida
+    [Alias('DiretorioSaida')]
+    [string]$Path
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -393,7 +394,7 @@ if (-not (Test-IsAdministrator)) {
     exit
 }
 
-$ReportSession = Initialize-ToolkitReportSession -ReportsRoot $DiretorioSaida -ModuleName 'Configuration'
+$ReportSession = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'Configuration'
 $LogDir        = $ReportSession.LogsPath
 $LogFile       = Join-Path $LogDir "$((Get-Date).ToString('yyyy-MM-dd_HHmmss'))-$([System.IO.Path]::GetFileNameWithoutExtension($ScriptName)).log"
 

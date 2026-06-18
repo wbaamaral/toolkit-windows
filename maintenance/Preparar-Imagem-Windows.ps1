@@ -44,7 +44,8 @@
 param(
     [switch]$ApenasDryRun,
     [switch]$SemSysprep,
-    [string]$DiretorioSaida
+    [Alias('DiretorioSaida')]
+    [string]$Path
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -95,7 +96,7 @@ if ($ApenasDryRun) {
 
 $script:Session = Initialize-ScriptSession `
     -ModuleName 'WbaToolkit.Maintenance' `
-    -BasePath $DiretorioSaida `
+    -BasePath $Path `
     -ExecutionMode 'Preparacao'
 
 Write-SysprepLog -Message "Sessao iniciada. ApenasDryRun: $ApenasDryRun. SemSysprep: $SemSysprep."

@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
     Lista perfis de usuario locais com espaco em disco e permite remocao interativa
@@ -57,7 +57,8 @@ param (
 
     [string[]]$ExcludeProfile = @(),
 
-    [string]$DiretorioSaida
+    [Alias('DiretorioSaida')]
+    [string]$Path
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -528,7 +529,7 @@ if (-not (Test-IsAdministrator)) {
 
 $transcriptActive = $false
 if (-not $NoLog) {
-    $ReportSession = Initialize-ToolkitReportSession -ReportsRoot $DiretorioSaida -ModuleName 'Utilities'
+    $ReportSession = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'Utilities'
     $LogDir        = $ReportSession.LogsPath
     $LogFile       = Join-Path $LogDir "$((Get-Date).ToString('yyyy-MM-dd_HHmmss'))-$([System.IO.Path]::GetFileNameWithoutExtension($ScriptName)).log"
 

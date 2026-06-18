@@ -1,4 +1,4 @@
-﻿#requires -version 5.1
+#requires -version 5.1
 
 param (
     [switch]$Help,
@@ -9,7 +9,8 @@ param (
     [switch]$NoRebootWarning,
     [switch]$PauseAtEnd,
 
-    [string]$DiretorioSaida
+    [Alias('DiretorioSaida')]
+    [string]$Path
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -251,7 +252,7 @@ if (-not (Test-IsAdministrator)) {
     exit
 }
 
-$ReportSession = Initialize-ToolkitReportSession -ReportsRoot $DiretorioSaida -ModuleName 'Updates'
+$ReportSession = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'Updates'
 $LogDir = $ReportSession.LogsPath
 $LogFile = Join-Path $LogDir "$((Get-Date).ToString('yyyy-MM-dd_HHmmss'))-upgrade-windows.log"
 
