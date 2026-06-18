@@ -516,17 +516,17 @@ function Get-GfxGpuCounters {
             $instance = [string]$counter.InstanceName
             if ($instance -notmatch 'pid_(\d+)') { continue }
 
-            $pid = [int]$Matches[1]
-            if (-not $rows.ContainsKey($pid)) {
-                $processName = if ($processMap.ContainsKey($pid)) { $processMap[$pid] } else { 'PID ' + $pid }
-                $rows[$pid] = [pscustomobject]@{
-                    ProcessId = $pid
+            $processId = [int]$Matches[1]
+            if (-not $rows.ContainsKey($processId)) {
+                $processName = if ($processMap.ContainsKey($processId)) { $processMap[$processId] } else { 'PID ' + $processId }
+                $rows[$processId] = [pscustomobject]@{
+                    ProcessId = $processId
                     ProcessName = $processName
                     GpuUtilization = 0.0
                 }
             }
 
-            $rows[$pid].GpuUtilization = [double]$rows[$pid].GpuUtilization + [double]$counter.CookedValue
+            $rows[$processId].GpuUtilization = [double]$rows[$processId].GpuUtilization + [double]$counter.CookedValue
         }
 
         return @($rows.Values | Sort-Object GpuUtilization -Descending | Select-Object -First 15)
@@ -933,6 +933,7 @@ function ConvertTo-GfxHtmlRows {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
         [array]$Rows,
 
         [Parameter(Mandatory = $true)]
