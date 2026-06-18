@@ -50,7 +50,7 @@
     .\Diagnostico-Memoria.ps1 -Todos -GerarHtml -AbrirRelatorio
 
 .EXAMPLE
-    .\Diagnostico-Memoria.ps1 -GerarHtml -DiretorioSaida "D:\Relatorios\Teste"
+    .\Diagnostico-Memoria.ps1 -GerarHtml -Path "D:\Relatorios\Teste"
 
 .NOTES
     Autor  : WBA Windows Toolkit
