@@ -50,6 +50,7 @@ Import-Module $ToolkitModulePath -Force -ErrorAction Stop
 $script:Results = [System.Collections.Generic.List[object]]::new()
 
 function Add-Result {
+    [CmdletBinding()]
     param([string]$Etapa, [string]$Status, [string]$Detalhe)
     $script:Results.Add([PSCustomObject]@{
         DataHora = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'

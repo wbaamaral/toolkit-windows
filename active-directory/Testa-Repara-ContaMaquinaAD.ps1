@@ -77,6 +77,7 @@ $script:DetectedDcHost = $null
 $script:DetectedDcIp = $null
 
 function Add-TestResult {
+    [CmdletBinding()]
     param(
         [string]$Etapa,
         [string]$Status,
@@ -92,6 +93,7 @@ function Add-TestResult {
 }
 
 function Read-ValueWithDefault {
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)][string]$Question,
         [Parameter(Mandatory = $false)][string]$DefaultValue
@@ -100,11 +102,13 @@ function Read-ValueWithDefault {
 }
 
 function Test-IsIPv4 {
+    [CmdletBinding()]
     param([string]$Value)
     return ($Value -match '^\d{1,3}(\.\d{1,3}){3}$')
 }
 
 function Get-DomainCredentialSafe {
+    [CmdletBinding()]
     param([string]$Purpose)
 
     if ($null -eq $script:DomainCredential) {
@@ -124,6 +128,7 @@ function Get-DomainCredentialSafe {
 }
 
 function Initialize-Log {
+    [CmdletBinding()]
     if ($NoTranscript) {
         return
     }
@@ -146,6 +151,7 @@ function Initialize-Log {
 }
 
 function Initialize-Context {
+    [CmdletBinding()]
     Write-Title 'Coleta inicial de contexto'
 
     $computerSystem = Get-CimInstance Win32_ComputerSystem
@@ -176,6 +182,7 @@ function Initialize-Context {
 }
 
 function Show-DnsClientConfiguration {
+    [CmdletBinding()]
     Write-Title 'Teste 1 - Configuração DNS do cliente'
 
     try {
@@ -226,6 +233,7 @@ function Show-DnsClientConfiguration {
 }
 
 function Test-DnsRecords {
+    [CmdletBinding()]
     Write-Title 'Teste 2 - Resolução DNS e registros SRV do Active Directory'
 
     $queries = @(
@@ -259,6 +267,7 @@ function Test-DnsRecords {
 }
 
 function Get-DomainControllerByNltest {
+    [CmdletBinding()]
     Write-Title 'Teste 3 - Descoberta do controlador de domínio'
 
     $result = Invoke-ExternalCommand -FilePath 'nltest.exe' -ArgumentList @("/dsgetdc:$DomainFqdn", '/force')
@@ -307,6 +316,7 @@ function Get-DomainControllerByNltest {
 }
 
 function Get-DcTarget {
+    [CmdletBinding()]
     if (-not [string]::IsNullOrWhiteSpace($script:DetectedDcIp)) {
         return $script:DetectedDcIp
     }
@@ -319,6 +329,7 @@ function Get-DcTarget {
 }
 
 function Test-DcPorts {
+    [CmdletBinding()]
     Write-Title 'Teste 4 - Portas essenciais para autenticação no AD'
 
     $dcTarget = Get-DcTarget
@@ -358,6 +369,7 @@ function Test-DcPorts {
 }
 
 function Test-TimeSync {
+    [CmdletBinding()]
     Write-Title 'Teste 5 - Hora, fuso e sincronização com o domínio'
 
     $dcForTime = if (-not [string]::IsNullOrWhiteSpace($script:DetectedDcHost)) {
@@ -391,6 +403,7 @@ function Test-TimeSync {
 }
 
 function Test-DomainMembership {
+    [CmdletBinding()]
     Write-Title 'Teste 6 - Ingresso da máquina no domínio'
 
     try {
@@ -448,6 +461,7 @@ function Test-DomainMembership {
 }
 
 function Test-NltestSecureChannel {
+    [CmdletBinding()]
     Write-Title 'Teste 7 - nltest /sc_query e /sc_verify'
 
     $query = Invoke-ExternalCommand -FilePath 'nltest.exe' -ArgumentList @("/sc_query:$DomainFqdn")
@@ -476,6 +490,7 @@ function Test-NltestSecureChannel {
 }
 
 function Test-MachineKerberosTickets {
+    [CmdletBinding()]
     Write-Title 'Teste 8 - Tickets Kerberos da conta de máquina'
 
     $machinePrincipal = "$($env:COMPUTERNAME)`$"
@@ -497,6 +512,7 @@ function Test-MachineKerberosTickets {
 }
 
 function Test-AndRepairComputerSecureChannel {
+    [CmdletBinding()]
     Write-Title 'Teste 9 - Test-ComputerSecureChannel'
 
     $secureChannelOk = $false
@@ -610,6 +626,7 @@ function Test-AndRepairComputerSecureChannel {
 }
 
 function Invoke-DomainRemoval {
+    [CmdletBinding()]
     Write-Title 'Etapa opcional - Remoção do domínio'
 
     $cred = Get-DomainCredentialSafe -Purpose 'remover máquina do domínio'
@@ -633,6 +650,7 @@ function Invoke-DomainRemoval {
 }
 
 function Show-FinalSummary {
+    [CmdletBinding()]
     Write-Title 'Resumo final dos testes'
 
     $script:Results | Format-Table DataHora, Etapa, Status, Detalhe -AutoSize -Wrap

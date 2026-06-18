@@ -75,6 +75,7 @@ $LogFile       = $null
 # ---------------------------------------------------------------------------
 
 function Show-Help {
+    [CmdletBinding()]
     Write-Host ""
     Write-Host "Analise de Espaco em Disco — $script:ScriptVersion" -ForegroundColor Cyan
     Write-Host ""
@@ -95,6 +96,7 @@ function Show-Help {
 }
 
 function Get-AsciiBar {
+    [CmdletBinding()]
     param([double]$Pct, [int]$Width = 25)
     $filled = [int][Math]::Round($Pct / 100 * $Width)
     $empty  = $Width - $filled
@@ -102,6 +104,7 @@ function Get-AsciiBar {
 }
 
 function Get-BarColor {
+    [CmdletBinding()]
     param([double]$Pct)
     if ($Pct -ge 85) { return 'Red'    }
     if ($Pct -ge 65) { return 'Yellow' }
@@ -113,6 +116,7 @@ function Get-BarColor {
 # ---------------------------------------------------------------------------
 
 function Invoke-DiskScan {
+    [CmdletBinding()]
     param([string]$RootPath, [switch]$Quiet)
 
     $folderLocalSizes = [System.Collections.Generic.Dictionary[string,long]]::new(
@@ -227,6 +231,7 @@ function Invoke-DiskScan {
 # ---------------------------------------------------------------------------
 
 function Get-WasteEstimates {
+    [CmdletBinding()]
     function FolderSize([string]$p) {
         if (-not (Test-Path $p -ErrorAction SilentlyContinue)) { return [long]0 }
         $s = [long]0
@@ -301,7 +306,8 @@ function Get-WasteEstimates {
 # ---------------------------------------------------------------------------
 
 function Show-ConsoleReport {
-    param($ScanResult, $DriveInfo, $Waste)
+    [CmdletBinding()]
+    param([object]$ScanResult, [object]$DriveInfo, [object[]]$Waste)
 
     $driveTotal  = $DriveInfo.Size
     $driveFree   = $DriveInfo.FreeSpace
@@ -379,7 +385,8 @@ function Show-ConsoleReport {
 # ---------------------------------------------------------------------------
 
 function New-HtmlReport {
-    param($AllScans, $AllWaste, $ComputerName, $ReportDate, $OutputPath)
+    [CmdletBinding()]
+    param([object[]]$AllScans, [object[]]$AllWaste, [string]$ComputerName, [string]$ReportDate, [string]$OutputPath)
 
     $css = @'
 :root{--primary:#0078d4;--success:#107c10;--warn:#d83b01;--text:#201f1e;--muted:#605e5c;--bg:#f3f3f3;--card:#fff;--border:#edebe9;--radius:4px}
