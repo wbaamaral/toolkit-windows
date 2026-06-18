@@ -42,7 +42,8 @@ param(
     [switch]$NoTranscript,
 
     [Parameter(Mandatory = $false)]
-    [string]$DiretorioSaida
+    [Alias('DiretorioSaida')]
+    [string]$Path
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -127,7 +128,7 @@ function Initialize-Log {
         return
     }
 
-    $session = Initialize-ToolkitReportSession -ReportsRoot $DiretorioSaida -ModuleName 'ActiveDirectory'
+    $session = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'ActiveDirectory'
     $logDir = $session.LogsPath
     if (-not (Test-Path $logDir)) {
         New-Item -Path $logDir -ItemType Directory -Force | Out-Null

@@ -1,4 +1,4 @@
-﻿#requires -version 5.1
+#requires -version 5.1
 <#
 .SYNOPSIS
     Diagnostico assistido para uso de disco em 100% no Windows.
@@ -79,7 +79,8 @@ param(
 
     [switch]$CriarPontoRestauracao,
 
-    [string]$DiretorioSaida
+    [Alias('DiretorioSaida')]
+    [string]$Path
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -1797,9 +1798,9 @@ function Invoke-HD100ReportMode {
     [CmdletBinding()]
     param()
 
-    $latest = Get-HD100LatestSessionPath -BasePath $DiretorioSaida
+    $latest = Get-HD100LatestSessionPath -BasePath $Path
     if (-not $latest) {
-        throw "Nenhuma execucao anterior encontrada em $DiretorioSaida"
+        throw "Nenhuma execucao anterior encontrada em $Path"
     }
 
     $jsonPath = Join-Path $latest 'diagnostico.json'
@@ -1810,7 +1811,7 @@ function Invoke-HD100ReportMode {
     $script:HD100Session = [pscustomobject]@{
         StartedAt = Get-Date
         Mode = 'Relatorio'
-        ReportsRoot = (Get-ToolkitReportsRoot -Path $DiretorioSaida)
+        ReportsRoot = (Get-ToolkitReportsRoot -Path $Path)
         BasePath = (Split-Path -Parent $latest)
         Path = $latest
         LogsPath = Join-Path $latest 'logs'
@@ -1859,7 +1860,7 @@ Write-Title 'WBA Windows Toolkit - Diagnostico HD100'
 Write-Info "Modo: $Modo"
 Write-Info "Versao: $ScriptVersion"
 
-$script:HD100Session = Initialize-HD100Session -BasePath $DiretorioSaida -ExecutionMode $Modo
+$script:HD100Session = Initialize-HD100Session -BasePath $Path -ExecutionMode $Modo
 Write-Info "Diretorio da execucao: $($script:HD100Session.Path)"
 
 if ($Modo -eq 'Rollback') {

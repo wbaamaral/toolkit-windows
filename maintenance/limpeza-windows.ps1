@@ -1,4 +1,4 @@
-﻿#requires -version 5.1
+#requires -version 5.1
 <#
 .SYNOPSIS
     Script de limpeza segura, manutenção e otimização conservadora para Windows 10 Pro.
@@ -130,7 +130,8 @@ param (
     [ValidateRange(1, 64)]
     [int]$PageFileGB = 4,
 
-    [string]$DiretorioSaida
+    [Alias('DiretorioSaida')]
+    [string]$Path
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -449,7 +450,7 @@ if (-not (Test-IsAdministrator)) {
     exit
 }
 
-$ReportSession = Initialize-ToolkitReportSession -ReportsRoot $DiretorioSaida -ModuleName 'Maintenance'
+$ReportSession = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'Maintenance'
 $LogDir = $ReportSession.LogsPath
 $LogFile = Join-Path $LogDir "$((Get-Date).ToString('yyyy-MM-dd_HHmmss'))-$([System.IO.Path]::GetFileNameWithoutExtension($ScriptName)).log"
 

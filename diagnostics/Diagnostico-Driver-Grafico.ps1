@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
     Diagnostico de travamentos graficos, tela preta, DWM e driver de video no Windows.
@@ -96,7 +96,8 @@ param(
 
     [switch]$AbrirRelatorio,
 
-    [string]$DiretorioSaida
+    [Alias('DiretorioSaida')]
+    [string]$Path
 )
 
 Set-StrictMode -Version 2.0
@@ -1126,7 +1127,7 @@ function Show-GfxConsoleReport {
 # Execucao principal
 # ---------------------------------------------------------------------------
 
-if (-not (Test-IsAdministrator) -and [string]::IsNullOrWhiteSpace($DiretorioSaida)) {
+if (-not (Test-IsAdministrator) -and [string]::IsNullOrWhiteSpace($Path)) {
     $relaunchArgs = foreach ($kv in $PSBoundParameters.GetEnumerator()) {
         if ($kv.Value -is [switch]) {
             if ($kv.Value.IsPresent) { "-$($kv.Key)" }
@@ -1141,7 +1142,7 @@ if (-not (Test-IsAdministrator) -and [string]::IsNullOrWhiteSpace($DiretorioSaid
     exit
 }
 
-$script:GfxSession = Initialize-GfxSession -BasePath $DiretorioSaida -ExecutionMode $Modo
+$script:GfxSession = Initialize-GfxSession -BasePath $Path -ExecutionMode $Modo
 Start-Transcript -Path $script:GfxSession.TranscriptPath -Force | Out-Null
 
 try {

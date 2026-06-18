@@ -61,7 +61,8 @@ param(
 
     [switch]$GerarHtml,
 
-    [string]$DiretorioSaida
+    [Alias('DiretorioSaida')]
+    [string]$Path
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -205,7 +206,7 @@ Write-Title "WBA Windows Toolkit - Gerenciamento de Inicializacao v$ScriptVersio
 
 if ($DryRun) { Write-Warn 'MODO DRY-RUN: nenhuma alteracao sera feita no sistema.' }
 
-$script:Session = Initialize-ToolkitReportSession -ModuleName 'WbaToolkit.Startup' -ReportsRoot $DiretorioSaida
+$script:Session = Initialize-ToolkitReportSession -ModuleName 'WbaToolkit.Startup' -ReportsRoot $Path
 
 Write-WinStartupLog -Message "Sessao iniciada. Modo: $Modo. DryRun: $DryRun."
 Write-Info "Relatorios em: $($script:Session.Path)"

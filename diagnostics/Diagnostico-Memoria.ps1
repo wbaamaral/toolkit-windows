@@ -76,7 +76,8 @@ param(
 
     [switch]$AbrirRelatorio,
 
-    [string]$DiretorioSaida
+    [Alias('DiretorioSaida')]
+    [string]$Path
 )
 
 Set-StrictMode -Version 2.0
@@ -695,7 +696,7 @@ function Show-MemConsoleReport {
 # Execucao principal
 # ---------------------------------------------------------------------------
 
-if (-not (Test-IsAdministrator) -and [string]::IsNullOrWhiteSpace($DiretorioSaida)) {
+if (-not (Test-IsAdministrator) -and [string]::IsNullOrWhiteSpace($Path)) {
     $relaunchArgs = foreach ($kv in $PSBoundParameters.GetEnumerator()) {
         if ($kv.Value -is [switch]) {
             if ($kv.Value.IsPresent) { "-$($kv.Key)" }
@@ -710,7 +711,7 @@ if (-not (Test-IsAdministrator) -and [string]::IsNullOrWhiteSpace($DiretorioSaid
     exit
 }
 
-$script:MemSession = Initialize-MemSession -BasePath $DiretorioSaida
+$script:MemSession = Initialize-MemSession -BasePath $Path
 Start-Transcript -Path $script:MemSession.TranscriptPath -Force | Out-Null
 
 try {
