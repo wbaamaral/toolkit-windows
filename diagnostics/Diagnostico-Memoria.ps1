@@ -36,7 +36,7 @@
 .PARAMETER Todos
     Lista todos os processos sem limite de quantidade. Quando presente, -Top e ignorado.
 
-.PARAMETER Path
+.PARAMETER DiretorioSaida
     Raiz de relatorios escolhida pelo usuario. Quando omitido, usa ReportsRoot persistente do
     toolkit ou C:\WBA\Relatorios.
 
@@ -76,8 +76,7 @@ param(
 
     [switch]$AbrirRelatorio,
 
-    [Alias('DiretorioSaida')]
-    [string]$Path
+    [string]$DiretorioSaida
 )
 
 Set-StrictMode -Version 2.0
@@ -696,7 +695,7 @@ function Show-MemConsoleReport {
 # Execucao principal
 # ---------------------------------------------------------------------------
 
-if (-not (Test-IsAdministrator) -and [string]::IsNullOrWhiteSpace($Path)) {
+if (-not (Test-IsAdministrator) -and [string]::IsNullOrWhiteSpace($DiretorioSaida)) {
     $relaunchArgs = foreach ($kv in $PSBoundParameters.GetEnumerator()) {
         if ($kv.Value -is [switch]) {
             if ($kv.Value.IsPresent) { "-$($kv.Key)" }
@@ -711,7 +710,7 @@ if (-not (Test-IsAdministrator) -and [string]::IsNullOrWhiteSpace($Path)) {
     exit
 }
 
-$script:MemSession = Initialize-MemSession -BasePath $Path
+$script:MemSession = Initialize-MemSession -BasePath $DiretorioSaida
 Start-Transcript -Path $script:MemSession.TranscriptPath -Force | Out-Null
 
 try {
