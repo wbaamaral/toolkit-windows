@@ -1,4 +1,4 @@
-function Invoke-WithDefaultUserHive {
+﻿function Invoke-WithDefaultUserHive {
     <#
     .SYNOPSIS
         Monta o hive do perfil Default e executa um bloco de codigo com acesso a ele.

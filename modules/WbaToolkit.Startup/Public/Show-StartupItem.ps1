@@ -1,4 +1,4 @@
-function Show-StartupItem {
+﻿function Show-StartupItem {
     <#
     .SYNOPSIS
         Exibe a lista de itens de inicializacao no console.

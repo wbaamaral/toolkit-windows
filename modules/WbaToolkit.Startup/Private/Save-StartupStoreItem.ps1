@@ -1,4 +1,4 @@
-function Save-StartupStoreItem {
+﻿function Save-StartupStoreItem {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]$Item,

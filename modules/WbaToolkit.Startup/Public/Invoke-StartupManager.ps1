@@ -1,4 +1,4 @@
-function Invoke-StartupManager {
+﻿function Invoke-StartupManager {
     <#
     .SYNOPSIS
         Gerenciador interativo de itens de inicializacao do Windows.

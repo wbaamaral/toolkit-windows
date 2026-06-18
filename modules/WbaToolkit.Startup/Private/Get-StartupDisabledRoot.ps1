@@ -1,4 +1,4 @@
-function Get-StartupDisabledRoot {
+﻿function Get-StartupDisabledRoot {
     [CmdletBinding()]
     param()
 

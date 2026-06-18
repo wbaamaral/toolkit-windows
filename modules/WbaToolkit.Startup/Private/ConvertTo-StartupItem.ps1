@@ -1,4 +1,4 @@
-function ConvertTo-StartupItem {
+﻿function ConvertTo-StartupItem {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)][string]$SourceType,

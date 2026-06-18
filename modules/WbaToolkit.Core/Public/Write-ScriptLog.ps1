@@ -1,4 +1,4 @@
-function Write-ScriptLog {
+﻿function Write-ScriptLog {
     <#
     .SYNOPSIS
         Registra uma mensagem de log com timestamp e nivel de severidade.

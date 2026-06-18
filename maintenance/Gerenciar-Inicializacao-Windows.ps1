@@ -1,4 +1,4 @@
-#requires -version 5.1
+﻿#requires -version 5.1
 <#
 .SYNOPSIS
     Gerenciamento exclusivo de itens de inicializacao e servicos do Windows.

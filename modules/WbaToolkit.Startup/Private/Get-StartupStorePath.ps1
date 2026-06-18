@@ -1,4 +1,4 @@
-function Get-StartupStorePath {
+﻿function Get-StartupStorePath {
     [CmdletBinding()]
     param()
 

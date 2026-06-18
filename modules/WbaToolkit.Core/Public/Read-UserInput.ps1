@@ -1,4 +1,4 @@
-function Read-UserInput {
+﻿function Read-UserInput {
     <#
     .SYNOPSIS
         Solicita entrada do operador com suporte a valor padrao.

@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Padroniza idioma, locale regional e fuso horario de instalacoes Windows 10/11 Pro+ para pt-BR.

@@ -1,4 +1,4 @@
-function Enable-StartupItem {
+﻿function Enable-StartupItem {
     <#
     .SYNOPSIS
         Reativa um ou mais itens de inicializacao gerenciados pelo toolkit.

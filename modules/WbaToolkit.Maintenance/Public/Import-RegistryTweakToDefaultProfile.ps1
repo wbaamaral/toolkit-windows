@@ -1,4 +1,4 @@
-function Import-RegistryTweakToDefaultProfile {
+﻿function Import-RegistryTweakToDefaultProfile {
     <#
     .SYNOPSIS
         Aplica um arquivo de tweak de registro ao perfil Default do Windows.

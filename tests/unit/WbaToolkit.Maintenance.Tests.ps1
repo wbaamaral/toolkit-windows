@@ -1,4 +1,4 @@
-#requires -version 5.1
+﻿#requires -version 5.1
 
 $ToolkitRoot  = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $CorePath     = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
