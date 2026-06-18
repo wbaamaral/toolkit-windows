@@ -49,7 +49,7 @@
 .PARAMETER AbrirRelatorio
     Abre o relatorio HTML quando -GerarHtml estiver ativo. Caso contrario, abre o TXT.
 
-.PARAMETER DiretorioSaida
+.PARAMETER Path
     Raiz de relatorios escolhida pelo usuario. Quando omitido, usa ReportsRoot persistente do toolkit ou
     C:\WBA\Relatorios.
 

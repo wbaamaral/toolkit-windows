@@ -41,7 +41,7 @@
 .PARAMETER CriarPontoRestauracao
     Reservado para modo Assistido. Exige confirmacao antes de criar ponto de restauracao.
 
-.PARAMETER DiretorioSaida
+.PARAMETER Path
     Raiz de relatorios escolhida pelo usuario. Quando omitido, usa ReportsRoot persistente do toolkit ou
     C:\WBA\Relatorios.
 

@@ -13,7 +13,7 @@
     Nome do DC preferencial. Se omitido, usa o DC logado atualmente.
 .PARAMETER SkipReparo
     Nao oferece opcoes de reparo; executa somente leitura.
-.PARAMETER DiretorioSaida
+.PARAMETER Path
     Raiz de relatorios. Se omitido, usa ReportsRoot persistente ou C:\WBA\Relatorios.
 #>
 
