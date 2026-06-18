@@ -21,4 +21,12 @@ Export-ModuleMember -Function @(
     'Import-RegistryTweakToDefaultProfile'
     'Test-SysprepEnvironment'
     'Invoke-SysprepPreparation'
+    'Remove-SafePath'
+    'Get-DiskInfo'
+    'Get-FilesystemErrorEvent'
+    'Write-MaintenanceEvent'
+    'Invoke-FilesystemCheck'
+    'Invoke-EventLogMaintenance'
+    'Get-ComponentStoreInfo'
+    'Invoke-ComponentStoreCleanup'
 )
