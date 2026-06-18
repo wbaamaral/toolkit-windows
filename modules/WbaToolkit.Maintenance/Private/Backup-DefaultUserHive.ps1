@@ -1,4 +1,4 @@
-function Backup-DefaultUserHive {
+﻿function Backup-DefaultUserHive {
     <#
     .SYNOPSIS
         Cria uma copia de seguranca do arquivo NTUSER.DAT do perfil Default.

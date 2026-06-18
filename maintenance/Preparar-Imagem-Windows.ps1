@@ -1,4 +1,4 @@
-#requires -version 5.1
+﻿#requires -version 5.1
 <#
 .SYNOPSIS
     Preparacao do sistema Windows para criacao de imagem corporativa.

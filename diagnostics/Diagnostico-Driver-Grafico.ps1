@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Diagnostico de travamentos graficos, tela preta, DWM e driver de video no Windows.

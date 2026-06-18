@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Identifica os maiores consumidores de memoria e gera relatorio para verificacao de legitimidade.

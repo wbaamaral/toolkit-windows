@@ -1,4 +1,4 @@
-function Get-RegistryStartupItems {
+﻿function Get-RegistryStartupItems {
     [CmdletBinding()]
     param()
 

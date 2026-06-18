@@ -1,4 +1,4 @@
-function Invoke-SysprepPreparation {
+﻿function Invoke-SysprepPreparation {
     <#
     .SYNOPSIS
         Aplica o conjunto de tweaks de perfil ao Default user do Windows.

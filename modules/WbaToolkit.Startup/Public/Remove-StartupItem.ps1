@@ -1,4 +1,4 @@
-function Remove-StartupItem {
+﻿function Remove-StartupItem {
     <#
     .SYNOPSIS
         Remove definitivamente um ou mais itens de inicializacao do Windows.

@@ -1,4 +1,4 @@
-function Disable-StartupItem {
+﻿function Disable-StartupItem {
     <#
     .SYNOPSIS
         Desabilita um ou mais itens de inicializacao do Windows.

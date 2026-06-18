@@ -1,4 +1,4 @@
-function Write-TextFileUtf8 {
+﻿function Write-TextFileUtf8 {
     <#
     .SYNOPSIS
         Grava ou acrescenta texto em arquivo com encoding UTF-8 com BOM.

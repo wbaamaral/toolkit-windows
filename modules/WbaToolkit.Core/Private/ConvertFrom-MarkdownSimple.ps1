@@ -1,4 +1,4 @@
-function ConvertFrom-MarkdownSimple {
+﻿function ConvertFrom-MarkdownSimple {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]

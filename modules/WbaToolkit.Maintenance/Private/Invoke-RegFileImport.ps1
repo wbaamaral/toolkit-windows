@@ -1,4 +1,4 @@
-function Invoke-RegFileImport {
+﻿function Invoke-RegFileImport {
     <#
     .SYNOPSIS
         Importa um arquivo .reg substituindo o caminho do hive pelo ponto de montagem ativo.

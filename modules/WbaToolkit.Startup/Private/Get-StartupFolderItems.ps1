@@ -1,4 +1,4 @@
-function Get-StartupFolderItems {
+﻿function Get-StartupFolderItems {
     [CmdletBinding()]
     param()
 

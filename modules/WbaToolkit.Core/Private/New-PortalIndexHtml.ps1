@@ -1,4 +1,4 @@
-function New-PortalIndexHtml {
+﻿function New-PortalIndexHtml {
     [CmdletBinding()]
     param(
         [string]$ManualReadmePath,

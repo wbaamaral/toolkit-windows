@@ -1,4 +1,4 @@
-function Export-ToolkitDocumentation {
+﻿function Export-ToolkitDocumentation {
 <#
 .SYNOPSIS
     Gera portal de documentação HTML unificado do WBA Windows Toolkit.

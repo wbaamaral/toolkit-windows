@@ -1,4 +1,4 @@
-function Get-ServiceStartupState {
+﻿function Get-ServiceStartupState {
     <#
     .SYNOPSIS
         Retorna o estado e o tipo de inicializacao de servicos do Windows.

@@ -1,4 +1,4 @@
-function Get-ManagedDisabledStartupItems {
+﻿function Get-ManagedDisabledStartupItems {
     [CmdletBinding()]
     param()
 

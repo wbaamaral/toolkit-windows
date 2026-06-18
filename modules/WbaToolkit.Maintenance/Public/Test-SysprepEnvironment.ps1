@@ -1,4 +1,4 @@
-function Test-SysprepEnvironment {
+﻿function Test-SysprepEnvironment {
     <#
     .SYNOPSIS
         Verifica os pre-requisitos para executar a preparacao de imagem.

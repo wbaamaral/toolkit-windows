@@ -1,4 +1,4 @@
-function Get-LogonStartupTaskItems {
+﻿function Get-LogonStartupTaskItems {
     [CmdletBinding()]
     param()
 
