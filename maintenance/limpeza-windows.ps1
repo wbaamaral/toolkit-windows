@@ -144,9 +144,11 @@ $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
 
 chcp 65001 | Out-Null
 
-$ToolkitRoot = Split-Path -Parent $PSScriptRoot
-$ToolkitModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
-Import-Module $ToolkitModulePath -Force -ErrorAction Stop
+$ToolkitRoot           = Split-Path -Parent $PSScriptRoot
+$CoreModulePath        = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
+$MaintenanceModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Maintenance/WbaToolkit.Maintenance.psd1'
+Import-Module $CoreModulePath        -Force -ErrorAction Stop
+Import-Module $MaintenanceModulePath -Force -ErrorAction Stop
 
 $ScriptVersion = "v1.0"
 $ScriptName    = $MyInvocation.MyCommand.Name
@@ -212,221 +214,6 @@ function Write-Step {
     Write-Host "[$Percent%] $Message" -ForegroundColor Cyan
 }
 
-function Remove-SafePath {
-    param (
-        [string]$Path,
-        [int]$OlderThanDays = 0
-    )
-
-    if (!(Test-Path $Path)) {
-        return
-    }
-
-    if ($OlderThanDays -gt 0) {
-        Get-ChildItem $Path -Force -Recurse -ErrorAction SilentlyContinue |
-            Where-Object {
-                !$_.PSIsContainer -and $_.LastWriteTime -lt (Get-Date).AddDays(-$OlderThanDays)
-            } |
-            Remove-Item -Force -ErrorAction SilentlyContinue
-    }
-    else {
-        Get-ChildItem $Path -Force -Recurse -ErrorAction SilentlyContinue |
-            Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
-    }
-}
-
-function Get-DiskInfo {
-    Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$env:SystemDrive'" |
-        Select-Object DeviceID,
-        @{Name = "TamanhoGB"; Expression = { [math]::Round($_.Size / 1GB, 2) } },
-        @{Name = "LivreGB"; Expression = { [math]::Round($_.FreeSpace / 1GB, 2) } }
-}
-
-function Get-FilesystemErrorEvents {
-    $cutoff  = (Get-Date).AddDays(-30)
-    $sources = @('Ntfs', 'disk', 'volmgr', 'stornvme', 'storahci', 'iaStorAV', 'iaStorAVC', 'partmgr')
-    try {
-        $found = Get-WinEvent -FilterHashtable @{
-            LogName   = 'System'
-            Level     = 1, 2
-            StartTime = $cutoff
-        } -ErrorAction Stop | Where-Object { $_.ProviderName -in $sources }
-        return $found
-    }
-    catch {
-        if ($_.Exception.Message -notmatch 'No events were found') {
-            Write-Warning "Erro ao consultar log do Sistema: $($_.Exception.Message)"
-        }
-        return @()
-    }
-}
-
-function Register-ScriptEventSource {
-    $source = 'LimpezaWindows'
-    try {
-        if (-not [System.Diagnostics.EventLog]::SourceExists($source)) {
-            New-EventLog -LogName Application -Source $source -ErrorAction Stop
-        }
-    }
-    catch {
-        Write-Warning "Nao foi possivel registrar fonte de eventos '$source': $($_.Exception.Message)"
-    }
-}
-
-function Write-ScriptEvent {
-    param(
-        [int]$EventId,
-        [string]$Message,
-        [string]$EntryType = 'Information'
-    )
-    try {
-        Register-ScriptEventSource
-        Write-EventLog -LogName Application -Source 'LimpezaWindows' `
-            -EventId $EventId -EntryType $EntryType -Message $Message -ErrorAction Stop
-    }
-    catch {
-        Write-Warning "Nao foi possivel gravar evento no Visualizador de Eventos: $($_.Exception.Message)"
-    }
-}
-
-function Invoke-FilesystemCheck {
-    param([string]$Action)
-
-    $fsEvents = Get-FilesystemErrorEvents
-    $fsCount  = @($fsEvents).Count
-
-    if ($fsCount -eq 0) {
-        Write-Host "Sistema de arquivos: nenhum evento de falha detectado nos ultimos 30 dias." -ForegroundColor Green
-        return
-    }
-
-    Write-Host ""
-    Write-Host "ATENCAO: $fsCount evento(s) de falha no sistema de arquivos (ultimos 30 dias):" -ForegroundColor Yellow
-    @($fsEvents) | Select-Object TimeCreated, Id, ProviderName,
-        @{N = 'Mensagem'; E = {
-            $m = $_.Message -replace "`r`n", ' '
-            if ($m.Length -gt 90) { $m.Substring(0, 90) + '...' } else { $m }
-        }} | Format-Table -AutoSize -Wrap | Out-String -Width 220 | Write-Host
-
-    $schedule = $false
-
-    switch ($Action) {
-        'Ask' {
-            Write-Host ""
-            Write-Host "Deseja agendar chkdsk $env:SystemDrive /f /r para o proximo boot?" -ForegroundColor Yellow
-            Write-Host "  [S] Sim — agendar chkdsk (requer reinicializacao)"
-            Write-Host "  [N] Nao — ignorar e continuar" -ForegroundColor Green
-            Write-Host ""
-            do { $choice = Read-Host "Escolha [S/N]" } while ($choice -notmatch '^[SsNn]$')
-            $schedule = $choice -match '^[Ss]$'
-        }
-        'Schedule' { $schedule = $true }
-        default {
-            Write-Host ""
-            Write-Host "AVISO: Falhas detectadas. Para agendar verificacao use:" -ForegroundColor Yellow
-            Write-Host "       .\$($script:ScriptName) -ChkdskAction Schedule" -ForegroundColor Yellow
-        }
-    }
-
-    if (-not $schedule) { return }
-
-    try {
-        Write-Host "Executando: Agendando chkdsk $env:SystemDrive /f /r" -ForegroundColor Green
-        $output = cmd.exe /c "echo Y | chkdsk $env:SystemDrive /f /r" 2>&1
-        $output | ForEach-Object { Write-Host "  $_" }
-    }
-    catch {
-        Write-Host "Falha ao agendar chkdsk: $($_.Exception.Message)" -ForegroundColor Red
-        Write-Warning "ERRO ao agendar chkdsk: $($_.Exception.Message)"
-        return
-    }
-
-    $drv  = $env:SystemDrive
-    $ver  = $script:ScriptVersion
-    $now  = Get-Date -Format 'dd/MM/yyyy HH:mm:ss'
-    $evMsg = "LimpezaWindows ($ver) agendou verificacao de disco (CHKDSK) para o proximo reinicio.`r`n" +
-             "Volume    : $drv`r`n" +
-             "Parametros: chkdsk $drv /f /r`r`n" +
-             "Motivo    : $fsCount evento(s) de falha no sistema de arquivos (ultimos 30 dias).`r`n" +
-             "Data      : $now`r`n" +
-             "Apos o reinicio com verificacao concluida, execute novamente este script."
-
-    Write-ScriptEvent -EventId 1001 -Message $evMsg
-
-    Write-Host ""
-    Write-Host "chkdsk agendado. Evento registrado: Aplicativo > LimpezaWindows > ID 1001." -ForegroundColor Green
-    Write-Host ""
-    Write-Host "IMPORTANTE: Reinicie o sistema para executar o chkdsk." -ForegroundColor Yellow
-    Write-Host "Apos reiniciar, execute novamente este script para continuar a limpeza." -ForegroundColor Yellow
-}
-
-function Invoke-EventLogCleanup {
-    param([string]$Action)
-
-    $targetLogs = @('Application', 'System', 'Setup')
-    $logDir     = $script:LogDir
-
-    if ($Action -eq 'Ask') {
-        Write-Host ""
-        Write-Host "Limpeza do Visualizador de Eventos — logs: $($targetLogs -join ', ')" -ForegroundColor Cyan
-        $ts = Get-Date -Format 'dd/MM/yyyy HH:mm'
-        Write-Host "  [1] Limpar TODOS os eventos ate $ts"
-        Write-Host "  [2] Limpar apenas logs com eventos de falha/erro (backup em $logDir)"
-        Write-Host "  [3] Nao efetuar limpeza de eventos" -ForegroundColor Green
-        Write-Host ""
-        do { $choice = Read-Host "Escolha [1/2/3]" } while ($choice -notmatch '^[123]$')
-        $Action = @{ '1' = 'All'; '2' = 'ErrorOnly'; '3' = 'None' }[$choice]
-    }
-
-    switch ($Action) {
-        'All' {
-            foreach ($log in $targetLogs) {
-                try {
-                    Write-Host "Executando: Limpar log de eventos '$log'" -ForegroundColor Green
-                    wevtutil.exe cl $log 2>&1 | Out-Null
-                    Write-Host "Log '$log' limpo." -ForegroundColor Green
-                }
-                catch {
-                    Write-Host "Falha ao limpar log '$log': $($_.Exception.Message)" -ForegroundColor Red
-                    Write-Warning "ERRO ao limpar '$log': $($_.Exception.Message)"
-                }
-            }
-            $msg = "LimpezaWindows ($($script:ScriptVersion)) limpou logs: $($targetLogs -join ', ') em $(Get-Date -Format 'dd/MM/yyyy HH:mm:ss')."
-            Write-ScriptEvent -EventId 1002 -Message $msg
-        }
-        'ErrorOnly' {
-            $cleaned = [System.Collections.Generic.List[string]]::new()
-            foreach ($log in $targetLogs) {
-                try {
-                    $hasErrors = Get-WinEvent -FilterHashtable @{ LogName = $log; Level = 1, 2 } -MaxEvents 1 -ErrorAction SilentlyContinue
-                    if (-not $hasErrors) {
-                        Write-Host "Log '$log': sem eventos de erro/falha — ignorado." -ForegroundColor DarkGray
-                        continue
-                    }
-                    $ts     = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
-                    $backup = Join-Path $logDir "eventos-$log-$ts.evtx"
-                    Write-Host "Executando: Exportar erros de '$log' e limpar" -ForegroundColor Green
-                    wevtutil.exe epl $log $backup "/q:*[System[Level<=2]]" 2>&1 | Out-Null
-                    wevtutil.exe cl $log 2>&1 | Out-Null
-                    Write-Host "Log '$log' limpo. Backup de erros: $backup" -ForegroundColor Green
-                    $cleaned.Add($log)
-                }
-                catch {
-                    Write-Host "Falha ao processar log '$log': $($_.Exception.Message)" -ForegroundColor Red
-                    Write-Warning "ERRO ao processar '$log': $($_.Exception.Message)"
-                }
-            }
-            if ($cleaned.Count -gt 0) {
-                $msg = "LimpezaWindows ($($script:ScriptVersion)) limpou logs com erros: $($cleaned -join ', ') em $(Get-Date -Format 'dd/MM/yyyy HH:mm:ss'). Backups em: $logDir."
-                Write-ScriptEvent -EventId 1003 -Message $msg
-            }
-        }
-        'None' {
-            Write-Host "Limpeza do Visualizador de Eventos ignorada." -ForegroundColor DarkGray
-        }
-    }
-}
-
 if ($Help) {
     Show-Help
     exit 0
@@ -484,9 +271,7 @@ if ($RepararSistema) {
     }
 
     Write-Step "Executando limpeza do Component Store via DISM" 60
-    Invoke-Safe "DISM StartComponentCleanup" {
-        dism.exe /Online /Cleanup-Image /StartComponentCleanup
-    }
+    Invoke-ComponentStoreCleanup -Level Standard
 
     Write-Step "Executando restauracao de integridade via DISM" 90
     Invoke-Safe "DISM RestoreHealth" {
@@ -517,7 +302,7 @@ $DiskBefore = Get-DiskInfo
 $DiskBefore | Format-Table -AutoSize
 
 Write-Step "Verificando eventos de falha no sistema de arquivos" 7
-Invoke-FilesystemCheck -Action $resolvedChkdskAction
+Invoke-FilesystemCheck -Action $resolvedChkdskAction -CallerScript $ScriptName
 
 Write-Step "Limpando arquivos temporários do usuário atual" 10
 Invoke-Safe "TEMP do usuário atual" {
@@ -577,7 +362,7 @@ Invoke-Safe "Logs antigos do CBS preservando CBS.log ativo" {
 }
 
 Write-Step "Verificando limpeza do Visualizador de Eventos" 52
-Invoke-EventLogCleanup -Action $resolvedEventLogCleanup
+Invoke-EventLogMaintenance -Action $resolvedEventLogCleanup -BackupPath $LogDir
 
 Write-Step "Limpando cache de miniaturas e ícones dos usuários" 55
 Invoke-Safe "thumbcache_*.db e iconcache_*.db" {
@@ -631,9 +416,7 @@ if (-not $NoSfc) {
     }
 
     Write-Step "Executando limpeza do Component Store via DISM" 88
-    Invoke-Safe "DISM StartComponentCleanup" {
-        dism.exe /Online /Cleanup-Image /StartComponentCleanup
-    }
+    Invoke-ComponentStoreCleanup -Level Standard
 
     Write-Step "Executando restauração de integridade via DISM" 91
     Invoke-Safe "DISM RestoreHealth" {

@@ -93,6 +93,144 @@ Describe 'WbaToolkit.Maintenance' {
         }
     }
 
+    Context 'Exportacao — funcoes v1.2.0' {
+        It 'Deve exportar Remove-SafePath' {
+            (Get-Command Remove-SafePath -ErrorAction Stop).CommandType | Should -Be 'Function'
+        }
+        It 'Deve exportar Get-DiskInfo' {
+            (Get-Command Get-DiskInfo -ErrorAction Stop).CommandType | Should -Be 'Function'
+        }
+        It 'Deve exportar Get-FilesystemErrorEvent' {
+            (Get-Command Get-FilesystemErrorEvent -ErrorAction Stop).CommandType | Should -Be 'Function'
+        }
+        It 'Deve exportar Write-MaintenanceEvent' {
+            (Get-Command Write-MaintenanceEvent -ErrorAction Stop).CommandType | Should -Be 'Function'
+        }
+        It 'Deve exportar Invoke-FilesystemCheck' {
+            (Get-Command Invoke-FilesystemCheck -ErrorAction Stop).CommandType | Should -Be 'Function'
+        }
+        It 'Deve exportar Invoke-EventLogMaintenance' {
+            (Get-Command Invoke-EventLogMaintenance -ErrorAction Stop).CommandType | Should -Be 'Function'
+        }
+        It 'Deve exportar Get-ComponentStoreInfo' {
+            (Get-Command Get-ComponentStoreInfo -ErrorAction Stop).CommandType | Should -Be 'Function'
+        }
+        It 'Deve exportar Invoke-ComponentStoreCleanup' {
+            (Get-Command Invoke-ComponentStoreCleanup -ErrorAction Stop).CommandType | Should -Be 'Function'
+        }
+        It 'Nao deve exportar Register-MaintenanceEventSource' {
+            Get-Command Register-MaintenanceEventSource -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+        }
+        It 'Nao deve exportar ConvertTo-StoreSizeGB' {
+            Get-Command ConvertTo-StoreSizeGB -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+        }
+    }
+
+    Context 'Remove-SafePath' {
+        It 'Nao deve lancar excecao para caminho inexistente' {
+            { Remove-SafePath -Path ([System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), 'wba_naoexiste_xyz')) } |
+                Should -Not -Throw
+        }
+        It 'Deve remover arquivos do diretorio' {
+            $tempDir = [System.IO.Path]::Combine(
+                [System.IO.Path]::GetTempPath(),
+                "wba_rsp_$([System.Guid]::NewGuid().ToString('N'))"
+            )
+            New-Item -Path $tempDir -ItemType Directory -Force | Out-Null
+            try {
+                Set-Content -Path (Join-Path $tempDir 'arquivo.txt') -Value 'conteudo'
+                Remove-SafePath -Path $tempDir
+                (Get-ChildItem $tempDir -Force -ErrorAction SilentlyContinue).Count | Should -Be 0
+            }
+            finally {
+                Remove-Item -LiteralPath $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+        It 'Deve aceitar OlderThanDays sem lancar excecao para caminho inexistente' {
+            { Remove-SafePath -Path 'C:\wba_naoexiste' -OlderThanDays 30 } | Should -Not -Throw
+        }
+        It 'Deve preservar arquivos recentes quando OlderThanDays for informado' {
+            $tempDir = [System.IO.Path]::Combine(
+                [System.IO.Path]::GetTempPath(),
+                "wba_old_$([System.Guid]::NewGuid().ToString('N'))"
+            )
+            New-Item -Path $tempDir -ItemType Directory -Force | Out-Null
+            try {
+                $recentFile = Join-Path $tempDir 'recente.txt'
+                Set-Content -Path $recentFile -Value 'recente'
+                Remove-SafePath -Path $tempDir -OlderThanDays 1
+                Test-Path $recentFile | Should -BeTrue
+            }
+            finally {
+                Remove-Item -LiteralPath $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+
+    Context 'Invoke-EventLogMaintenance — Action None' {
+        It 'Deve retornar sem erro com Action None' {
+            { Invoke-EventLogMaintenance -Action None } | Should -Not -Throw
+        }
+        It 'Deve aceitar parametro BackupPath sem lancar excecao' {
+            { Invoke-EventLogMaintenance -Action None -BackupPath 'C:\temp' } | Should -Not -Throw
+        }
+    }
+
+    Context 'Invoke-FilesystemCheck — Action Skip' {
+        It 'Deve retornar sem lancar excecao quando nao ha eventos de falha' {
+            { Invoke-FilesystemCheck -Action Skip } | Should -Not -Throw
+        }
+        It 'Deve aceitar CallerScript sem lancar excecao' {
+            { Invoke-FilesystemCheck -Action Skip -CallerScript 'limpeza-windows.ps1' } | Should -Not -Throw
+        }
+    }
+
+    Context 'Get-ComponentStoreInfo — ambiente sem DISM' {
+        It 'Deve retornar null ou objeto valido (nao lancar excecao) quando DISM nao esta disponivel' {
+            $resultado = Get-ComponentStoreInfo
+            ($null -eq $resultado) -or
+            ($resultado.PSObject.Properties.Name -contains 'ExitCode') | Should -BeTrue
+        }
+    }
+
+    Context 'Invoke-ComponentStoreCleanup — DryRun' {
+        It 'Deve retornar objeto com Success=$true em DryRun' {
+            $resultado = Invoke-ComponentStoreCleanup -DryRun
+            $resultado         | Should -Not -BeNullOrEmpty
+            $resultado.Success | Should -BeTrue
+        }
+        It 'Deve retornar ExitCode -1 em DryRun' {
+            $resultado = Invoke-ComponentStoreCleanup -DryRun
+            $resultado.ExitCode | Should -Be -1
+        }
+        It 'Deve retornar Level Standard quando nao especificado' {
+            $resultado = Invoke-ComponentStoreCleanup -DryRun
+            $resultado.Level | Should -Be 'Standard'
+        }
+        It 'Deve retornar Level Aggressive quando especificado' {
+            $resultado = Invoke-ComponentStoreCleanup -Level Aggressive -DryRun
+            $resultado.Level   | Should -Be 'Aggressive'
+            $resultado.Success | Should -BeTrue
+        }
+        It 'Deve retornar SpaceFreedMB zero em DryRun' {
+            $resultado = Invoke-ComponentStoreCleanup -DryRun
+            $resultado.SpaceFreedMB | Should -Be 0
+        }
+        It 'Deve possuir todas as propriedades esperadas no retorno' {
+            $resultado = Invoke-ComponentStoreCleanup -DryRun
+            $props = $resultado.PSObject.Properties.Name
+            $props | Should -Contain 'Level'
+            $props | Should -Contain 'ExitCode'
+            $props | Should -Contain 'SpaceFreedMB'
+            $props | Should -Contain 'RawOutput'
+            $props | Should -Contain 'Success'
+        }
+        It 'RawOutput deve indicar DryRun' {
+            $resultado = Invoke-ComponentStoreCleanup -DryRun
+            $resultado.RawOutput | Should -Match 'DryRun'
+        }
+    }
+
     Context 'Invoke-SysprepPreparation - DryRun' {
         It 'Deve retornar resultados DryRun para cada arquivo .reg no diretorio' {
             $tempDir = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), "wba_prep_$([System.Guid]::NewGuid().ToString('N'))")

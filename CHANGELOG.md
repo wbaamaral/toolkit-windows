@@ -4,6 +4,27 @@
 
 
 
+## [v1.2.0] — 2026-06-18
+
+### Adicionado
+- `modules/WbaToolkit.Maintenance/Public/Remove-SafePath.ps1`: remove arquivos de um diretório com filtro opcional por idade (BCK-003)
+- `modules/WbaToolkit.Maintenance/Public/Get-DiskInfo.ps1`: retorna tamanho e espaço livre do SystemDrive via WMI (BCK-003)
+- `modules/WbaToolkit.Maintenance/Public/Get-FilesystemErrorEvent.ps1`: consulta eventos de erro/falha no log System (BCK-003; renomeada de Get-FilesystemErrorEvents para forma singular)
+- `modules/WbaToolkit.Maintenance/Public/Write-MaintenanceEvent.ps1`: registra evento no Visualizador de Eventos com fonte parametrizada (BCK-003; substitui Write-ScriptEvent local)
+- `modules/WbaToolkit.Maintenance/Public/Invoke-FilesystemCheck.ps1`: verifica eventos de falha no sistema de arquivos e oferece agendamento de chkdsk (BCK-003; CallerScript e EventSource parametrizados)
+- `modules/WbaToolkit.Maintenance/Public/Invoke-EventLogMaintenance.ps1`: limpa logs do Visualizador de Eventos com backup opcional de erros (BCK-003; substitui Invoke-EventLogCleanup local)
+- `modules/WbaToolkit.Maintenance/Private/Register-MaintenanceEventSource.ps1`: registra fonte de eventos no Visualizador; Source parametrizado (BCK-003)
+- `modules/WbaToolkit.Maintenance/Private/ConvertTo-StoreSizeGB.ps1`: converte valor e unidade DISM para GB (BCK-002; auxiliar interno)
+- `modules/WbaToolkit.Maintenance/Public/Get-ComponentStoreInfo.ps1`: analisa Component Store via DISM AnalyzeComponentStore; operação somente leitura (BCK-002)
+- `modules/WbaToolkit.Maintenance/Public/Invoke-ComponentStoreCleanup.ps1`: executa limpeza do WinSxS via DISM com suporte a DryRun, WhatIf e nível Aggressive/ResetBase (BCK-002)
+- `maintenance/Limpeza-WinSxS.ps1`: script operacional com modos Diagnostico, Limpeza e Relatorio para gestão assistida do Component Store (BCK-002)
+
+### Alterado
+- `modules/WbaToolkit.Maintenance/WbaToolkit.Maintenance.psd1`: versão 1.1.0 → 1.2.0; 8 novas funções exportadas
+- `modules/WbaToolkit.Maintenance/WbaToolkit.Maintenance.psm1`: Export-ModuleMember atualizado com 8 novas funções
+- `maintenance/limpeza-windows.ps1`: 7 funções internas extraídas para WbaToolkit.Maintenance; importa WbaToolkit.Maintenance; chama Invoke-FilesystemCheck com -CallerScript; chama Invoke-EventLogMaintenance em vez de Invoke-EventLogCleanup; substituídas chamadas DISM inline por Invoke-ComponentStoreCleanup -Level Standard (BCK-003 + BCK-002)
+- `tests/unit/WbaToolkit.Maintenance.Tests.ps1`: adicionados testes de exportação e comportamento para as 8 novas funções públicas
+
 ## [v1.1.4] — 2026-06-14
 
 ### Adicionado
