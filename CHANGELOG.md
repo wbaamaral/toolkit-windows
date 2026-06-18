@@ -2,7 +2,8 @@
 
 ## [Não lançado]
 
-
+### Adicionado
+- `diagnostics/Verificar-Atualizacoes-Hardware.ps1`: diagnóstico somente leitura de BIOS (versão, data, ferramenta oficial do fabricante) e drivers (inventário Win32_PnPSignedDriver, assinatura, idade) com busca de drivers pendentes via Windows Update COM API
 
 ## [v1.2.0] — 2026-06-18
 
