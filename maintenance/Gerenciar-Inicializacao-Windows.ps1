@@ -150,7 +150,7 @@ function Export-WinStartupReportText {
     $offCount      = @($startupItems | Where-Object { $_.Enabled -eq $false }).Count
 
     $startupRows = @($startupItems | ForEach-Object {
-        "{0,-4} {1,-3} {2,-14} {3,-12} {4}" -f '', ($if = if ($_.Enabled) { 'ON' } else { 'OFF' }; $if), $_.SourceType, $_.Scope, $_.Name
+        "{0,-4} {1,-3} {2,-14} {3,-12} {4}" -f '', $(if ($_.Enabled) { 'ON' } else { 'OFF' }), $_.SourceType, $_.Scope, $_.Name
     }) -join "`n"
 
     $serviceRows = @($services | ForEach-Object {
