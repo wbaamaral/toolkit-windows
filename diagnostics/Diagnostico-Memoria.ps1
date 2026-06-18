@@ -36,7 +36,7 @@
 .PARAMETER Todos
     Lista todos os processos sem limite de quantidade. Quando presente, -Top e ignorado.
 
-.PARAMETER DiretorioSaida
+.PARAMETER Path
     Raiz de relatorios escolhida pelo usuario. Quando omitido, usa ReportsRoot persistente do
     toolkit ou C:\WBA\Relatorios.
 

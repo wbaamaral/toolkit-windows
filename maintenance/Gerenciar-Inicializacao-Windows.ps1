@@ -31,7 +31,7 @@
 .PARAMETER GerarHtml
     Gera relatorio HTML alem do TXT e JSON.
 
-.PARAMETER DiretorioSaida
+.PARAMETER Path
     Raiz de relatorios escolhida pelo usuario. Quando omitido, usa a configuracao
     persistente do toolkit ou C:\WBA\Relatorios.
 

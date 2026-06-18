@@ -23,7 +23,7 @@
     Aplica os tweaks ao perfil Default, mas nao oferece executar o sysprep.exe.
     Use quando o sysprep sera iniciado por outra ferramenta ou em etapa posterior.
 
-.PARAMETER DiretorioSaida
+.PARAMETER Path
     Raiz de relatorios da sessao. Quando omitido, usa a configuracao persistente
     do toolkit ou C:\WBA\Relatorios.
 
