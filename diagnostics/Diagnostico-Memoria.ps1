@@ -30,6 +30,9 @@
 .PARAMETER AbrirRelatorio
     Abre o relatorio ao final da execucao.
 
+.PARAMETER Todos
+    Lista todos os processos sem limite de quantidade. Quando presente, -Top e ignorado.
+
 .PARAMETER DiretorioSaida
     Raiz de relatorios escolhida pelo usuario. Quando omitido, usa ReportsRoot persistente do
     toolkit ou C:\WBA\Relatorios.
@@ -39,6 +42,9 @@
 
 .EXAMPLE
     .\Diagnostico-Memoria.ps1 -Top 20 -Metrica PrivateBytes -GerarHtml -AbrirRelatorio
+
+.EXAMPLE
+    .\Diagnostico-Memoria.ps1 -Todos -GerarHtml -AbrirRelatorio
 
 .EXAMPLE
     .\Diagnostico-Memoria.ps1 -GerarHtml -DiretorioSaida "D:\Relatorios\Teste"
@@ -60,6 +66,8 @@ param(
 
     [ValidateSet('WorkingSet', 'PrivateBytes', 'VirtualMemory')]
     [string]$Metrica = 'WorkingSet',
+
+    [switch]$Todos,
 
     [switch]$GerarHtml,
 
@@ -183,10 +191,12 @@ function Get-ProcessMemoryData {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)][int]$Top,
-        [Parameter(Mandatory = $true)][string]$Metrica
+        [Parameter(Mandatory = $true)][string]$Metrica,
+        [switch]$Todos
     )
 
-    Write-MemLog -Message "Coletando processos, metrica=$Metrica, top=$Top"
+    $logMsg = if ($Todos) { "Coletando processos, metrica=$Metrica, todos" } else { "Coletando processos, metrica=$Metrica, top=$Top" }
+    Write-MemLog -Message $logMsg
 
     $sortProperty = switch ($Metrica) {
         'PrivateBytes'  { 'PrivateMemorySize64' }
@@ -196,9 +206,8 @@ function Get-ProcessMemoryData {
 
     $processes = $null
     try {
-        $processes = @(Get-Process -ErrorAction Stop |
-            Sort-Object -Property $sortProperty -Descending |
-            Select-Object -First $Top)
+        $sorted = Get-Process -ErrorAction Stop | Sort-Object -Property $sortProperty -Descending
+        $processes = if ($Todos) { @($sorted) } else { @($sorted | Select-Object -First $Top) }
     }
     catch {
         Write-MemLog -Level 'ERROR' -Message "Falha ao listar processos: $($_.Exception.Message)"
@@ -691,8 +700,9 @@ try {
     Write-MemLog -Message "Metrica: $Metrica | Top: $Top"
 
     Write-MemSection 'Coletando dados de processos'
-    $processos = @(Get-ProcessMemoryData -Top $Top -Metrica $Metrica)
+    $processos = @(Get-ProcessMemoryData -Top $Top -Metrica $Metrica -Todos:$Todos)
 
+    $topLabel = if ($Todos) { 'Todos' } else { [string]$Top }
     $data = [pscustomobject]@{
         Tool          = 'WBA Windows Toolkit'
         Script        = $ScriptName
@@ -700,7 +710,7 @@ try {
         GeneratedAt   = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
         ComputerName  = $env:COMPUTERNAME
         UserName      = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-        Top           = $Top
+        Top           = $topLabel
         Metrica       = $Metrica
         Processos     = @($processos)
         Output        = [pscustomobject]@{
