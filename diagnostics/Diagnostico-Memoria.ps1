@@ -10,7 +10,7 @@
 
 .FUNCIONALIDADES
     - Cria uma sessao padronizada em C:\WBA\Relatorios\Diagnostics\<timestamp>.
-    - Ordena processos por Working Set, Private Bytes ou Virtual Memory.
+    - Ordena processos por Working Set, Private Bytes ou Mem. Paginada.
     - Coleta publisher e descricao via FileVersionInfo.
     - Verifica assinatura digital com Get-AuthenticodeSignature.
     - Calcula hash SHA256 para link direto ao VirusTotal.
@@ -23,6 +23,9 @@
 
 .PARAMETER Metrica
     Criterio de ordenacao: WorkingSet (padrao), PrivateBytes ou VirtualMemory.
+    WorkingSet = RAM fisica em uso agora (pressao imediata).
+    PrivateBytes = memoria exclusiva do processo (melhor para detectar leak).
+    VirtualMemory = espaco de enderecamento reservado (util apenas para ranking; valores em TB sao normais).
 
 .PARAMETER GerarHtml
     Gera relatorio HTML alem do TXT.
@@ -319,7 +322,7 @@ function Get-ProcessMemoryData {
             PID           = $proc.Id
             WorkingSet    = Format-MemSize -Bytes $proc.WorkingSet64
             PrivateBytes  = Format-MemSize -Bytes $proc.PrivateMemorySize64
-            VirtualMem    = Format-MemSize -Bytes $proc.VirtualMemorySize64
+            MemPaginada   = Format-MemSize -Bytes $proc.PagedMemorySize64
             MetricaValor  = Format-MemSize -Bytes $proc.$sortProperty
             WorkingSetRaw = $proc.WorkingSet64
             Publisher     = $company
@@ -361,6 +364,16 @@ function New-MemoryTextReport {
     $naoAssinado  = @($Data.Processos | Where-Object { $_.Assinatura -notin @('Valid', 'N/A') }).Count
 
     $lines.Add('------------------------------------------------------------')
+    $lines.Add(' GUIA DE METRICAS')
+    $lines.Add('------------------------------------------------------------')
+    $lines.Add('  Working Set   RAM fisica ocupada agora. Pressao imediata sobre o sistema.')
+    $lines.Add('  Mem. Privada  Memoria exclusiva do processo (nao compartilhada). Melhor indicador')
+    $lines.Add('                de leak: cresce sem cair = vazamento de memoria.')
+    $lines.Add('  Mem. Paginada Memoria do processo no pool paginado. Complementar ao Working Set.')
+    $lines.Add('  NOTA: Memoria Virtual (espaco de enderecamento reservado) foi omitida pois')
+    $lines.Add('        valores em TB sao normais em apps 64-bit e nao refletem RAM fisica.')
+    $lines.Add('')
+    $lines.Add('------------------------------------------------------------')
     $lines.Add(' RESUMO')
     $lines.Add('------------------------------------------------------------')
     $lines.Add(('Processos analisados                   : {0}'  -f $Data.Processos.Count))
@@ -376,7 +389,7 @@ function New-MemoryTextReport {
         $lines.Add(('#' + $p.Rank + '  ' + $p.Nome + '  (PID ' + $p.PID + ')'))
         $lines.Add(('  Working Set   : {0}' -f $p.WorkingSet))
         $lines.Add(('  Mem. Privada  : {0}' -f $p.PrivateBytes))
-        $lines.Add(('  Mem. Virtual  : {0}' -f $p.VirtualMem))
+        $lines.Add(('  Mem. Paginada : {0}' -f $p.MemPaginada))
         $lines.Add(('  Publisher     : {0}' -f $p.Publisher))
         $lines.Add(('  Descricao     : {0}' -f $p.Descricao))
         $lines.Add(('  Versao        : {0}' -f $p.Versao))
@@ -434,7 +447,7 @@ function Build-MemHtmlTableRows {
         $sigSeg       = ConvertTo-HtmlSafe $p.Assinatura
         $wsSeg        = ConvertTo-HtmlSafe $p.WorkingSet
         $pbSeg        = ConvertTo-HtmlSafe $p.PrivateBytes
-        $vmSeg        = ConvertTo-HtmlSafe $p.VirtualMem
+        $mpSeg        = ConvertTo-HtmlSafe $p.MemPaginada
         $verSeg       = ConvertTo-HtmlSafe $p.Versao
 
         $pathExibido = if ($p.Caminho.Length -gt 65) {
@@ -457,7 +470,7 @@ function Build-MemHtmlTableRows {
         $row += '<td><b>' + $nomeSeguro + '</b><br><span class="muted small">PID ' + $p.PID + '</span></td>'
         $row += '<td>' + $wsSeg + '</td>'
         $row += '<td>' + $pbSeg + '</td>'
-        $row += '<td>' + $vmSeg + '</td>'
+        $row += '<td>' + $mpSeg + '</td>'
         $row += '<td>' + $publisherSeg + '<br><span class="muted small">' + $descSeg + '</span><br><span class="muted small">v' + $verSeg + '</span></td>'
         $row += '<td><span class="badge ' + $sigClass + '">' + $sigSeg + '</span></td>'
         $row += '<td><span class="badge ' + $levelClass + '">' + $nivelSeg + '</span></td>'
@@ -581,6 +594,13 @@ code { font-family: Consolas,monospace; font-size: 12px; background: #f3f4f6; pa
 </div>
 
 <h2>Processos &mdash; top $($Data.Top) por $metricaSeg</h2>
+<div class="info-box" style="margin-bottom:12px;font-size:12px;">
+  <b>Guia de metricas:</b>
+  &nbsp;<b>Working Set</b> = RAM fisica ocupada agora (pressao imediata no sistema).
+  &nbsp;<b>Mem. Privada</b> = memoria exclusiva do processo — melhor indicador de <em>leak</em> (cresce sem cair = vazamento).
+  &nbsp;<b>Mem. Paginada</b> = pool paginado do processo, complementar ao Working Set.
+  <span class="muted">&nbsp;Memoria Virtual omitida: espaco de enderecamento reservado pode ser dezenas de TB em apps 64-bit sem refletir RAM real.</span>
+</div>
 <p class="muted small">
   Links de pesquisa: <b>[G]</b> Google &nbsp;&nbsp;
   <b>[PL]</b> ProcessLibrary.com &nbsp;&nbsp;
@@ -593,7 +613,7 @@ code { font-family: Consolas,monospace; font-size: 12px; background: #f3f4f6; pa
   <th>Processo / PID</th>
   <th>Working Set</th>
   <th>Mem. Privada</th>
-  <th>Mem. Virtual</th>
+  <th>Mem. Paginada</th>
   <th>Publisher / Descricao / Versao</th>
   <th>Assinatura</th>
   <th>Nivel</th>
