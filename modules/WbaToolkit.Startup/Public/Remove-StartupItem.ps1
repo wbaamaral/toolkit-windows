@@ -33,7 +33,7 @@
         Array de objetos com as propriedades: Name, Action, Success, Message.
         Retorna array vazio quando o operador cancela a confirmacao.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true)]
     param(
         [Parameter(Mandatory = $true)]
         [object[]]$Item,
@@ -46,16 +46,26 @@
     $count = $targets.Count
     $plural = if ($count -gt 1) { "$count entradas" } else { 'esta entrada' }
 
-    $confirmation = Read-Host "Para remover definitivamente $plural da inicializacao, digite REMOVER INICIALIZACAO"
-    if ($confirmation -ne 'REMOVER INICIALIZACAO') {
-        Write-Warn 'Remocao cancelada.'
-        return @()
+    # A confirmacao textual e uma trava deliberada para acao destrutiva interativa.
+    # Sob -WhatIf ou -DryRun nao pedimos (nem executamos) nada, para nao travar
+    # simulacao/automacao em pipeline nao interativo.
+    if (-not $WhatIfPreference -and -not $DryRun) {
+        $confirmation = Read-Host "Para remover definitivamente $plural da inicializacao, digite REMOVER INICIALIZACAO"
+        if ($confirmation -ne 'REMOVER INICIALIZACAO') {
+            Write-Warn 'Remocao cancelada.'
+            return @()
+        }
     }
 
     $results = foreach ($currentItem in $targets) {
         if ($DryRun) {
             Write-Verbose "DRY-RUN: removeria inicializacao '$($currentItem.Name)'."
             [pscustomobject]@{ Name = $currentItem.Name; Action = 'Remove'; Success = $true; Message = 'DryRun.' }
+            continue
+        }
+
+        if (-not $PSCmdlet.ShouldProcess($currentItem.Name, 'Remover inicializacao')) {
+            [pscustomobject]@{ Name = $currentItem.Name; Action = 'Remove'; Success = $true; Message = 'WhatIf.' }
             continue
         }
 
