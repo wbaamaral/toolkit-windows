@@ -2,12 +2,13 @@
 
 ## [Não lançado]
 
-### Adicionado
-- `diagnostics/Verificar-Atualizacoes-Hardware.ps1`: diagnóstico somente leitura de BIOS (versão, data, ferramenta oficial do fabricante) e drivers (inventário Win32_PnPSignedDriver, assinatura, idade) com busca de drivers pendentes via Windows Update COM API
-
 ## [v1.2.0] — 2026-06-18
 
 ### Adicionado
+- `diagnostics/Diagnostico-Memoria.ps1`: top-N consumidores de memória RAM com métricas de memória paginada, física e virtual; `-Todos` lista todos os processos
+- `diagnostics/Verificar-Atualizacoes-Hardware.ps1`: diagnóstico somente leitura de BIOS (versão, data, ferramenta oficial do fabricante) e drivers (inventário Win32_PnPSignedDriver, assinatura, idade) com busca de drivers pendentes via Windows Update COM API
+- `maintenance/Backup-Restaurar-Drivers.ps1`: backup e restauração de drivers não-Windows via DISM/pnputil; modos Backup e Restore; suporte a `-DryRun` e `-GerarHtml`
+- `maintenance/Limpeza-WinSxS.ps1`: script operacional com modos Diagnostico, Limpeza e Relatorio para gestão assistida do Component Store (BCK-002)
 - `modules/WbaToolkit.Maintenance/Public/Remove-SafePath.ps1`: remove arquivos de um diretório com filtro opcional por idade (BCK-003)
 - `modules/WbaToolkit.Maintenance/Public/Get-DiskInfo.ps1`: retorna tamanho e espaço livre do SystemDrive via WMI (BCK-003)
 - `modules/WbaToolkit.Maintenance/Public/Get-FilesystemErrorEvent.ps1`: consulta eventos de erro/falha no log System (BCK-003; renomeada de Get-FilesystemErrorEvents para forma singular)
@@ -18,13 +19,22 @@
 - `modules/WbaToolkit.Maintenance/Private/ConvertTo-StoreSizeGB.ps1`: converte valor e unidade DISM para GB (BCK-002; auxiliar interno)
 - `modules/WbaToolkit.Maintenance/Public/Get-ComponentStoreInfo.ps1`: analisa Component Store via DISM AnalyzeComponentStore; operação somente leitura (BCK-002)
 - `modules/WbaToolkit.Maintenance/Public/Invoke-ComponentStoreCleanup.ps1`: executa limpeza do WinSxS via DISM com suporte a DryRun, WhatIf e nível Aggressive/ResetBase (BCK-002)
-- `maintenance/Limpeza-WinSxS.ps1`: script operacional com modos Diagnostico, Limpeza e Relatorio para gestão assistida do Component Store (BCK-002)
 
 ### Alterado
-- `modules/WbaToolkit.Maintenance/WbaToolkit.Maintenance.psd1`: versão 1.1.0 → 1.2.0; 8 novas funções exportadas
+- Todos os módulos alinhados para versão 1.2.0: `WbaToolkit.Core`, `WbaToolkit.Networking`, `WbaToolkit.Startup`, `WbaToolkit.Maintenance`
+- `modules/WbaToolkit.Maintenance/WbaToolkit.Maintenance.psd1`: versão 1.1.0 → 1.2.0; 8 novas funções exportadas (BCK-002 + BCK-003)
 - `modules/WbaToolkit.Maintenance/WbaToolkit.Maintenance.psm1`: Export-ModuleMember atualizado com 8 novas funções
-- `maintenance/limpeza-windows.ps1`: 7 funções internas extraídas para WbaToolkit.Maintenance; importa WbaToolkit.Maintenance; chama Invoke-FilesystemCheck com -CallerScript; chama Invoke-EventLogMaintenance em vez de Invoke-EventLogCleanup; substituídas chamadas DISM inline por Invoke-ComponentStoreCleanup -Level Standard (BCK-003 + BCK-002)
-- `tests/unit/WbaToolkit.Maintenance.Tests.ps1`: adicionados testes de exportação e comportamento para as 8 novas funções públicas
+- `maintenance/limpeza-windows.ps1`: 7 funções internas extraídas para WbaToolkit.Maintenance; substitui chamadas DISM inline por Invoke-ComponentStoreCleanup (BCK-003 + BCK-002)
+- `tests/unit/WbaToolkit.Maintenance.Tests.ps1`: testes de exportação e comportamento para as 8 novas funções públicas
+- `diagnostics/Diagnostico-Memoria.ps1`: parâmetro padronizado para `-Path` com `[Alias('DiretorioSaida')]`; `[CmdletBinding()]` adicionado; métrica Mem. Virtual substituída por Mem. Paginada
+
+### Corrigido
+- `modules/WbaToolkit.Maintenance/Public/Invoke-EventLogMaintenance.ps1`: `[List[string]]::new()` e hashtable inline com backtick causavam "Token '}' inesperado" no PS 5.1; substituídos por `@()` e variável `$filter`
+- 10 arquivos: `[System.Collections.Generic.List[T]]::new()` e `[Stack[T]]::new()` com tipos genéricos aninhados causavam ParserError no PS 5.1; substituídos por `New-Object 'tipo[param]'` (24 ocorrências)
+- 6 scripts operacionais sem bloco de identificação `$ScriptName`/`$ScriptPath`/`$ScriptDir` (ADR 0006): `Diagnostico-GPO-Client.ps1`, `Inventario-Hardware-Software.ps1`, `Backup-Restaurar-Drivers.ps1`, `Gerenciar-Inicializacao-Windows.ps1`, `Preparar-Imagem-Windows.ps1`, `Testar-Conectividade-Internet.ps1`
+- 45 arquivos `.ps1`: UTF-8 BOM restaurado conforme ADR 0007
+- `diagnostics/Diagnostico-Memoria.ps1`: variável reservada `$pid` renomeada para `$processId`
+- Vários scripts: `[CmdletBinding()]` e tipos de parâmetros ausentes adicionados; parâmetro `-DiretorioSaida` padronizado para `-Path` com alias (ADR 10.3)
 
 ## [v1.1.4] — 2026-06-14
 
