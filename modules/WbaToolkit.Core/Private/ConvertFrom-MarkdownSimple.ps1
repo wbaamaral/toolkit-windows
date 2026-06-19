@@ -23,7 +23,7 @@
     $lines = $Markdown -split '\r?\n'
     $output = [System.Text.StringBuilder]::new()
     $state = 'Normal'
-    $paragraphLines = [System.Collections.Generic.List[string]]::new()
+    $paragraphLines = New-Object 'System.Collections.Generic.List[string]'
     $tableHeaderEmitted = $false
 
     $flushParagraph = {

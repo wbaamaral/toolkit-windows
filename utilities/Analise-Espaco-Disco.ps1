@@ -123,10 +123,10 @@ function Invoke-DiskScan {
         [System.StringComparer]::OrdinalIgnoreCase)
     $folderAttribs = [System.Collections.Generic.Dictionary[string,int]]::new(
         [System.StringComparer]::OrdinalIgnoreCase)
-    $topFiles = [System.Collections.Generic.List[PSCustomObject]]::new()
+    $topFiles = New-Object 'System.Collections.Generic.List[PSCustomObject]'
     $topFilesMax = 200
 
-    $stack   = [System.Collections.Generic.Stack[string]]::new()
+    $stack   = New-Object 'System.Collections.Generic.Stack[string]'
     $stack.Push($RootPath)
     $scannedDirs  = [long]0
     $scannedFiles = [long]0
@@ -169,7 +169,7 @@ function Invoke-DiskScan {
                         })
                         if ($topFiles.Count -gt $topFilesMax * 2) {
                             $sorted = $topFiles | Sort-Object Size -Descending | Select-Object -First $topFilesMax
-                            $topFiles = [System.Collections.Generic.List[PSCustomObject]]::new()
+                            $topFiles = New-Object 'System.Collections.Generic.List[PSCustomObject]'
                             $sorted | ForEach-Object { $topFiles.Add($_) }
                         }
                     }
@@ -235,7 +235,7 @@ function Get-WasteEstimates {
     function FolderSize([string]$p) {
         if (-not (Test-Path $p -ErrorAction SilentlyContinue)) { return [long]0 }
         $s = [long]0
-        $stack = [System.Collections.Generic.Stack[string]]::new()
+        $stack = New-Object 'System.Collections.Generic.Stack[string]'
         $stack.Push($p)
         while ($stack.Count -gt 0) {
             $d = $stack.Pop()
@@ -271,7 +271,7 @@ function Get-WasteEstimates {
         [PSCustomObject]@{ Categoria = "Cache miniaturas";      SubPath = "AppData\Local\Microsoft\Windows\Explorer"; Note = "Regenerado pelo Explorer" }
     )
 
-    $results = [System.Collections.Generic.List[PSCustomObject]]::new()
+    $results = New-Object 'System.Collections.Generic.List[PSCustomObject]'
 
     foreach ($item in $items) {
         $sz = [long]0
@@ -611,7 +611,7 @@ Write-Host "Volumes: $($targetDrives.Name -join ', ')" -ForegroundColor Yellow
 Write-Host ""
 
 # Varrer cada drive
-$allScans = [System.Collections.Generic.List[PSCustomObject]]::new()
+$allScans = New-Object 'System.Collections.Generic.List[PSCustomObject]'
 foreach ($di in $targetDrives) {
     Write-Host "Varrendo $($di.Name) ($($di.VolumeLabel)) — $(Format-FileSize $di.Size) total..." -ForegroundColor Yellow
     $t0     = [DateTime]::Now

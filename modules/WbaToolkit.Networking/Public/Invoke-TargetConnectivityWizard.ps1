@@ -12,7 +12,7 @@
         [CmdletBinding()]
         param([Parameter(Mandatory = $true)][string]$Selection)
 
-        $protocols = [System.Collections.Generic.List[string]]::new()
+        $protocols = New-Object 'System.Collections.Generic.List[string]'
         $tokens = $Selection -split '[,\s;]+' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
 
         foreach ($token in $tokens) {

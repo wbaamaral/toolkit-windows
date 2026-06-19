@@ -47,7 +47,7 @@ Import-Module $ToolkitModulePath -Force -ErrorAction Stop
 # ---------------------------------------------------------------------------
 # Registro de resultados
 # ---------------------------------------------------------------------------
-$script:Results = [System.Collections.Generic.List[object]]::new()
+$script:Results = New-Object 'System.Collections.Generic.List[object]'
 
 function Add-Result {
     [CmdletBinding()]
@@ -477,7 +477,7 @@ if (-not $gpModulo) {
         #     -> 'OU=Estacoes,OU=TI,DC=contoso,DC=local'
         #     -> 'OU=TI,DC=contoso,DC=local'
         $partes = $compDN -split '(?<!\\),'
-        $ouList = [System.Collections.Generic.List[string]]::new()
+        $ouList = New-Object 'System.Collections.Generic.List[string]'
         for ($i = 0; $i -lt $partes.Count; $i++) {
             if ($partes[$i] -match '^OU=') {
                 $ouDN = ($partes[$i..($partes.Count - 1)]) -join ','

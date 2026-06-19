@@ -29,8 +29,8 @@
     [CmdletBinding()]
     param()
 
-    $erros    = [System.Collections.Generic.List[string]]::new()
-    $avisos   = [System.Collections.Generic.List[string]]::new()
+    $erros    = New-Object 'System.Collections.Generic.List[string]'
+    $avisos   = New-Object 'System.Collections.Generic.List[string]'
     $buildNum = 0
     $versaoSO = ''
 

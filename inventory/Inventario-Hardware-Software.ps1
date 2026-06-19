@@ -547,7 +547,7 @@ function Export-HardwareDriverSummaryTxt {
         [Parameter(Mandatory = $true)][string]$Path
     )
 
-    $lines = [System.Collections.Generic.List[string]]::new()
+    $lines = New-Object 'System.Collections.Generic.List[string]'
     $lines.Add('============================================================')
     $lines.Add(' RESUMO DE HARDWARE E DRIVERS ATIVOS')
     $lines.Add('============================================================')
@@ -668,7 +668,7 @@ function Export-HardwareDriverSummaryMarkdown {
         [Parameter(Mandatory = $true)][string]$Path
     )
 
-    $lines = [System.Collections.Generic.List[string]]::new()
+    $lines = New-Object 'System.Collections.Generic.List[string]'
     $lines.Add('# Resumo de Hardware e Drivers Ativos')
     $lines.Add('')
     $lines.Add('| Campo | Valor |')
