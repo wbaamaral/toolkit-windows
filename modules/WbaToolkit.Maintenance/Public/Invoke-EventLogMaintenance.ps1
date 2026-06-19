@@ -1,4 +1,4 @@
-function Invoke-EventLogMaintenance {
+﻿function Invoke-EventLogMaintenance {
     <#
     .SYNOPSIS
         Limpa logs do Visualizador de Eventos com opcoes de backup de erros.

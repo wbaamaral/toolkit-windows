@@ -1,4 +1,4 @@
-function Get-FilesystemErrorEvent {
+﻿function Get-FilesystemErrorEvent {
     <#
     .SYNOPSIS
         Retorna eventos de erro ou falha relacionados ao sistema de arquivos.
