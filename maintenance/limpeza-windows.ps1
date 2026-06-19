@@ -209,9 +209,35 @@ function Write-Step {
         [int]$Percent
     )
 
-    Write-Progress -Activity "Limpeza e manutenção segura do Windows" -Status $Message -PercentComplete $Percent
+    # Nota: nao usamos Write-Progress aqui de proposito. Como o script intercala
+    # etapas longas (SFC/DISM) com perguntas interativas (chkdsk, Visualizador de
+    # Eventos), a barra de progresso do PowerShell (especialmente no PS 7) fica
+    # fixa no rodape e cobre os prompts, deixando o operador sem ver as perguntas.
+    # O marcador textual "[NN%] mensagem" cumpre o papel de feedback sem esse efeito.
     Write-Host ""
     Write-Host "[$Percent%] $Message" -ForegroundColor Cyan
+}
+
+function Invoke-DismComponentCleanupStep {
+    # Wrapper de apresentacao: executa a limpeza do Component Store sem o prompt de
+    # confirmacao oculto (o nivel Standard e seguro/reversivel) e exibe o resultado
+    # de forma clara, resolvendo a falta de feedback relatada apos a refatoracao.
+    param([string]$StepMessage, [int]$Percent)
+
+    Write-Step $StepMessage $Percent
+    Write-Host "    Limpeza do Component Store (WinSxS). Aguarde, pode levar varios minutos..." -ForegroundColor Yellow
+
+    $dismResult = Invoke-ComponentStoreCleanup -Level Standard -Confirm:$false
+
+    if ($null -eq $dismResult) {
+        Write-Host "    DISM: nao foi possivel obter o resultado da limpeza." -ForegroundColor Yellow
+    }
+    elseif ($dismResult.Success) {
+        Write-Host "    DISM concluido (codigo $($dismResult.ExitCode)). Espaco liberado: $($dismResult.SpaceFreedMB) MB." -ForegroundColor Green
+    }
+    else {
+        Write-Host "    DISM retornou codigo $($dismResult.ExitCode). Verifique o log para detalhes." -ForegroundColor Yellow
+    }
 }
 
 if ($Help) {
@@ -266,20 +292,20 @@ if ($RepararSistema) {
     Write-Host ""
 
     Write-Step "Executando verificacao de integridade SFC" 30
+    Write-Host "    SFC em execucao. Aguarde, pode levar varios minutos..." -ForegroundColor Yellow
     Invoke-Safe "sfc /scannow" {
         sfc /scannow
     }
 
-    Write-Step "Executando limpeza do Component Store via DISM" 60
-    Invoke-ComponentStoreCleanup -Level Standard
+    Invoke-DismComponentCleanupStep "Executando limpeza do Component Store via DISM" 60
 
     Write-Step "Executando restauracao de integridade via DISM" 90
+    Write-Host "    DISM RestoreHealth em execucao. Aguarde, pode levar varios minutos..." -ForegroundColor Yellow
     Invoke-Safe "DISM RestoreHealth" {
         dism.exe /Online /Cleanup-Image /RestoreHealth
     }
 
     Write-Step "Verificacao de integridade concluida" 100
-    Write-Progress -Activity "Limpeza e manutenção segura do Windows" -Completed
 
     if ($transcriptActive) { Stop-Transcript }
 
@@ -411,14 +437,15 @@ Invoke-Safe "cleanmgr silencioso (sageset:99 + sagerun:99)" {
 
 if (-not $NoSfc) {
     Write-Step "Executando verificação de integridade SFC" 84
+    Write-Host "    SFC em execucao. Aguarde, pode levar varios minutos..." -ForegroundColor Yellow
     Invoke-Safe "sfc /scannow" {
         sfc /scannow
     }
 
-    Write-Step "Executando limpeza do Component Store via DISM" 88
-    Invoke-ComponentStoreCleanup -Level Standard
+    Invoke-DismComponentCleanupStep "Executando limpeza do Component Store via DISM" 88
 
     Write-Step "Executando restauração de integridade via DISM" 91
+    Write-Host "    DISM RestoreHealth em execucao. Aguarde, pode levar varios minutos..." -ForegroundColor Yellow
     Invoke-Safe "DISM RestoreHealth" {
         dism.exe /Online /Cleanup-Image /RestoreHealth
     }
@@ -487,7 +514,6 @@ catch {
 }
 
 Write-Step "Finalizado" 100
-Write-Progress -Activity "Limpeza e manutenção segura do Windows" -Completed
 
 if ($transcriptActive) { Stop-Transcript }
 
