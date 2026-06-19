@@ -41,12 +41,16 @@ Destinada a desenvolvedores que estendem ou mantêm os módulos.
 |---|---|---|
 | Diagnóstico de conectividade | `diagnostics/networking/Testar-Conectividade-Internet.ps1` | Testa gateway, DNS, ICMP, TCP; relatório HTML |
 | Diagnóstico de driver gráfico | `diagnostics/Diagnostico-Driver-Grafico.ps1` | GPU, DWM, TDR, WHEA, eventos gráficos, DXDiag |
+| Diagnóstico de memória | `diagnostics/Diagnostico-Memoria.ps1` | Top-N consumidores de RAM; métricas de memória paginada e física |
+| Verificar atualizações de hardware | `diagnostics/Verificar-Atualizacoes-Hardware.ps1` | BIOS, drivers e atualizações de hardware pendentes via Windows Update |
 
 ### Manutenção
 
 | Script | Caminho | Descrição |
 |---|---|---|
 | Limpeza do Windows | `maintenance/limpeza-windows.ps1` | Limpeza conservadora e manutenção |
+| Limpeza WinSxS | `maintenance/Limpeza-WinSxS.ps1` | Component Store: diagnóstico, limpeza assistida e relatório |
+| Backup e restauração de drivers | `maintenance/Backup-Restaurar-Drivers.ps1` | Backup e restauração de drivers não-Windows via DISM/pnputil |
 | Diagnóstico HD100 | `maintenance/Diagnostico-Reparo-HD100.ps1` | Uso de disco 100%, SMART, startup |
 | Gerenciar inicialização | `maintenance/Gerenciar-Inicializacao-Windows.ps1` | Habilitar/desabilitar itens de startup |
 | Preparar imagem corporativa | `maintenance/Preparar-Imagem-Windows.ps1` | Tweaks de perfil Default + sysprep |
@@ -90,7 +94,7 @@ Destinada a desenvolvedores que estendem ou mantêm os módulos.
 | `WbaToolkit.Core` | 24 | Funções base compartilhadas por todos os scripts |
 | `WbaToolkit.Networking` | 16 | Diagnóstico de conectividade e relatórios de rede |
 | `WbaToolkit.Startup` | 7 | Gerenciamento de itens de inicialização do Windows |
-| `WbaToolkit.Maintenance` | 5 | Preparação de imagem corporativa (sysprep) |
+| `WbaToolkit.Maintenance` | 13 | Manutenção avançada: limpeza, WinSxS, sistema de arquivos e preparação de imagem |
 
 ## Geração de documentação HTML local
 

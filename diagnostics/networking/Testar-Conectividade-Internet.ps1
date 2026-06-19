@@ -47,5 +47,7 @@ $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $modulePath = Join-Path $repoRoot 'modules/WbaToolkit.Networking/WbaToolkit.Networking.psd1'
 Import-Module $modulePath -Force -ErrorAction Stop
 
+# WBA-DOCS: Category=Diagnostics; Related=Diagnostico-Reparo-HD100.ps1; Manual=Teste de conectividade com a internet
+
 $report = Invoke-ConnectivityTest -Detailed:$Detalhado
 Show-ConnectivityReport -Report $report

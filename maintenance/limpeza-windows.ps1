@@ -150,6 +150,8 @@ $MaintenanceModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Maintenance/
 Import-Module $CoreModulePath        -Force -ErrorAction Stop
 Import-Module $MaintenanceModulePath -Force -ErrorAction Stop
 
+# WBA-DOCS: Category=Maintenance; Related=Limpeza-WinSxS.ps1; Manual=Limpeza de arquivos temporarios e logs do Windows
+
 $ScriptVersion = "v1.0"
 $ScriptName    = $MyInvocation.MyCommand.Name
 $ReportSession = $null

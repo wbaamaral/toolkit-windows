@@ -1,6 +1,6 @@
 # Guia Rápido do Operador — WBA Windows Toolkit
 
-Autor: **wbaamaral** — v1.1.3
+Autor: **wbaamaral** — v1.2.0
 
 Manual completo: [`docs/manual-operador-wba-windows-toolkit.md`](../../manual-operador-wba-windows-toolkit.md)
 
@@ -63,6 +63,38 @@ Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1 -Force
 .\diagnostics\Diagnostico-Driver-Grafico.ps1 -GerarHtml -ColetarDxDiag -ExportarEvtx
 ```
 
+### Diagnóstico de memória
+
+```powershell
+# Top 10 consumidores de RAM (padrão):
+.\diagnostics\Diagnostico-Memoria.ps1
+
+# Top 20 processos:
+.\diagnostics\Diagnostico-Memoria.ps1 -Top 20
+
+# Listar todos os processos:
+.\diagnostics\Diagnostico-Memoria.ps1 -Todos
+
+# Com relatório HTML:
+.\diagnostics\Diagnostico-Memoria.ps1 -GerarHtml
+```
+
+### Verificar atualizações de hardware
+
+```powershell
+# Diagnóstico completo (BIOS + drivers + Windows Update):
+.\diagnostics\Verificar-Atualizacoes-Hardware.ps1
+
+# Com relatório HTML:
+.\diagnostics\Verificar-Atualizacoes-Hardware.ps1 -GerarHtml
+
+# Somente BIOS:
+.\diagnostics\Verificar-Atualizacoes-Hardware.ps1 -SkipDrivers
+
+# Somente drivers:
+.\diagnostics\Verificar-Atualizacoes-Hardware.ps1 -SkipBios
+```
+
 ### Inventário de hardware/software
 
 ```powershell
@@ -109,6 +141,41 @@ Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1 -Force
 
 # Liberar espaço do hiberfil.sys (desativa hibernação):
 .\maintenance\limpeza-windows.ps1 -DisableHibernation -NoReboot
+```
+
+### Limpeza do WinSxS (Component Store)
+
+```powershell
+# Diagnóstico somente leitura (padrão):
+.\maintenance\Limpeza-WinSxS.ps1
+
+# Relatório em JSON:
+.\maintenance\Limpeza-WinSxS.ps1 -Modo Relatorio
+
+# Relatório em JSON e HTML:
+.\maintenance\Limpeza-WinSxS.ps1 -Modo Relatorio -GerarHtml
+
+# Limpeza assistida (solicita confirmação):
+.\maintenance\Limpeza-WinSxS.ps1 -Modo Limpeza
+
+# Simulação da limpeza sem alterar nada:
+.\maintenance\Limpeza-WinSxS.ps1 -Modo Limpeza -DryRun
+```
+
+### Backup e restauração de drivers
+
+```powershell
+# Backup interativo (padrão):
+.\maintenance\Backup-Restaurar-Drivers.ps1
+
+# Simulação de backup:
+.\maintenance\Backup-Restaurar-Drivers.ps1 -DryRun
+
+# Restauração interativa com relatório HTML:
+.\maintenance\Backup-Restaurar-Drivers.ps1 -Modo Restore -GerarHtml
+
+# Path de relatório/backup customizado:
+.\maintenance\Backup-Restaurar-Drivers.ps1 -Path "D:\Backup\Drivers"
 ```
 
 ### Preparar imagem corporativa (sysprep)

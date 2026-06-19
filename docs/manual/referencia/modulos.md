@@ -108,9 +108,11 @@ Localização: `modules/WbaToolkit.Startup/WbaToolkit.Startup.psm1`
 
 ## WbaToolkit.Maintenance
 
-Preparação de imagem corporativa com sysprep.
+Manutenção avançada do sistema: limpeza de arquivos, WinSxS, sistema de arquivos, logs de eventos e preparação de imagem corporativa.
 
 Localização: `modules/WbaToolkit.Maintenance/WbaToolkit.Maintenance.psm1`
+
+### Sysprep e imagem corporativa
 
 | Função | Descrição |
 |---|---|
@@ -119,3 +121,21 @@ Localização: `modules/WbaToolkit.Maintenance/WbaToolkit.Maintenance.psm1`
 | `Import-RegistryTweakToDefaultProfile` | Importa arquivo `.reg` para o perfil Default |
 | `Test-SysprepEnvironment` | Valida pré-requisitos para sysprep corporativo |
 | `Invoke-SysprepPreparation` | Orquestra tweaks e dispara sysprep |
+
+### Limpeza e sistema de arquivos
+
+| Função | Descrição |
+|---|---|
+| `Remove-SafePath` | Remove arquivos de um diretório com filtro opcional por idade |
+| `Get-DiskInfo` | Retorna tamanho e espaço livre do SystemDrive via WMI |
+| `Get-FilesystemErrorEvent` | Consulta eventos de erro/falha no log System |
+| `Write-MaintenanceEvent` | Registra evento no Visualizador de Eventos com fonte parametrizada |
+| `Invoke-FilesystemCheck` | Verifica eventos de falha no sistema de arquivos e agenda chkdsk |
+| `Invoke-EventLogMaintenance` | Limpa logs do Visualizador de Eventos com backup opcional de erros |
+
+### Component Store (WinSxS)
+
+| Função | Descrição |
+|---|---|
+| `Get-ComponentStoreInfo` | Analisa Component Store via DISM AnalyzeComponentStore |
+| `Invoke-ComponentStoreCleanup` | Executa limpeza do WinSxS via DISM com suporte a DryRun e ResetBase |

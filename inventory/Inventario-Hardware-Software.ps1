@@ -150,6 +150,8 @@ $ToolkitRoot = Split-Path -Parent $PSScriptRoot
 $ToolkitModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
 Import-Module $ToolkitModulePath -Force -ErrorAction Stop
 
+# WBA-DOCS: Category=Inventory; Manual=Inventario de hardware software e drivers
+
 # ---------------------------------------------------------------------------
 # Helpers visuais
 # ---------------------------------------------------------------------------
