@@ -9,7 +9,13 @@
         [string]$Command,
         [bool]$Enabled = $true,
         [bool]$ManagedDisabled = $false,
-        [string]$BackupPath
+        [string]$BackupPath,
+        # Tipo nativo do valor de registro (String, ExpandString, Binary, DWord, etc.).
+        # Necessario para restaurar o valor sem corromper ao reabilitar.
+        [string]$ValueKind = 'String',
+        # Valor bruto preservando o tipo nativo (ex.: byte[] para REG_BINARY).
+        # Command e a forma textual para exibicao; RawValue e usado na restauracao.
+        [object]$RawValue
     )
 
     $id = New-StartupItemId -Value "$SourceType|$Location|$Name|$ValueName"
@@ -21,6 +27,8 @@
         Location        = $Location
         ValueName       = $ValueName
         Command         = $Command
+        ValueKind       = $ValueKind
+        RawValue        = $RawValue
         Enabled         = $Enabled
         State           = if ($Enabled) { 'On' } else { 'Off' }
         ManagedDisabled = $ManagedDisabled
