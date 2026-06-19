@@ -2,6 +2,20 @@
 
 ## [Não lançado]
 
+### Corrigido
+- `modules/WbaToolkit.Core/Public/Invoke-Safe.ps1`: verificação de exit code era código morto (`$LASTEXITCODE` local mascarava o global); agora detecta falha de comando nativo (DEV-019)
+- `modules/WbaToolkit.Maintenance/Public/Remove-SafePath.ps1`: adicionada whitelist de raízes (`-AllowedRoot`), canonicalização anti path traversal, recusa de raízes/diretórios críticos e `SupportsShouldProcess` (-WhatIf) (DEV-019)
+- `modules/WbaToolkit.Startup`: ciclo Disable→store→Enable preserva o tipo nativo do registro (REG_EXPAND_SZ/REG_BINARY/REG_DWORD) via `RegistryValueKind`+valor bruto; `Enable-StartupItem` não recria mais a chave Run existente (não apaga outros valores); `SupportsShouldProcess`/-WhatIf real em Disable/Enable/Remove; `Get-ManagedDisabledStartupItems` robustecida (DEV-019)
+- `active-directory/Diagnostico-GPO-Client.ps1`: regex super-escapado tornava a detecção de canal seguro código morto; corrigido para `NERR_Success|0x0` (DEV-019)
+- `maintenance/Diagnostico-Reparo-HD100.ps1`: `-Modo Rollback` chamava função inexistente; relatório HTML referenciava propriedades de sessão inexistentes (DEV-019)
+- `active-directory/Testa-Repara-ContaMaquinaAD.ps1` e `utilities/Analise-Espaco-Disco.ps1`: corrigido erro de parse `[CmdletBinding()]` sem `param()` (16 funções) que impedia o carregamento dos scripts — estes ainda falhavam no parse na v1.2.0 (DEV-019)
+- `maintenance/limpeza-windows.ps1` e `modules/WbaToolkit.Maintenance/Public/Invoke-ComponentStoreCleanup.ps1`: corrigida regressão da refatoração BCK-003 — prompt de confirmação do DISM oculto atrás da barra de progresso e ausência de feedback; removido `Write-Progress` que cobria prompts, DISM em nível Standard sem prompt (`-Confirm:$false`), saída do DISM exibida em tempo real e resultado informado (DEV-020)
+- `maintenance/limpeza-windows.ps1`: `Start-Transcript` sem `-Encoding` (parâmetro inexistente no PS 5.1 e variável entre versões do PS 7) para o log de transcrição funcionar (DEV-020)
+
+### Alterado
+- Aplicado UTF-8 com BOM a todos os `.ps1`/`.psm1`/`.psd1` que estavam sem BOM, em conformidade com o ADR 0007 (DEV-020)
+- `tests/unit/WbaToolkit.Maintenance.Tests.ps1`: testes de `Remove-SafePath` atualizados para o novo contrato de whitelist e adicionado teste de recusa fora das raízes permitidas
+
 ## [v1.2.0] — 2026-06-18
 
 ### Adicionado

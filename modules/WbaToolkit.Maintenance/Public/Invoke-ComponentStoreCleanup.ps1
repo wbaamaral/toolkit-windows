@@ -1,4 +1,4 @@
-function Invoke-ComponentStoreCleanup {
+﻿function Invoke-ComponentStoreCleanup {
     <#
     .SYNOPSIS
         Executa limpeza do Component Store (WinSxS) via DISM.
@@ -82,12 +82,21 @@ function Invoke-ComponentStoreCleanup {
     $rawLines   = @()
     $exitCode   = 0
 
+    # Feedback ao operador: o DISM e demorado e nao mostra progresso util quando a
+    # saida e apenas capturada. Exibimos cada linha em tempo real (Tee-Object preserva
+    # a captura para RawOutput/log) para que o usuario veja o avanco.
+    Write-Host "    DISM em execucao (pode levar varios minutos). Progresso abaixo:" -ForegroundColor DarkGray
+
     try {
         if ($Level -eq 'Aggressive') {
-            $rawLines = & dism.exe /Online /Cleanup-Image /StartComponentCleanup /ResetBase 2>&1
+            & dism.exe /Online /Cleanup-Image /StartComponentCleanup /ResetBase 2>&1 |
+                Tee-Object -Variable rawLines |
+                ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
         }
         else {
-            $rawLines = & dism.exe /Online /Cleanup-Image /StartComponentCleanup 2>&1
+            & dism.exe /Online /Cleanup-Image /StartComponentCleanup 2>&1 |
+                Tee-Object -Variable rawLines |
+                ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
         }
         $exitCode = $LASTEXITCODE
     }

@@ -1,4 +1,4 @@
-function ConvertTo-StoreSizeGB {
+﻿function ConvertTo-StoreSizeGB {
     param(
         [Parameter(Mandatory = $true)]
         [string]$Value,

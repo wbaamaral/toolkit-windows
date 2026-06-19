@@ -131,6 +131,7 @@ function Get-DomainCredentialSafe {
 
 function Initialize-Log {
     [CmdletBinding()]
+    param()
     if ($NoTranscript) {
         return
     }
@@ -154,6 +155,7 @@ function Initialize-Log {
 
 function Initialize-Context {
     [CmdletBinding()]
+    param()
     Write-Title 'Coleta inicial de contexto'
 
     $computerSystem = Get-CimInstance Win32_ComputerSystem
@@ -185,6 +187,7 @@ function Initialize-Context {
 
 function Show-DnsClientConfiguration {
     [CmdletBinding()]
+    param()
     Write-Title 'Teste 1 - Configuração DNS do cliente'
 
     try {
@@ -236,6 +239,7 @@ function Show-DnsClientConfiguration {
 
 function Test-DnsRecords {
     [CmdletBinding()]
+    param()
     Write-Title 'Teste 2 - Resolução DNS e registros SRV do Active Directory'
 
     $queries = @(
@@ -270,6 +274,7 @@ function Test-DnsRecords {
 
 function Get-DomainControllerByNltest {
     [CmdletBinding()]
+    param()
     Write-Title 'Teste 3 - Descoberta do controlador de domínio'
 
     $result = Invoke-ExternalCommand -FilePath 'nltest.exe' -ArgumentList @("/dsgetdc:$DomainFqdn", '/force')
@@ -319,6 +324,7 @@ function Get-DomainControllerByNltest {
 
 function Get-DcTarget {
     [CmdletBinding()]
+    param()
     if (-not [string]::IsNullOrWhiteSpace($script:DetectedDcIp)) {
         return $script:DetectedDcIp
     }
@@ -332,6 +338,7 @@ function Get-DcTarget {
 
 function Test-DcPorts {
     [CmdletBinding()]
+    param()
     Write-Title 'Teste 4 - Portas essenciais para autenticação no AD'
 
     $dcTarget = Get-DcTarget
@@ -372,6 +379,7 @@ function Test-DcPorts {
 
 function Test-TimeSync {
     [CmdletBinding()]
+    param()
     Write-Title 'Teste 5 - Hora, fuso e sincronização com o domínio'
 
     $dcForTime = if (-not [string]::IsNullOrWhiteSpace($script:DetectedDcHost)) {
@@ -406,6 +414,7 @@ function Test-TimeSync {
 
 function Test-DomainMembership {
     [CmdletBinding()]
+    param()
     Write-Title 'Teste 6 - Ingresso da máquina no domínio'
 
     try {
@@ -464,6 +473,7 @@ function Test-DomainMembership {
 
 function Test-NltestSecureChannel {
     [CmdletBinding()]
+    param()
     Write-Title 'Teste 7 - nltest /sc_query e /sc_verify'
 
     $query = Invoke-ExternalCommand -FilePath 'nltest.exe' -ArgumentList @("/sc_query:$DomainFqdn")
@@ -493,6 +503,7 @@ function Test-NltestSecureChannel {
 
 function Test-MachineKerberosTickets {
     [CmdletBinding()]
+    param()
     Write-Title 'Teste 8 - Tickets Kerberos da conta de máquina'
 
     $machinePrincipal = "$($env:COMPUTERNAME)`$"
@@ -515,6 +526,7 @@ function Test-MachineKerberosTickets {
 
 function Test-AndRepairComputerSecureChannel {
     [CmdletBinding()]
+    param()
     Write-Title 'Teste 9 - Test-ComputerSecureChannel'
 
     $secureChannelOk = $false
@@ -629,6 +641,7 @@ function Test-AndRepairComputerSecureChannel {
 
 function Invoke-DomainRemoval {
     [CmdletBinding()]
+    param()
     Write-Title 'Etapa opcional - Remoção do domínio'
 
     $cred = Get-DomainCredentialSafe -Purpose 'remover máquina do domínio'
@@ -653,6 +666,7 @@ function Invoke-DomainRemoval {
 
 function Show-FinalSummary {
     [CmdletBinding()]
+    param()
     Write-Title 'Resumo final dos testes'
 
     $script:Results | Format-Table DataHora, Etapa, Status, Detalhe -AutoSize -Wrap
