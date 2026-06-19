@@ -154,7 +154,9 @@ if (-not [string]::IsNullOrWhiteSpace($DCName)) {
     # Ping
     $ping = Test-Connection -ComputerName $DCName -Count 2 -ErrorAction SilentlyContinue
     if ($ping) {
-        $rtt = ($ping | Measure-Object -Property ResponseTime -Average).Average
+        # Windows PowerShell 5.1 expoe 'ResponseTime'; PowerShell 7+ expoe 'Latency'.
+        $rttProperty = if ((@($ping)[0].PSObject.Properties.Name) -contains 'Latency') { 'Latency' } else { 'ResponseTime' }
+        $rtt = ($ping | Measure-Object -Property $rttProperty -Average).Average
         Write-Ok "Ping para $DCName — RTT medio: $([math]::Round($rtt,1)) ms"
         Add-Result "Ping DC ($DCName)" 'OK' "RTT medio $([math]::Round($rtt,1)) ms"
     } else {
