@@ -13,9 +13,11 @@
 - `maintenance/Diagnostico-Reparo-HD100.ps1`: `-Modo Rollback` chamava função inexistente; relatório HTML referenciava propriedades de sessão inexistentes (DEV-019)
 - `active-directory/Testa-Repara-ContaMaquinaAD.ps1` e `utilities/Analise-Espaco-Disco.ps1`: corrigido erro de parse `[CmdletBinding()]` sem `param()` (16 funções) que impedia o carregamento dos scripts (DEV-019)
 - `maintenance/limpeza-windows.ps1` e `modules/WbaToolkit.Maintenance/Public/Invoke-ComponentStoreCleanup.ps1`: corrigida regressão da refatoração BCK-003 — prompt de confirmação do DISM oculto atrás da barra de progresso e ausência de feedback; removido `Write-Progress` que cobria prompts, DISM em nível Standard sem prompt (`-Confirm:$false`), saída do DISM exibida em tempo real e resultado informado (DEV-020)
+- **Parse no Windows PowerShell 5.1**: arquivos sem BOM com em-dash/aspas tipográficas eram lidos como ANSI (CP1252) e o em-dash virava aspas tipográficas que o lexer tratava como delimitador de string, quebrando o parse (ex.: `Invoke-EventLogMaintenance.ps1`). Causa do "não roda no 5.1". Corrigido aplicando UTF-8 com BOM em todos os `.ps1`/`.psm1`/`.psd1` (ADR 0007) (DEV-020)
+- `maintenance/limpeza-windows.ps1`: `Start-Transcript` sem `-Encoding` (parâmetro inexistente no PS 5.1 e variável entre versões do PS 7) para o log de transcrição funcionar (DEV-020)
 
 ### Alterado
-- `modules/WbaToolkit.Maintenance/Public/Remove-SafePath.ps1` e `Invoke-ComponentStoreCleanup.ps1`: adicionado UTF-8 com BOM (ADR 0007)
+- Todos os arquivos `.ps1`/`.psm1`/`.psd1` do repositório agora têm UTF-8 com BOM (ADR 0007)
 - `tests/unit/WbaToolkit.Maintenance.Tests.ps1`: testes de `Remove-SafePath` atualizados para o novo contrato de whitelist e adicionado teste de recusa fora das raízes permitidas
 
 ## [v1.2.0] — 2026-06-18
