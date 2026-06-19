@@ -79,11 +79,11 @@ function Invoke-EventLogMaintenance {
             Write-MaintenanceEvent -Source $EventSource -EventId 1002 -Message $msg
         }
         'ErrorOnly' {
-            $cleaned = [System.Collections.Generic.List[string]]::new()
+            $cleaned = @()
             foreach ($log in $targetLogs) {
                 try {
-                    $hasErrors = Get-WinEvent -FilterHashtable @{ LogName = $log; Level = 1, 2 } `
-                        -MaxEvents 1 -ErrorAction SilentlyContinue
+                    $filter   = @{ LogName = $log; Level = @(1, 2) }
+                    $hasErrors = Get-WinEvent -FilterHashtable $filter -MaxEvents 1 -ErrorAction SilentlyContinue
                     if (-not $hasErrors) {
                         Write-Host "Log '$log': sem eventos de erro/falha — ignorado." -ForegroundColor DarkGray
                         continue
@@ -94,7 +94,7 @@ function Invoke-EventLogMaintenance {
                     wevtutil.exe epl $log $backup "/q:*[System[Level<=2]]" 2>&1 | Out-Null
                     wevtutil.exe cl $log 2>&1 | Out-Null
                     Write-Host "Log '$log' limpo. Backup de erros: $backup" -ForegroundColor Green
-                    $cleaned.Add($log)
+                    $cleaned += $log
                 }
                 catch {
                     Write-Host "Falha ao processar log '$log': $($_.Exception.Message)" -ForegroundColor Red
