@@ -1,4 +1,9 @@
-﻿#Requires -Version 5.1
+﻿# =============================================================================
+# [NAO VALIDADO] Script sem execucao real documentada em Windows.
+# Nao recomendado para uso em producao ate validacao operacional.
+# Registro: nao-validado/README.md
+# =============================================================================
+#Requires -Version 5.1
 <#
 .SYNOPSIS
     Analisa o uso de espaco em disco, identifica potencial de limpeza e gera
