@@ -9,7 +9,7 @@ Critério de "validado": execução real em Windows (PowerShell 5.1 e/ou 7) com 
 registrada em `spec-win-toolkit/spec/IMPLEMENTADO.md`. Apenas sintaxe (Parser), carga de
 módulo, BOM (ADR 0007) ou testes Pester **não** contam como validação operacional.
 
-## Não validados (11)
+## Não validados (10)
 
 | Script | Diretório | Por que não validado |
 |---|---|---|
@@ -22,13 +22,13 @@ módulo, BOM (ADR 0007) ou testes Pester **não** contam como validação operac
 | `Backup-Restaurar-Drivers.ps1` | maintenance/ | sem execução real; usa DISM/pnputil |
 | `Limpeza-WinSxS.ps1` | maintenance/ | sem execução real; usa DISM no Component Store |
 | `Preparar-Imagem-Windows.ps1` | maintenance/ | sem execução real; sysprep (alto risco) |
-| `Analise-Espaco-Disco.ps1` | utilities/ | correção dos totalizadores (DriveInfo) só validada por sintaxe; sem execução real |
 | `Remover-Perfis-Inativos.ps1` | utilities/ | sem execução real; remove perfis de usuário (alto risco) |
 
 ## Já validados por execução real (não estão aqui)
 
 `upgrade-windows.ps1`, `Diagnostico-Memoria.ps1`, `Gerenciar-Inicializacao-Windows.ps1`,
-`Diagnostico-Reparo-HD100.ps1`, `Inventario-Hardware-Software.ps1`, `limpeza-windows.ps1`.
+`Diagnostico-Reparo-HD100.ps1`, `Inventario-Hardware-Software.ps1`, `limpeza-windows.ps1`,
+`Analise-Espaco-Disco.ps1`.
 
 ## Como um script sai desta lista
 
@@ -37,5 +37,10 @@ módulo, BOM (ADR 0007) ou testes Pester **não** contam como validação operac
 3. Remover a linha correspondente da tabela acima.
 
 > Prioridade natural de validação: os scripts de AD (`Diagnostico-GPO-Client`,
-> `Testa-Repara-ContaMaquinaAD`) já têm lab pronto em `tests/lab-ad/`. `Analise-Espaco-Disco`
-> precisa apenas de uma execução para confirmar a correção dos totalizadores de volume.
+> `Testa-Repara-ContaMaquinaAD`) já têm lab pronto em `tests/lab-ad/`.
+
+## Histórico de validação
+
+- 2026-06-19: `Analise-Espaco-Disco.ps1` validado em Windows real (PS 5.1, VM de testes) — varredura de
+  C: (122.713 pastas / 372.171 arquivos), totalizadores de volume corretos (Total 127,17 GB · Usado 35,08 GB
+  / 28% · Livre 92,09 GB), confirmando a correção do `DriveInfo.TotalSize`/`TotalFreeSpace`.
