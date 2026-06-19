@@ -76,6 +76,7 @@ $LogFile       = $null
 
 function Show-Help {
     [CmdletBinding()]
+    param()
     Write-Host ""
     Write-Host "Analise de Espaco em Disco — $script:ScriptVersion" -ForegroundColor Cyan
     Write-Host ""
@@ -232,6 +233,7 @@ function Invoke-DiskScan {
 
 function Get-WasteEstimates {
     [CmdletBinding()]
+    param()
     function FolderSize([string]$p) {
         if (-not (Test-Path $p -ErrorAction SilentlyContinue)) { return [long]0 }
         $s = [long]0

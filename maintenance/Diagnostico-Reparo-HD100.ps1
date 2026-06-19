@@ -1546,9 +1546,9 @@ function Export-HD100ReportHtml {
     $generatedFileRows = @(
         [pscustomobject]@{ Nome = 'Relatorio TXT'; Caminho = $script:HD100Session.TextReportPath }
         [pscustomobject]@{ Nome = 'Relatorio HTML'; Caminho = $script:HD100Session.HtmlReportPath }
-        [pscustomobject]@{ Nome = 'Diagnostico JSON'; Caminho = $script:HD100Session.JsonPath }
-        [pscustomobject]@{ Nome = 'Registro de alteracoes'; Caminho = $script:HD100Session.ChangesPath }
-        [pscustomobject]@{ Nome = 'Rollback'; Caminho = $script:HD100Session.RollbackPath }
+        [pscustomobject]@{ Nome = 'Diagnostico JSON'; Caminho = $script:HD100Session.DiagnosticJsonPath }
+        [pscustomobject]@{ Nome = 'Registro de alteracoes'; Caminho = $script:HD100Session.ChangesJsonPath }
+        [pscustomobject]@{ Nome = 'Rollback'; Caminho = $script:HD100Session.RollbackJsonPath }
         [pscustomobject]@{ Nome = 'Logs'; Caminho = $script:HD100Session.LogsPath }
         [pscustomobject]@{ Nome = 'Backups'; Caminho = $script:HD100Session.BackupsPath }
     ) | ForEach-Object {
@@ -1756,7 +1756,7 @@ function Invoke-HD100Rollback {
     param()
 
     Write-Title 'WBA Windows Toolkit - Rollback HD100'
-    $items = @(Get-HD100ManagedDisabledStartupItems)
+    $items = @(Get-HD100StartupItems | Where-Object { $_.ManagedDisabled })
     if (@($items).Count -eq 0) {
         Write-Info 'Nenhuma entrada de inicializacao desabilitada pelo HD100 foi encontrada.'
         return

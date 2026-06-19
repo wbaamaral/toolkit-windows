@@ -108,8 +108,8 @@ Write-Title 'TESTE 1 — Canal seguro (Secure Channel)'
 $sc = Invoke-ExternalCommand 'nltest' @("/sc_query:$DomainFQDN")
 Write-Info $sc.Output
 
-if ($sc.Output -match 'LOGON_SERVER\\s*:\\s*\\\\\\\\(\S+)') {
-    $dcLogon = $Matches[1]
+if ($sc.ExitCode -eq 0 -and $sc.Output -match 'NERR_Success|0x0\b') {
+    $dcLogon = if ($sc.Output -match '\\\\(\S+)') { $Matches[1] } else { 'desconhecido' }
     Write-Ok "Canal seguro ativo — DC: $dcLogon"
     Add-Result 'Canal seguro' 'OK' "DC: $dcLogon"
 } elseif ($sc.Output -match 'ERROR_NO_LOGON_SERVERS|Nenhum|not found|0xc000005e|0xc0000022') {
