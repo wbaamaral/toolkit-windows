@@ -1,4 +1,9 @@
-﻿#requires -version 5.1
+﻿# =============================================================================
+# [NAO VALIDADO] Script sem execucao real documentada em Windows.
+# Nao recomendado para uso em producao ate validacao operacional.
+# Registro: nao-validado/README.md
+# =============================================================================
+#requires -version 5.1
 <#
 .SYNOPSIS
     Backup e restauracao de drivers de terceiros instalados no Windows.

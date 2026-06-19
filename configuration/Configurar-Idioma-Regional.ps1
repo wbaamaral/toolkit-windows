@@ -1,4 +1,9 @@
-﻿#Requires -Version 5.1
+﻿# =============================================================================
+# [NAO VALIDADO] Script sem execucao real documentada em Windows.
+# Nao recomendado para uso em producao ate validacao operacional.
+# Registro: nao-validado/README.md
+# =============================================================================
+#Requires -Version 5.1
 <#
 .SYNOPSIS
     Padroniza idioma, locale regional e fuso horario de instalacoes Windows 10/11 Pro+ para pt-BR.
