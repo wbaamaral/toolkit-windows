@@ -129,7 +129,7 @@ function Resolve-HD100SystemDrive {
 function Initialize-HD100Session {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true)][string]$BasePath,
+        [Parameter(Mandatory = $false)][string]$BasePath,
         [Parameter(Mandatory = $true)][string]$ExecutionMode
     )
 
