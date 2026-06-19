@@ -27,6 +27,8 @@ $ToolkitRoot = Split-Path -Parent $PSScriptRoot
 $ToolkitModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
 Import-Module $ToolkitModulePath -Force -ErrorAction Stop
 
+# WBA-DOCS: Category=Updates; Manual=Atualizacao do Windows e Chocolatey
+
 <#
 .SINOPSE
     Script de atualização básica e conservadora para Windows 10 Pro.

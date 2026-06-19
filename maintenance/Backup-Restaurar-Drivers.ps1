@@ -23,20 +23,19 @@
 .PARAMETER Path
     Raiz de relatorios/backup. Quando omitido, usa configuracao do toolkit ou C:\WBA\Relatorios.
 
-.USO
-    Backup interativo (padrao):
-        .\Backup-Restaurar-Drivers.ps1
+.EXAMPLE
+    .\Backup-Restaurar-Drivers.ps1
 
-    Backup simulado:
-        .\Backup-Restaurar-Drivers.ps1 -DryRun
+.EXAMPLE
+    .\Backup-Restaurar-Drivers.ps1 -DryRun
 
-    Restore interativo com HTML:
-        .\Backup-Restaurar-Drivers.ps1 -Modo Restore -GerarHtml
+.EXAMPLE
+    .\Backup-Restaurar-Drivers.ps1 -Modo Restore -GerarHtml
 
-    Path customizado:
-        .\Backup-Restaurar-Drivers.ps1 -Path "D:\Backup\Drivers"
+.EXAMPLE
+    .\Backup-Restaurar-Drivers.ps1 -Path "D:\Backup\Drivers"
 
-.NOTAS
+.NOTES
     Requer PowerShell 5.1 e execucao como Administrador.
     Get-WindowsDriver requer o modulo DISM, presente em Windows 8.1+ e Server 2012+.
     Modulo WbaToolkit.Core carregado automaticamente.

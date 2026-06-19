@@ -48,7 +48,7 @@
     Set-ExecutionPolicy Bypass -Scope Process -Force
     .\Limpeza-WinSxS.ps1 -Modo Limpeza
 
-.NOTAS
+.NOTES
     Recomendado executar como Administrador.
     Testado conceitualmente para Windows 10/11 com PowerShell 5.1 ou superior.
 #>
@@ -79,6 +79,8 @@ $CoreModulePath        = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaTool
 $MaintenanceModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Maintenance/WbaToolkit.Maintenance.psd1'
 Import-Module $CoreModulePath        -Force -ErrorAction Stop
 Import-Module $MaintenanceModulePath -Force -ErrorAction Stop
+
+# WBA-DOCS: Category=Maintenance; Related=limpeza-windows.ps1; Manual=Limpeza assistida do Component Store WinSxS
 
 $ScriptVersion = 'v1.0'
 $ScriptName    = $MyInvocation.MyCommand.Name

@@ -78,6 +78,8 @@ $ToolkitRoot = Split-Path -Parent $PSScriptRoot
 $ToolkitModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
 Import-Module $ToolkitModulePath -Force -ErrorAction Stop
 
+# WBA-DOCS: Category=Configuration; Manual=Configuracao de idioma e regiao do Windows
+
 $ScriptVersion = "v1.0"
 $ScriptName    = $MyInvocation.MyCommand.Name
 $ReportSession = $null

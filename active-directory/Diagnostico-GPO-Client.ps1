@@ -51,6 +51,8 @@ $ToolkitRoot = Split-Path -Parent $PSScriptRoot
 $ToolkitModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
 Import-Module $ToolkitModulePath -Force -ErrorAction Stop
 
+# WBA-DOCS: Category=ActiveDirectory; Related=Testa-Repara-ContaMaquinaAD.ps1; Manual=Diagnostico de problemas de GPO no cliente
+
 # ---------------------------------------------------------------------------
 # Helpers visuais
 # ---------------------------------------------------------------------------
