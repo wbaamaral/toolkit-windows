@@ -33,7 +33,7 @@
         .\Analise-Espaco-Disco.ps1 -Drive C
 
     Salvar relatorio em outro diretorio:
-        .\Analise-Espaco-Disco.ps1 -OutputDir "D:\Relatorios"
+        .\Analise-Espaco-Disco.ps1 -DiretorioSaida "D:\Relatorios"
 
     Gerar apenas HTML (sem PDF):
         .\Analise-Espaco-Disco.ps1 -NaoPDF
@@ -47,7 +47,8 @@ param (
     [switch]$Help,
     [switch]$Version,
     [string[]]$Drive,
-    [string]$OutputDir,
+    [Alias('DiretorioSaida')]
+    [string]$Path,
     [switch]$NaoPDF,
     [switch]$Silent
 )
@@ -85,7 +86,7 @@ function Show-Help {
     Write-Host "Uso:  .\$ScriptName [opcoes]"
     Write-Host ""
     Write-Host "  -Drive '<letra>'   Volume a varrer (ex: C). Padrao: todos os locais fixos."
-    Write-Host "  -OutputDir '<dir>' Raiz de relatorios. Padrao: ReportsRoot persistente ou C:\WBA\Relatorios"
+    Write-Host "  -DiretorioSaida '<dir>' Raiz de relatorios. Padrao: ReportsRoot persistente ou C:\WBA\Relatorios"
     Write-Host "  -NaoPDF            Gera apenas HTML sem converter para PDF."
     Write-Host "  -Silent            Sem saida de progresso no console."
     Write-Host "  -Help              Esta ajuda."
@@ -94,7 +95,7 @@ function Show-Help {
     Write-Host "Exemplos:"
     Write-Host "  .\$ScriptName"
     Write-Host "  .\$ScriptName -Drive C"
-    Write-Host "  .\$ScriptName -Drive C,D -OutputDir D:\Relatorios -NaoPDF"
+    Write-Host "  .\$ScriptName -Drive C,D -DiretorioSaida D:\Relatorios -NaoPDF"
     Write-Host ""
 }
 
@@ -313,8 +314,8 @@ function Show-ConsoleReport {
     [CmdletBinding()]
     param([object]$ScanResult, [object]$DriveInfo, [object[]]$Waste)
 
-    $driveTotal  = $DriveInfo.Size
-    $driveFree   = $DriveInfo.FreeSpace
+    $driveTotal  = $DriveInfo.TotalSize
+    $driveFree   = $DriveInfo.TotalFreeSpace
     $driveUsed   = $driveTotal - $driveFree
     $drivePct    = if ($driveTotal -gt 0) { [int]($driveUsed / $driveTotal * 100) } else { 0 }
     $driveLetter = $DriveInfo.Name
@@ -436,8 +437,8 @@ footer{text-align:center;padding:20px;font-size:11px;color:var(--muted)}
 
     foreach ($scan in $AllScans) {
         $di    = $scan.DriveInfo
-        $total = $di.Size
-        $free  = $di.FreeSpace
+        $total = $di.TotalSize
+        $free  = $di.TotalFreeSpace
         $used  = $total - $free
         $pct   = if ($total -gt 0) { [int]($used / $total * 100) } else { 0 }
         $fillClass = if ($pct -ge 85) { 'fill-warn' } elseif ($pct -ge 65) { 'fill-mid' } else { 'fill-ok' }
@@ -573,12 +574,12 @@ if (-not (Test-IsAdministrator)) {
     exit
 }
 
-$ReportSession = Initialize-ToolkitReportSession -ReportsRoot $OutputDir -ModuleName 'Utilities'
-$OutputDir     = $ReportSession.Path
+$ReportSession = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'Utilities'
+$Path          = $ReportSession.Path
 $LogDir        = $ReportSession.LogsPath
 $LogFile       = Join-Path $LogDir "$((Get-Date).ToString('yyyy-MM-dd_HHmmss'))-$([System.IO.Path]::GetFileNameWithoutExtension($ScriptName)).log"
 
-if (!(Test-Path $OutputDir)) { New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null }
+if (!(Test-Path $Path)) { New-Item -ItemType Directory -Path $Path -Force | Out-Null }
 
 $transcriptActive = $false
 try {
@@ -617,7 +618,7 @@ Write-Host ""
 # Varrer cada drive
 $allScans = New-Object 'System.Collections.Generic.List[PSCustomObject]'
 foreach ($di in $targetDrives) {
-    Write-Host "Varrendo $($di.Name) ($($di.VolumeLabel)) — $(Format-FileSize $di.Size) total..." -ForegroundColor Yellow
+    Write-Host "Varrendo $($di.Name) ($($di.VolumeLabel)) — $(Format-FileSize $di.TotalSize) total..." -ForegroundColor Yellow
     $t0     = [DateTime]::Now
     $result = Invoke-DiskScan -RootPath $di.RootDirectory.FullName -Quiet:$Silent
     $elapsed = [int]([DateTime]::Now - $t0).TotalSeconds
@@ -637,7 +638,7 @@ foreach ($scan in $allScans) {
 
 # Relatorio HTML
 $ts       = (Get-Date).ToString('yyyy-MM-dd_HH-mm-ss')
-$htmlFile = Join-Path $OutputDir "$ts-relatorio-analise-espaco-disco.html"
+$htmlFile = Join-Path $Path "$ts-relatorio-analise-espaco-disco.html"
 $pdfFile  = $htmlFile -replace '\.html$','.pdf'
 $dateStr  = (Get-Date).ToString('dd/MM/yyyy HH:mm')
 
