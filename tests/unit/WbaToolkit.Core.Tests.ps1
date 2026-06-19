@@ -98,12 +98,19 @@ Describe 'WbaToolkit.Core' {
     }
 
     Context 'Formatacao de tamanho' {
+        # Format-FileSize usa "{0:N1}"/"{0:N2}" (sensivel a cultura). O separador
+        # decimal varia por cultura (pt-BR usa virgula) e isso e comportamento
+        # esperado, nao defeito (ver spec/IMPLEMENTADO.md). Por isso o esperado e
+        # calculado com a mesma cultura/formato, validando unidade, valor e precisao
+        # sem fixar o separador decimal.
         It 'Deve formatar bytes pequenos em KB' {
-            Format-FileSize -Bytes 1536 | Should -Be '1.5 KB'
+            $esperado = '{0:N1} KB' -f (1536 / 1KB)
+            Format-FileSize -Bytes 1536 | Should -Be $esperado
         }
 
         It 'Deve formatar gigabytes corretamente' {
-            Format-FileSize -Bytes ([long]2GB) | Should -Be '2.00 GB'
+            $esperado = '{0:N2} GB' -f ([long]2GB / 1GB)
+            Format-FileSize -Bytes ([long]2GB) | Should -Be $esperado
         }
     }
 

@@ -2,6 +2,9 @@
 
 ## [Não lançado]
 
+### Adicionado
+- `tests/lab-ad/`: scripts de provisionamento de laboratório de Active Directory (DC + cliente membro) e runbook para validar `Diagnostico-GPO-Client.ps1` e `Testa-Repara-ContaMaquinaAD.ps1`, que exigem um domínio real (validação operacional PS 5.1/7.6.2)
+
 ### Corrigido
 - `modules/WbaToolkit.Core/Public/Invoke-Safe.ps1`: verificação de exit code era código morto (`$LASTEXITCODE` local mascarava o global); agora detecta falha de comando nativo (DEV-019)
 - `modules/WbaToolkit.Maintenance/Public/Remove-SafePath.ps1`: adicionada whitelist de raízes (`-AllowedRoot`), canonicalização anti path traversal, recusa de raízes/diretórios críticos e `SupportsShouldProcess` (-WhatIf) (DEV-019)
@@ -11,10 +14,16 @@
 - `active-directory/Testa-Repara-ContaMaquinaAD.ps1` e `utilities/Analise-Espaco-Disco.ps1`: corrigido erro de parse `[CmdletBinding()]` sem `param()` (16 funções) que impedia o carregamento dos scripts — estes ainda falhavam no parse na v1.2.0 (DEV-019)
 - `maintenance/limpeza-windows.ps1` e `modules/WbaToolkit.Maintenance/Public/Invoke-ComponentStoreCleanup.ps1`: corrigida regressão da refatoração BCK-003 — prompt de confirmação do DISM oculto atrás da barra de progresso e ausência de feedback; removido `Write-Progress` que cobria prompts, DISM em nível Standard sem prompt (`-Confirm:$false`), saída do DISM exibida em tempo real e resultado informado (DEV-020)
 - `maintenance/limpeza-windows.ps1`: `Start-Transcript` sem `-Encoding` (parâmetro inexistente no PS 5.1 e variável entre versões do PS 7) para o log de transcrição funcionar (DEV-020)
+- `modules/WbaToolkit.Networking/Public/Test-IcmpConnectivity.ps1` e `active-directory/Diagnostico-GPO-Client.ps1`: latência média do ping zerava no PowerShell 7 — `Test-Connection` expõe `Latency` no PS 7+ e `ResponseTime` no PS 5.1; passa a selecionar a propriedade existente em runtime, mantendo compatibilidade com ambas as versões (validação operacional)
+- `maintenance/Diagnostico-Reparo-HD100.ps1`: o wrapper `Initialize-HD100Session` marcava `-BasePath` como obrigatório e rejeitava o `-Path`/`-DiretorioSaida` vazio (padrão) quando omitido; `BasePath` tornado opcional, alinhando ao contrato de `Initialize-ScriptSession` (validação operacional)
+- `utilities/Analise-Espaco-Disco.ps1`: totalizadores de volume (Total/Livre/Usado/Ocupação) saíam zerados — `System.IO.DriveInfo` não possui `.Size`/`.FreeSpace`; corrigido para `TotalSize`/`TotalFreeSpace` (validação operacional)
+- `inventory/Inventario-Hardware-Software.ps1`: desreferência de objetos CIM nulos (ex.: `Win32_BaseBoard` em VMs) lançava `PropertyNotFoundException` sob `Set-StrictMode 2.0` na geração do HTML; campos de placa-mãe, BIOS, computador e SO resolvidos com guarda (validação operacional)
 
 ### Alterado
 - Aplicado UTF-8 com BOM a todos os `.ps1`/`.psm1`/`.psd1` que estavam sem BOM, em conformidade com o ADR 0007 (DEV-020)
 - `tests/unit/WbaToolkit.Maintenance.Tests.ps1`: testes de `Remove-SafePath` atualizados para o novo contrato de whitelist e adicionado teste de recusa fora das raízes permitidas
+- `utilities/Analise-Espaco-Disco.ps1` e `inventory/Inventario-Hardware-Software.ps1`: parâmetro padronizado para `-Path` com `[Alias('DiretorioSaida')]`, substituindo `-OutputDir` e alinhando aos demais scripts
+- `tests/unit/WbaToolkit.Core.Tests.ps1`: assertivas de `Format-FileSize` tornadas independentes de cultura (o separador decimal de cultura é comportamento esperado, não defeito — ver `spec/IMPLEMENTADO.md`); validam unidade, valor e precisão
 
 ## [v1.2.0] — 2026-06-18
 
