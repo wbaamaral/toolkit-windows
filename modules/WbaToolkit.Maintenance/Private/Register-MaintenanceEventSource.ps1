@@ -1,4 +1,4 @@
-function Register-MaintenanceEventSource {
+﻿function Register-MaintenanceEventSource {
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]

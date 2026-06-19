@@ -273,7 +273,9 @@ if (!(Test-Path $LogDir)) {
 
 $transcriptActive = $false
 try {
-    Start-Transcript -Path $LogFile -Encoding UTF8 -ErrorAction Stop
+    # Start-Transcript nao tem parametro -Encoding no Windows PowerShell 5.1
+    # (e variou entre versoes do PS 7); usar o padrao para compatibilidade.
+    Start-Transcript -Path $LogFile -ErrorAction Stop | Out-Null
     $transcriptActive = $true
 }
 catch {

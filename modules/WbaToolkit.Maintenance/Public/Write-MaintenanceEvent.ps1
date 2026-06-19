@@ -1,4 +1,4 @@
-function Write-MaintenanceEvent {
+﻿function Write-MaintenanceEvent {
     <#
     .SYNOPSIS
         Registra evento no Visualizador de Eventos do Windows.

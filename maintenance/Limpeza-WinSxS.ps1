@@ -1,4 +1,4 @@
-#requires -version 5.1
+﻿#requires -version 5.1
 <#
 .SYNOPSIS
     Diagnostico e limpeza assistida do Component Store (WinSxS) do Windows.

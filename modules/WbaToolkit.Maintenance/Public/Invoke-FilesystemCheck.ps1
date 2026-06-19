@@ -1,4 +1,4 @@
-function Invoke-FilesystemCheck {
+﻿function Invoke-FilesystemCheck {
     <#
     .SYNOPSIS
         Verifica eventos de falha no sistema de arquivos e oferece agendamento de chkdsk.
