@@ -37,6 +37,16 @@ $PSDefaultParameterValues['Set-Content:Encoding'] = 'utf8'
 $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
 chcp 65001 | Out-Null
 
+$ScriptName = if ($MyInvocation.MyCommand.Name) {
+    $MyInvocation.MyCommand.Name
+}
+else {
+    Split-Path -Leaf $PSCommandPath
+}
+
+$ScriptPath = $PSCommandPath
+$ScriptDir  = $PSScriptRoot
+
 $ToolkitRoot = Split-Path -Parent $PSScriptRoot
 $ToolkitModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
 Import-Module $ToolkitModulePath -Force -ErrorAction Stop
