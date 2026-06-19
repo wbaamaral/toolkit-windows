@@ -33,6 +33,16 @@ $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
 
 chcp 65001 | Out-Null
 
+$ScriptName = if ($MyInvocation.MyCommand.Name) {
+    $MyInvocation.MyCommand.Name
+}
+else {
+    Split-Path -Leaf $PSCommandPath
+}
+
+$ScriptPath = $PSCommandPath
+$ScriptDir  = $PSScriptRoot
+
 $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $modulePath = Join-Path $repoRoot 'modules/WbaToolkit.Networking/WbaToolkit.Networking.psd1'
 Import-Module $modulePath -Force -ErrorAction Stop
