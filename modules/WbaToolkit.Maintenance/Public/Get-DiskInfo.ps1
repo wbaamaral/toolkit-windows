@@ -1,4 +1,4 @@
-function Get-DiskInfo {
+﻿function Get-DiskInfo {
     <#
     .SYNOPSIS
         Retorna informacoes de espaco em disco da unidade do sistema.

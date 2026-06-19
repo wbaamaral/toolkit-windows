@@ -1,4 +1,4 @@
-@{
+﻿@{
     ModuleVersion     = '1.2.0'
     GUID              = 'd5e3f178-2a4c-4e8b-b9c1-7e2a5d6f0891'
     Author            = 'wbaamaral'

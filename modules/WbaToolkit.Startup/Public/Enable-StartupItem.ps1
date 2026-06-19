@@ -33,7 +33,7 @@
         System.Management.Automation.PSCustomObject[]
         Array de objetos com as propriedades: Name, Action, Success, Message.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true)]
     param(
         [Parameter(Mandatory = $true)]
         [object[]]$Item,
@@ -55,11 +55,23 @@
             continue
         }
 
+        if (-not $PSCmdlet.ShouldProcess($currentItem.Name, 'Habilitar inicializacao')) {
+            [pscustomobject]@{ Name = $currentItem.Name; Action = 'Enable'; Success = $true; Message = 'WhatIf.' }
+            continue
+        }
+
         try {
             switch ($currentItem.SourceType) {
                 'Registry' {
-                    New-Item -Path $currentItem.Location -Force | Out-Null
-                    New-ItemProperty -Path $currentItem.Location -Name $currentItem.ValueName -Value $currentItem.Command -PropertyType String -Force | Out-Null
+                    # Nao usar New-Item -Force em chave existente: isso recria a chave
+                    # e apaga TODOS os demais valores (ex.: outras entradas Run).
+                    if (-not (Test-Path -LiteralPath $currentItem.Location)) {
+                        New-Item -Path $currentItem.Location -Force -ErrorAction Stop | Out-Null
+                    }
+                    # Restaura preservando o tipo nativo (RawValue + ValueKind).
+                    $kind  = if ($currentItem.ValueKind) { [string]$currentItem.ValueKind } else { 'String' }
+                    $value = if ($null -ne $currentItem.RawValue) { $currentItem.RawValue } else { $currentItem.Command }
+                    New-ItemProperty -Path $currentItem.Location -Name $currentItem.ValueName -Value $value -PropertyType $kind -Force -ErrorAction Stop | Out-Null
                     Remove-StartupStoreItem -Id $currentItem.Id
                 }
                 'StartupFolder' {

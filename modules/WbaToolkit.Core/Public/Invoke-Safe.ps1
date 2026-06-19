@@ -29,11 +29,14 @@
     )
 
     try {
-        $LASTEXITCODE = 0
+        # Zera o exit code GLOBAL antes de executar. Atribuir a um $LASTEXITCODE local
+        # criaria uma variavel de escopo da funcao; comandos nativos atualizam o
+        # $LASTEXITCODE global, de modo que a verificacao abaixo leria sempre 0 (bug).
+        $global:LASTEXITCODE = 0
         & $Command
 
-        if ($LASTEXITCODE -ne $null -and $LASTEXITCODE -ne 0) {
-            Write-Warning "A operacao '$Description' retornou codigo de saida $LASTEXITCODE."
+        if ($null -ne $global:LASTEXITCODE -and $global:LASTEXITCODE -ne 0) {
+            Write-Warning "A operacao '$Description' retornou codigo de saida $global:LASTEXITCODE."
             return $false
         }
 

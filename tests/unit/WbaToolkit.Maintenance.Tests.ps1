@@ -139,8 +139,24 @@ Describe 'WbaToolkit.Maintenance' {
             New-Item -Path $tempDir -ItemType Directory -Force | Out-Null
             try {
                 Set-Content -Path (Join-Path $tempDir 'arquivo.txt') -Value 'conteudo'
-                Remove-SafePath -Path $tempDir
+                Remove-SafePath -Path $tempDir -AllowedRoot $tempDir
                 (Get-ChildItem $tempDir -Force -ErrorAction SilentlyContinue).Count | Should -Be 0
+            }
+            finally {
+                Remove-Item -LiteralPath $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+        It 'Deve RECUSAR remocao fora das raizes permitidas (preserva o conteudo)' {
+            $tempDir = [System.IO.Path]::Combine(
+                [System.IO.Path]::GetTempPath(),
+                "wba_deny_$([System.Guid]::NewGuid().ToString('N'))"
+            )
+            New-Item -Path $tempDir -ItemType Directory -Force | Out-Null
+            try {
+                Set-Content -Path (Join-Path $tempDir 'manter.txt') -Value 'conteudo'
+                # Raiz permitida diferente do alvo -> deve recusar e nao apagar.
+                Remove-SafePath -Path $tempDir -AllowedRoot ([System.IO.Path]::GetTempPath() + 'outra_raiz_xyz') -WarningAction SilentlyContinue
+                Test-Path (Join-Path $tempDir 'manter.txt') | Should -BeTrue
             }
             finally {
                 Remove-Item -LiteralPath $tempDir -Recurse -Force -ErrorAction SilentlyContinue
@@ -158,7 +174,7 @@ Describe 'WbaToolkit.Maintenance' {
             try {
                 $recentFile = Join-Path $tempDir 'recente.txt'
                 Set-Content -Path $recentFile -Value 'recente'
-                Remove-SafePath -Path $tempDir -OlderThanDays 1
+                Remove-SafePath -Path $tempDir -OlderThanDays 1 -AllowedRoot $tempDir
                 Test-Path $recentFile | Should -BeTrue
             }
             finally {

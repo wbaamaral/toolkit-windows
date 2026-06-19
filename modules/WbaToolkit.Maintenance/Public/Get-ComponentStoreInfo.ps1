@@ -1,4 +1,4 @@
-function Get-ComponentStoreInfo {
+﻿function Get-ComponentStoreInfo {
     <#
     .SYNOPSIS
         Analisa o Component Store (WinSxS) via DISM sem efetuar alteracoes.
