@@ -41,9 +41,9 @@
       resumo-hardware-drivers.md                                   Resumo enxuto opcional
       resumo-hardware-drivers.json                                 Resumo estruturado opcional
 
-.PARAMETER OutputDir
-    Raiz de relatorios escolhida pelo usuario. Quando omitido, usa ReportsRoot persistente do toolkit ou
-    C:\WBA\Relatorios. O script cria automaticamente Inventory\<timestamp>.
+.PARAMETER Path
+    Raiz de relatorios escolhida pelo usuario (alias: -DiretorioSaida). Quando omitido, usa ReportsRoot
+    persistente do toolkit ou C:\WBA\Relatorios. O script cria automaticamente Inventory\<timestamp>.
 
     Exemplos de valores validos:
       C:\TI
@@ -73,7 +73,7 @@
     de Chrome ou Edge para a conversao.
 
 .EXAMPLE
-    .\Inventario-Hardware-Software.ps1 -OutputDir "D:\Relatorios"
+    .\Inventario-Hardware-Software.ps1 -DiretorioSaida "D:\Relatorios"
 
     Gera os arquivos na pasta D:\Relatorios (criada automaticamente
     se nao existir).
@@ -94,7 +94,7 @@
     Gera o inventario completo em HTML e tambem o resumo enxuto de hardware e drivers ativos.
 
 .EXAMPLE
-    .\Inventario-Hardware-Software.ps1 -OutputDir "\\srv-files\TI\Inventarios" -NaoPDF
+    .\Inventario-Hardware-Software.ps1 -DiretorioSaida "\\srv-files\TI\Inventarios" -NaoPDF
 
     Salva o relatorio HTML diretamente em um compartilhamento de rede,
     sem gerar PDF.
@@ -107,7 +107,7 @@
 
     Em caso de erro na conversao PDF, verifique:
       1. Se o navegador esta instalado no caminho padrao
-      2. Se o usuario tem permissao de escrita em -OutputDir
+      2. Se o usuario tem permissao de escrita em -DiretorioSaida
       3. Consulte o arquivo .log gerado para detalhes completos
 
 .LINK
@@ -116,7 +116,8 @@
 
 [CmdletBinding()]
 param(
-    [string]$OutputDir,
+    [Alias('DiretorioSaida')]
+    [string]$Path,
     [switch]$NaoPDF,
     [switch]$GerarResumoHardwareDrivers,
     [switch]$SomenteHardwareDrivers,
@@ -788,11 +789,11 @@ $Timestamp = Get-Date -Format 'yyyy-MM-dd_HHmmss'
 $DataHora  = Get-Date -Format 'dd/MM/yyyy HH:mm:ss'
 $DataCurta = Get-Date -Format 'dd/MM/yyyy'
 
-$ReportSession = Initialize-ToolkitReportSession -ReportsRoot $OutputDir -ModuleName 'Inventory' -ExecutionName $Timestamp
-$OutputDir = $ReportSession.Path
+$ReportSession = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'Inventory' -ExecutionName $Timestamp
+$Path = $ReportSession.Path
 
-$HtmlFile = Join-Path $OutputDir "relatorio-inventario-$env:COMPUTERNAME-$Timestamp.html"
-$PdfFile  = Join-Path $OutputDir "relatorio-inventario-$env:COMPUTERNAME-$Timestamp.pdf"
+$HtmlFile = Join-Path $Path "relatorio-inventario-$env:COMPUTERNAME-$Timestamp.html"
+$PdfFile  = Join-Path $Path "relatorio-inventario-$env:COMPUTERNAME-$Timestamp.pdf"
 $LogFile  = Join-Path $ReportSession.LogsPath "inventario-$Timestamp.log"
 $HardwareDriverSummaryFiles = $null
 
@@ -809,14 +810,14 @@ else {
 }
 Write-Info  "Computador : $env:COMPUTERNAME"
 Write-Info  "Data/Hora  : $DataHora"
-Write-Info  "Destino    : $OutputDir"
+Write-Info  "Destino    : $Path"
 Write-Info  "Logs       : $($ReportSession.LogsPath)"
 
 if ($GerarResumoHardwareDrivers -or $SomenteHardwareDrivers) {
     $hardwareDriverSummary = Get-HardwareDriverSummary
     $HardwareDriverSummaryFiles = Export-HardwareDriverSummary `
         -Summary $hardwareDriverSummary `
-        -OutputDir $OutputDir `
+        -OutputDir $Path `
         -Format $FormatoResumoHardwareDrivers
 
     if ($SomenteHardwareDrivers) {
@@ -1056,8 +1057,12 @@ footer { text-align: center; color: var(--muted);
 '@
 
 # --- Header + nav ----------------------------------------------------------
-$manufacturerModel = "$(ConvertTo-HtmlSafe $cs.Manufacturer) $(ConvertTo-HtmlSafe $cs.Model)"
-$domainInfo = if ($cs.PartOfDomain) { "Dominio: $(ConvertTo-HtmlSafe $cs.Domain)" } else { "Grupo de trabalho: $(ConvertTo-HtmlSafe $cs.Workgroup)" }
+# Win32_ComputerSystem normalmente existe, mas resolver com guarda evita
+# PropertyNotFoundException sob Set-StrictMode 2.0 caso a consulta CIM falhe.
+$csManufacturer = if ($cs) { $cs.Manufacturer } else { $null }
+$csModel        = if ($cs) { $cs.Model }        else { $null }
+$manufacturerModel = "$(ConvertTo-HtmlSafe $csManufacturer) $(ConvertTo-HtmlSafe $csModel)"
+$domainInfo = if ($cs -and $cs.PartOfDomain) { "Dominio: $(ConvertTo-HtmlSafe $cs.Domain)" } elseif ($cs) { "Grupo de trabalho: $(ConvertTo-HtmlSafe $cs.Workgroup)" } else { '&mdash;' }
 
 $htmlTop = @"
 <!DOCTYPE html>
@@ -1113,7 +1118,7 @@ $htmlCards = @"
     <div class="card-icon">&#128187;</div>
     <div class="card-label">Computador</div>
     <div class="card-value">$env:COMPUTERNAME</div>
-    <div class="card-sub">$(ConvertTo-HtmlSafe $cs.Model)</div>
+    <div class="card-sub">$(ConvertTo-HtmlSafe $csModel)</div>
   </div>
   <div class="card">
     <div class="card-icon">&#128196;</div>
@@ -1161,8 +1166,16 @@ $htmlCards = @"
 "@
 
 # --- Sistema Operacional ---------------------------------------------------
-$archStr    = ConvertTo-HtmlSafe $os.OSArchitecture
-$serialOS   = ConvertTo-HtmlSafe $os.SerialNumber
+# Resolver campos do SO com guarda (StrictMode 2.0) caso $os venha nulo.
+$osCaption  = if ($os) { $os.Caption }          else { $null }
+$osVersion  = if ($os) { $os.Version }          else { $null }
+$osBuild    = if ($os) { $os.BuildNumber }       else { $null }
+$osLang     = if ($os) { $os.MUILanguages }      else { $null }
+$osWinDir   = if ($os) { $os.WindowsDirectory }  else { $null }
+$osArch     = if ($os) { $os.OSArchitecture }    else { $null }
+$osSerial   = if ($os) { $os.SerialNumber }      else { $null }
+$archStr    = ConvertTo-HtmlSafe $osArch
+$serialOS   = ConvertTo-HtmlSafe $osSerial
 $installDt  = if ($os) { $os.InstallDate.ToString('dd/MM/yyyy') } else { '&mdash;' }
 $freeMemGB  = if ($os) { [math]::Round($os.FreePhysicalMemory / 1MB, 2) } else { 0 }
 $usedMemGB  = [math]::Round($totalRamGB - $freeMemGB, 2)
@@ -1173,17 +1186,17 @@ $htmlSO = @"
   <div class="section-body">
     <div class="kv-grid">
       <table class="kv-table">
-        $(New-KvRow 'Nome' (ConvertTo-HtmlSafe $os.Caption))
-        $(New-KvRow 'Versao' (ConvertTo-HtmlSafe $os.Version))
-        $(New-KvRow 'Build' (ConvertTo-HtmlSafe $os.BuildNumber))
+        $(New-KvRow 'Nome' (ConvertTo-HtmlSafe $osCaption))
+        $(New-KvRow 'Versao' (ConvertTo-HtmlSafe $osVersion))
+        $(New-KvRow 'Build' (ConvertTo-HtmlSafe $osBuild))
         $(New-KvRow 'Arquitetura' $archStr)
-        $(New-KvRow 'Idioma' (ConvertTo-HtmlSafe $os.MUILanguages))
+        $(New-KvRow 'Idioma' (ConvertTo-HtmlSafe $osLang))
         $(New-KvRow 'Instalado em' $installDt)
       </table>
       <table class="kv-table">
         $(New-KvRow 'Ultimo boot' $(if ($os) { $os.LastBootUpTime.ToString('dd/MM/yyyy HH:mm:ss') } else { '&mdash;' }))
         $(New-KvRow 'Uptime' $uptimeStr)
-        $(New-KvRow 'Diretorio Windows' (ConvertTo-HtmlSafe $os.WindowsDirectory))
+        $(New-KvRow 'Diretorio Windows' (ConvertTo-HtmlSafe $osWinDir))
         $(New-KvRow 'Total RAM (OS)' "$totalRamGB GB")
         $(New-KvRow 'RAM em uso' "$usedMemGB GB / $totalRamGB GB")
         $(New-KvRow 'Nr. de serie OS' $serialOS)
@@ -1244,6 +1257,16 @@ $htmlRAM = @"
 # --- Placa-mae / BIOS ------------------------------------------------------
 $biosDate = if ($bios -and $bios.ReleaseDate) { $bios.ReleaseDate.ToString('dd/MM/yyyy') } else { '&mdash;' }
 
+# Win32_BaseBoard pode nao existir (ex.: VMs) e Win32_BIOS pode falhar; resolver
+# os valores com guarda evita PropertyNotFoundException sob Set-StrictMode 2.0.
+$mbManufacturer = if ($mb)   { $mb.Manufacturer }     else { $null }
+$mbProduct      = if ($mb)   { $mb.Product }          else { $null }
+$mbVersion      = if ($mb)   { $mb.Version }          else { $null }
+$mbSerial       = if ($mb)   { $mb.SerialNumber }     else { $null }
+$biosVendor     = if ($bios) { $bios.Manufacturer }     else { $null }
+$biosVersion    = if ($bios) { $bios.SMBIOSBIOSVersion } else { $null }
+$biosSerial     = if ($bios) { $bios.SerialNumber }     else { $null }
+
 $htmlMB = @"
 <div class="section" id="placa-mae">
   <div class="section-hdr">&#128268; Placa-mae e BIOS</div>
@@ -1252,19 +1275,19 @@ $htmlMB = @"
       <div>
         <div class="sub">Placa-mae</div>
         <table class="kv-table">
-          $(New-KvRow 'Fabricante'    (ConvertTo-HtmlSafe $mb.Manufacturer))
-          $(New-KvRow 'Produto'       (ConvertTo-HtmlSafe $mb.Product))
-          $(New-KvRow 'Versao'        (ConvertTo-HtmlSafe $mb.Version))
-          $(New-KvRow 'Nr. de serie'  (ConvertTo-HtmlSafe $mb.SerialNumber))
+          $(New-KvRow 'Fabricante'    (ConvertTo-HtmlSafe $mbManufacturer))
+          $(New-KvRow 'Produto'       (ConvertTo-HtmlSafe $mbProduct))
+          $(New-KvRow 'Versao'        (ConvertTo-HtmlSafe $mbVersion))
+          $(New-KvRow 'Nr. de serie'  (ConvertTo-HtmlSafe $mbSerial))
         </table>
       </div>
       <div>
         <div class="sub">BIOS</div>
         <table class="kv-table">
-          $(New-KvRow 'Fabricante'     (ConvertTo-HtmlSafe $bios.Manufacturer))
-          $(New-KvRow 'Versao'         (ConvertTo-HtmlSafe $bios.SMBIOSBIOSVersion))
+          $(New-KvRow 'Fabricante'     (ConvertTo-HtmlSafe $biosVendor))
+          $(New-KvRow 'Versao'         (ConvertTo-HtmlSafe $biosVersion))
           $(New-KvRow 'Data de lancamento' $biosDate)
-          $(New-KvRow 'Nr. de serie'   (ConvertTo-HtmlSafe $bios.SerialNumber))
+          $(New-KvRow 'Nr. de serie'   (ConvertTo-HtmlSafe $biosSerial))
         </table>
       </div>
     </div>
