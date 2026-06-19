@@ -604,7 +604,7 @@ function New-DrvTextReport {
         [Parameter(Mandatory = $true)][string]$OutPath
     )
 
-    $lines = [System.Collections.Generic.List[string]]::new()
+    $lines = New-Object 'System.Collections.Generic.List[string]'
 
     $sep = '=' * 80
     $lines.Add($sep)

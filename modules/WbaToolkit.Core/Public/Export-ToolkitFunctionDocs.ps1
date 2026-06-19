@@ -246,13 +246,13 @@ $moduleCards
 
         if ($commentMatch.Success) {
             $currentSection = 'Documentacao'
-            $sections[$currentSection] = [System.Collections.Generic.List[string]]::new()
+            $sections[$currentSection] = New-Object 'System.Collections.Generic.List[string]'
 
             foreach ($line in ($commentMatch.Groups[1].Value -split "\r?\n")) {
                 if ($line -match '^\s*\.(?<name>[A-Za-z0-9_-]+)\s*$') {
                     $currentSection = $Matches.name
                     if (-not $sections.Contains($currentSection)) {
-                        $sections[$currentSection] = [System.Collections.Generic.List[string]]::new()
+                        $sections[$currentSection] = New-Object 'System.Collections.Generic.List[string]'
                     }
                     continue
                 }

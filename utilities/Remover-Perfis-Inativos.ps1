@@ -120,7 +120,7 @@ function Get-FolderSize {
     if (-not (Test-Path $Path)) { return [long]0 }
     try {
         $size  = [long]0
-        $stack = [System.Collections.Generic.Stack[string]]::new()
+        $stack = New-Object 'System.Collections.Generic.Stack[string]'
         $stack.Push($Path)
         while ($stack.Count -gt 0) {
             $dir = $stack.Pop()
@@ -151,7 +151,7 @@ function Get-LocalProfiles {
     $wmiProfiles = Get-CimInstance -ClassName Win32_UserProfile -ErrorAction Stop |
         Where-Object { -not $_.Special }
 
-    $profiles = [System.Collections.Generic.List[PSCustomObject]]::new()
+    $profiles = New-Object 'System.Collections.Generic.List[PSCustomObject]'
     $index    = 1
 
     foreach ($wp in $wmiProfiles) {
@@ -357,7 +357,7 @@ function Show-ProfileDetail {
 function Remove-Profiles {
     param([System.Collections.Generic.List[PSCustomObject]]$ToDelete)
 
-    $results   = [System.Collections.Generic.List[PSCustomObject]]::new()
+    $results   = New-Object 'System.Collections.Generic.List[PSCustomObject]'
     $freedBytes = [long]0
 
     foreach ($p in $ToDelete) {
@@ -449,7 +449,7 @@ function Invoke-InteractiveMenu {
 
             if ($confirm -match '^[Ss]$') {
                 Write-Host ""
-                $list = [System.Collections.Generic.List[PSCustomObject]]::new()
+                $list = New-Object 'System.Collections.Generic.List[PSCustomObject]'
                 foreach ($p in $selected) { $list.Add($p) }
 
                 $result = Remove-Profiles -ToDelete $list
@@ -577,7 +577,7 @@ if ($Silent) {
         Write-Host "  Total: $($toDelete.Count) perfil(s) | $(Format-FileSize $totalSel)" -ForegroundColor Yellow
         Write-Host ""
 
-        $list = [System.Collections.Generic.List[PSCustomObject]]::new()
+        $list = New-Object 'System.Collections.Generic.List[PSCustomObject]'
         foreach ($p in $toDelete) { $list.Add($p) }
 
         $result = Remove-Profiles -ToDelete $list
@@ -591,7 +591,7 @@ if ($Silent) {
 }
 else {
     # Modo interativo
-    $list = [System.Collections.Generic.List[PSCustomObject]]::new()
+    $list = New-Object 'System.Collections.Generic.List[PSCustomObject]'
     foreach ($p in $profiles) { $list.Add($p) }
     Invoke-InteractiveMenu -Profiles $list
 }
