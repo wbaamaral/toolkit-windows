@@ -2,6 +2,8 @@
 
 ## [Não lançado]
 
+## [v1.3.0] — 2026-06-20
+
 ### Adicionado
 - `tests/lab-ad/`: scripts de provisionamento de laboratório de Active Directory (DC + cliente membro) e runbook para validar `Diagnostico-GPO-Client.ps1` e `Testa-Repara-ContaMaquinaAD.ps1`, que exigem um domínio real (validação operacional PS 5.1/7.6.2)
 
