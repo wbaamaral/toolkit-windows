@@ -405,12 +405,11 @@ Describe 'Invoke-UpgradeAll' {
 
     Context 'Verificacao de reboot pendente' {
         It 'Verifica reboot pendente antes e depois da execucao' {
-            $callCount = 0
-            Mock Test-PendingReboot { $callCount++; $false }
+            Mock Test-PendingReboot { $false }
 
             Invoke-UpgradeAll -ResolvedBackend 'WinGet' -NoWindowsUpdate
 
-            $callCount | Should -BeGreaterOrEqual 2
+            Should -Invoke Test-PendingReboot -Times 2 -Exactly
         }
     }
 

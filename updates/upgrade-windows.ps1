@@ -465,7 +465,8 @@ function Show-UpgradeSummary {
 
     if ($Summary.PSObject.Properties['BackendResult'] -and $Summary.BackendResult) {
         Write-Host ''
-        Write-Host "$($Summary.Resolution.Backend):" -ForegroundColor Yellow
+        $backendLabel = if ($Summary.PSObject.Properties['Resolution'] -and $Summary.Resolution) { $Summary.Resolution.Backend } else { 'Backend' }
+        Write-Host "${backendLabel}:" -ForegroundColor Yellow
         $br = $Summary.BackendResult
         $status = if ($br.Success) { 'Concluido' } elseif ($br.Partial) { 'Falha parcial' } else { 'Falha total' }
         Write-Host "    Status             : $status"
@@ -527,7 +528,7 @@ function Invoke-ListOnly {
 
     switch ($ResolvedBackend) {
         'WinGet' {
-            $packages = Invoke-WinGetList
+            $packages = @(Invoke-WinGetList)
             if ($packages.Count -eq 0) {
                 Write-Info 'Nenhuma atualizacao disponivel no WinGet.'
             }
@@ -539,7 +540,7 @@ function Invoke-ListOnly {
             }
         }
         'Chocolatey' {
-            $packages = Invoke-ChocolateyList
+            $packages = @(Invoke-ChocolateyList)
             if ($packages.Count -eq 0) {
                 Write-Info 'Nenhuma atualizacao disponivel no Chocolatey.'
             }
@@ -573,8 +574,8 @@ function Invoke-SelectUpgrade {
 
     switch ($ResolvedBackend) {
         'WinGet' {
-            $packages   = Invoke-WinGetList
-            $selectedIds = Read-PackageSelection -Packages $packages -NonInteractive:$NonInteractive
+            $packages   = @(Invoke-WinGetList)
+            $selectedIds = @(Read-PackageSelection -Packages $packages -NonInteractive:$NonInteractive)
             if ($selectedIds.Count -eq 0) {
                 Write-Info 'Nenhum pacote selecionado. Operacao cancelada.'
                 return [PSCustomObject]@{ Success = $true; Cancelled = $true; Results = @() }
@@ -583,8 +584,8 @@ function Invoke-SelectUpgrade {
             return [PSCustomObject]@{ Success = $true; Cancelled = $false; Results = @($results) }
         }
         'Chocolatey' {
-            $packages   = Invoke-ChocolateyList
-            $selectedIds = Read-PackageSelection -Packages $packages -NonInteractive:$NonInteractive
+            $packages   = @(Invoke-ChocolateyList)
+            $selectedIds = @(Read-PackageSelection -Packages $packages -NonInteractive:$NonInteractive)
             if ($selectedIds.Count -eq 0) {
                 Write-Info 'Nenhum pacote selecionado. Operacao cancelada.'
                 return [PSCustomObject]@{ Success = $true; Cancelled = $true; Results = @() }
@@ -632,11 +633,13 @@ function Invoke-UpgradeAll {
             $wgResult = Invoke-WinGetUpgrade
             Write-Section 'Chocolatey — upgrade geral'
             $chResult = Invoke-ChocolateyUpgrade
+            $wgMsg = if ($null -ne $wgResult -and $wgResult.PSObject.Properties['Message']) { $wgResult.Message } else { '' }
+            $chMsg = if ($null -ne $chResult -and $chResult.PSObject.Properties['Message']) { $chResult.Message } else { '' }
             $backendResult = [PSCustomObject]@{
                 Success  = $wgResult.Success -and $chResult.Success
                 Partial  = $wgResult.Partial -or $chResult.Partial
                 ExitCode = [Math]::Max($wgResult.ExitCode, $chResult.ExitCode)
-                Message  = "WinGet: $($wgResult.Message) | Chocolatey: $($chResult.Message)"
+                Message  = "WinGet: $wgMsg | Chocolatey: $chMsg"
                 WinGet      = $wgResult
                 Chocolatey  = $chResult
             }
