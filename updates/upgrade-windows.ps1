@@ -471,7 +471,7 @@ function Show-UpgradeSummary {
         $status = if ($br.Success) { 'Concluido' } elseif ($br.Partial) { 'Falha parcial' } else { 'Falha total' }
         Write-Host "    Status             : $status"
         Write-Host "    ExitCode           : $($br.ExitCode)"
-        if ($br.Message) { Write-Host "    Mensagem           : $($br.Message)" }
+        if ($br.PSObject.Properties['Message'] -and $br.Message) { Write-Host "    Mensagem           : $($br.Message)" }
     }
 
     if ($Summary.PSObject.Properties['WUResult'] -and $Summary.WUResult) {
@@ -484,7 +484,7 @@ function Show-UpgradeSummary {
         else {
             $wuStatus = if ($wr.Success) { 'Acionado' } else { 'Falha' }
             Write-Host "    Status             : $wuStatus"
-            if ($wr.Message) { Write-Host "    Mensagem           : $($wr.Message)" }
+            if ($wr.PSObject.Properties['Message'] -and $wr.Message) { Write-Host "    Mensagem           : $($wr.Message)" }
         }
     }
 
