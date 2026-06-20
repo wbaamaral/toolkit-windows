@@ -201,11 +201,76 @@ Describe 'WbaToolkit.Maintenance' {
         }
     }
 
-    Context 'Get-ComponentStoreInfo — ambiente sem DISM' {
-        It 'Deve retornar null ou objeto valido (nao lancar excecao) quando DISM nao esta disponivel' {
+    Context 'Invoke-FilesystemCheck — falhas detectadas (chkdsk mockado)' {
+        BeforeAll {
+            Mock -CommandName 'Get-FilesystemErrorEvent' -ModuleName 'WbaToolkit.Maintenance' -MockWith {
+                [pscustomobject]@{
+                    TimeCreated  = (Get-Date)
+                    Id           = 7
+                    ProviderName = 'disk'
+                    Message      = 'Falha simulada no sistema de arquivos.'
+                }
+            }
+            # chkdsk e acionado via 'cmd.exe /c echo Y | chkdsk ...': mockamos o cmd.exe
+            # para nao agendar verificacao real de disco.
+            Mock -CommandName 'cmd.exe' -ModuleName 'WbaToolkit.Maintenance' -MockWith {
+                'O tipo do sistema de arquivos e NTFS.'
+                'Chkdsk agendado (mock).'
+                $global:LASTEXITCODE = 0
+            }
+            Mock -CommandName 'Write-MaintenanceEvent' -ModuleName 'WbaToolkit.Maintenance' -MockWith { }
+        }
+
+        It 'Action Schedule deve agendar via cmd.exe mockado, sem chkdsk real e sem lancar' {
+            { Invoke-FilesystemCheck -Action Schedule } | Should -Not -Throw
+            Should -Invoke -CommandName 'cmd.exe' -ModuleName 'WbaToolkit.Maintenance' -Times 1 -Exactly
+            Should -Invoke -CommandName 'Write-MaintenanceEvent' -ModuleName 'WbaToolkit.Maintenance' -Times 1 -Exactly
+        }
+
+        It 'Action Skip nao deve acionar o cmd.exe (chkdsk) mesmo com falhas detectadas' {
+            { Invoke-FilesystemCheck -Action Skip } | Should -Not -Throw
+            Should -Invoke -CommandName 'cmd.exe' -ModuleName 'WbaToolkit.Maintenance' -Times 0 -Exactly
+        }
+    }
+
+    # BCK-016: o DISM/chkdsk reais sao mockados (ModuleName) para que a suite valide
+    # o contrato sem executar as ferramentas — conclui em segundos, sem prompts nem
+    # efeitos no sistema (CI/SSH desassistido).
+    Context 'Get-ComponentStoreInfo — DISM mockado' {
+        BeforeAll {
+            Mock -CommandName 'dism.exe' -ModuleName 'WbaToolkit.Maintenance' -MockWith {
+                'Deployment Image Servicing and Management tool'
+                'Image Version: 10.0.19041.0'
+                ''
+                '[==========================100.0%==========================]'
+                'Component Store (WinSxS) information:'
+                'Windows Explorer Reported Size of Component Store : 8.50 GB'
+                'Actual Size of Component Store : 8.00 GB'
+                'Backups and Disabled Features : 1.20 GB'
+                'Date of Last Cleanup : 2026-06-01 03:00:00'
+                'Component Store Cleanup Recommended : No'
+                'The operation completed successfully.'
+                $global:LASTEXITCODE = 0
+            }
+        }
+
+        It 'Nao deve invocar o DISM real e deve retornar objeto com o contrato esperado' {
             $resultado = Get-ComponentStoreInfo
-            ($null -eq $resultado) -or
-            ($resultado.PSObject.Properties.Name -contains 'ExitCode') | Should -BeTrue
+            $resultado | Should -Not -BeNullOrEmpty
+            $props = $resultado.PSObject.Properties.Name
+            $props | Should -Contain 'StoreSizeGB'
+            $props | Should -Contain 'ReclaimableSizeGB'
+            $props | Should -Contain 'RecommendedCleanup'
+            $props | Should -Contain 'LastAnalysisDate'
+            $props | Should -Contain 'ExitCode'
+            $props | Should -Contain 'RawOutput'
+            Should -Invoke -CommandName 'dism.exe' -ModuleName 'WbaToolkit.Maintenance' -Times 1 -Exactly
+        }
+
+        It 'Deve parsear a recomendacao de limpeza da saida mockada' {
+            $resultado = Get-ComponentStoreInfo
+            $resultado.RecommendedCleanup | Should -Be $false
+            $resultado.ExitCode           | Should -Be 0
         }
     }
 
@@ -244,6 +309,35 @@ Describe 'WbaToolkit.Maintenance' {
         It 'RawOutput deve indicar DryRun' {
             $resultado = Invoke-ComponentStoreCleanup -DryRun
             $resultado.RawOutput | Should -Match 'DryRun'
+        }
+    }
+
+    Context 'Invoke-ComponentStoreCleanup — execucao real com DISM mockado' {
+        BeforeAll {
+            Mock -CommandName 'dism.exe' -ModuleName 'WbaToolkit.Maintenance' -MockWith {
+                'Deployment Image Servicing and Management tool'
+                '[==========================100.0%==========================]'
+                'The operation completed successfully.'
+                $global:LASTEXITCODE = 0
+            }
+            Mock -CommandName 'Get-DiskInfo' -ModuleName 'WbaToolkit.Maintenance' -MockWith {
+                [pscustomobject]@{ TotalGB = 127.0; UsadoGB = 35.0; LivreGB = 92.0 }
+            }
+        }
+
+        It 'Deve executar o caminho real sem invocar o DISM real e retornar Success' {
+            $resultado = Invoke-ComponentStoreCleanup -Confirm:$false
+            $resultado.Success  | Should -BeTrue
+            $resultado.ExitCode | Should -Be 0
+            $resultado.Level    | Should -Be 'Standard'
+            Should -Invoke -CommandName 'dism.exe' -ModuleName 'WbaToolkit.Maintenance' -Times 1 -Exactly
+        }
+
+        It 'Nivel Aggressive deve acionar o DISM mockado uma vez (sem ResetBase real)' {
+            $resultado = Invoke-ComponentStoreCleanup -Level Aggressive -Confirm:$false -WarningAction SilentlyContinue
+            $resultado.Success | Should -BeTrue
+            $resultado.Level   | Should -Be 'Aggressive'
+            Should -Invoke -CommandName 'dism.exe' -ModuleName 'WbaToolkit.Maintenance' -Times 1 -Exactly
         }
     }
 
