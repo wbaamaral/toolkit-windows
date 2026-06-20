@@ -2,6 +2,10 @@
 
 ## [Não lançado]
 
+### Adicionado
+- `updates/upgrade-windows.ps1`: reescrito com suporte a backend resolvido (Auto, WinGet, Chocolatey, All), ações UpgradeAll/ListOnly/Select, bloqueios `-NoWinGet`/`-NoChocolatey`/`-NoWindowsUpdate`, detecção de reboot pendente antes e após execução, resumo final consolidado e códigos de saída padronizados (BCK-018)
+- `tests/unit/upgrade-windows.Tests.ps1`: suite Pester com 62 testes cobrindo validação de parâmetros, resolução de backend, detecção de reboot, cálculo de código de saída e todos os fluxos de ação (BCK-018)
+
 ## [v1.3.0] — 2026-06-20
 
 ### Adicionado
