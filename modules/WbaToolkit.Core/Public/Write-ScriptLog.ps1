@@ -48,7 +48,7 @@
 
     if (-not [string]::IsNullOrWhiteSpace($LogPath)) {
         try {
-            $line | Add-Content -LiteralPath $LogPath
+            $line | Add-Content -LiteralPath $LogPath -Encoding UTF8
         }
         catch {
             Write-Verbose "Write-ScriptLog: nao foi possivel gravar em '$LogPath'. $($_.Exception.Message)"
