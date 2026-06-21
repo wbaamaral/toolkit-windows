@@ -1,6 +1,6 @@
-# WBA Windows Toolkit — v1.3.0
+# WBA Windows Toolkit — v1.4.0
 
-> **v1.3.0** · PowerShell 5.1 · Windows 10 / Server 2016+
+> **v1.4.0** · PowerShell 5.1 · Windows 10 / Server 2016+
 
 ---
 
@@ -8,11 +8,11 @@
 
 | Módulo | Versão | Funções | Descrição |
 |---|---|---|---|
-| `WbaToolkit.Core` | 1.3.0 | 24 | Funções base: saída padronizada, logging, sessão, relatórios, utilitários e documentação HTML |
-| `WbaToolkit.Networking` | 1.3.0 | 16 | Diagnóstico de conectividade TCP/UDP/ICMP/DNS, wizard e exportação de relatórios |
-| `WbaToolkit.Startup` | 1.3.0 | 7 | Gerenciamento de itens de inicialização do Windows |
-| `WbaToolkit.Maintenance` | 1.3.0 | 13 | Manutenção avançada: limpeza, WinSxS, sistema de arquivos e preparação de imagem |
-| **Total** | | **60** | |
+| `WbaToolkit.Core` | 1.4.0 | 25 | Funções base: saída padronizada, logging, sessão, relatórios, utilitários e documentação HTML |
+| `WbaToolkit.Networking` | 1.4.0 | 16 | Diagnóstico de conectividade TCP/UDP/ICMP/DNS, wizard e exportação de relatórios |
+| `WbaToolkit.Startup` | 1.4.0 | 7 | Gerenciamento de itens de inicialização do Windows |
+| `WbaToolkit.Maintenance` | 1.4.0 | 13 | Manutenção avançada: limpeza, WinSxS, sistema de arquivos e preparação de imagem |
+| **Total** | | **61** | |
 
 ---
 
@@ -58,11 +58,55 @@
 | `configuration\Configurar-Idioma-Regional.ps1` | Idioma e configurações regionais do Windows |
 | `utilities\Analise-Espaco-Disco.ps1` | Uso de espaço em disco por pasta |
 | `utilities\Remover-Perfis-Inativos.ps1` | Remove perfis de usuário inativos |
-| `updates\upgrade-windows.ps1` | Windows Update e Chocolatey (modo conservador) |
+| `updates\upgrade-windows.ps1` | Upgrade via WinGet, Chocolatey ou ambos — com detecção de reboot pendente |
 
 ---
 
 ## O que mudou nesta versão
+
+### v1.4.0 — Validação PS 5.1, upgrade completo, Write-Step e correções de robustez
+
+**Adicionado:**
+
+| Artefato | Descrição |
+|---|---|
+| `WbaToolkit.Core\Public\Write-Step.ps1` | Nova função `Write-Step -Message -Percent`: marcador `[NN%]` em Cyan, sem `Write-Progress` (ADR 0021) |
+| `spec/qualidade/padrao-feedback-operador.md` | Especificação de UX ao operador: limiar 15 s, cores padronizadas, uso de `Write-Step` vs `Write-Progress` |
+| `tests/unit/WbaToolkit.Core.Tests.ps1` | 4 novos testes para `Write-Step` (export + 3 comportamentos) |
+| `tests/unit/WbaToolkit.Maintenance.Tests.ps1` | 2 novos testes `Invoke-EventLogMaintenance -Action Ask` em contexto não-interativo (BCK-021) |
+
+**Reescrito:**
+
+| Componente | Descrição |
+|---|---|
+| `updates\upgrade-windows.ps1` | Reescrito com TDD/DDD: backends WinGet, Chocolatey, All; ações UpgradeAll/ListOnly/Select; detecção de reboot pendente; 62/62 testes Pester PS 5.1 e PS 7.6.2 |
+
+**Corrigido:**
+
+| Componente | Correção |
+|---|---|
+| `Invoke-EventLogMaintenance` | NullArrayIndex em `-Action Ask` via SSH: `do-while` guarded com `IsNullOrEmpty`; `ContainsKey` antes do lookup (BCK-021) |
+| `Get-ServiceStartupState` | Injeção WQL via nomes de serviço com aspas simples: `$safeName = $name -replace "'","''"` (BCK-014) |
+| `Write-ScriptLog` | Encoding explícito (`-Encoding UTF8`) no `Add-Content` (BCK-014) |
+| `Export-ToolkitDocumentation` | UTF-8 com BOM via `[UTF8Encoding]::new($true)` (BCK-014) |
+| `WbaToolkit.Networking` | 3 correções de robustez: IP parsing, DNS timeout, ICMP multi-target (BCK-010) |
+| `WbaToolkit.Startup` | Preservação de tipo de registro e compatibilidade PS 5.1 (BCK-011) |
+| `Invoke-DefaultUserHiveOp` | Robustez do hive do perfil Default: guarda contra caminho nulo e arquivo ausente (BCK-009) |
+| `Invoke-ComponentStoreCleanup` | Parsing de saída DISM independente de idioma — regex substituída por presença de exit code 0 (BCK-008) |
+| `limpeza-windows.ps1` | Remoção de cópia local de `Write-Step`; uso da função canônica do Core (BCK-020) |
+| `Configurar-Idioma-Regional.ps1` | Remoção de cópia local de `Write-Step` com `Write-Progress` interno (não-conforme ADR 0021) (BCK-020) |
+| `tests/unit/WbaToolkit.Maintenance.Tests.ps1` | Mock de `Read-Host` com `-ModuleName 'WbaToolkit.Maintenance'` para interceptar dentro do módulo |
+
+**Validado em PS 5.1 real (Windows 10 pt-BR, DESKTOP-9QHD8H2):**
+
+| Artefato | Resultado |
+|---|---|
+| Pester Core + Maintenance | 122/125 (2 `Read-UserInput` SSH — artefato de ambiente; 1 skip) |
+| Pester upgrade-windows.ps1 | 62/62 |
+| Pester limpeza-windows.ps1 | 61/62 (1 skip) |
+| 9 scripts diagnóstico/manutenção | Execução real OK |
+
+---
 
 ### v1.3.0 — Validação operacional, hardening de segurança e laboratório AD
 
@@ -78,11 +122,11 @@
 |---|---|
 | `Invoke-Safe` | Detecção de falha de comando nativo: `$LASTEXITCODE` local mascarava o global — código morto eliminado |
 | `Remove-SafePath` | Whitelist de raízes permitidas, canonicalização anti path-traversal, recusa de raízes críticas, `-WhatIf` real |
-| `WbaToolkit.Startup` | Preservação de tipo nativo do registro (`REG_EXPAND_SZ`/`REG_BINARY`/`REG_DWORD`); `-WhatIf` real em Disable/Enable/Remove; `Enable-StartupItem` não recria chave Run existente |
-| `Diagnostico-GPO-Client.ps1` | Regex de canal seguro super-escapada tornava detecção código morto; corrigido para `NERR_Success\|0x0` |
-| `Diagnostico-Reparo-HD100.ps1` | `-Modo Rollback` chamava função inexistente; relatório HTML referenciava propriedades de sessão ausentes |
-| `Testa-Repara-ContaMaquinaAD.ps1` | Erro de parse `[CmdletBinding()]` sem `param()` impedia carregamento do script |
-| `Analise-Espaco-Disco.ps1` | Erro de parse `[CmdletBinding()]` sem `param()` impedia carregamento do script |
+| `WbaToolkit.Startup` | Preservação de tipo nativo do registro; `-WhatIf` real em Disable/Enable/Remove |
+| `Diagnostico-GPO-Client.ps1` | Regex de canal seguro super-escapada tornava detecção código morto |
+| `Diagnostico-Reparo-HD100.ps1` | `-Modo Rollback` chamava função inexistente; relatório HTML com propriedades ausentes |
+| `Testa-Repara-ContaMaquinaAD.ps1` | Erro de parse `[CmdletBinding()]` sem `param()` impedia carregamento |
+| `Analise-Espaco-Disco.ps1` | Erro de parse `[CmdletBinding()]` sem `param()` impedia carregamento |
 
 **Corrigido — compatibilidade PS 5.1 / validação operacional (DEV-020):**
 
@@ -91,42 +135,9 @@
 | `limpeza-windows.ps1` | `Start-Transcript` sem `-Encoding` (parâmetro inexistente no PS 5.1) |
 | `Invoke-ComponentStoreCleanup` | DISM em nível Standard sem prompt oculto; saída em tempo real; `Write-Progress` removido |
 | `Test-IcmpConnectivity` | Latência de ping zerava no PS 7: seleciona `Latency` (PS 7+) ou `ResponseTime` (PS 5.1) em runtime |
-| `Diagnostico-GPO-Client.ps1` | Mesma correção de latência ICMP |
-| `Diagnostico-Reparo-HD100.ps1` | `-BasePath` tornado opcional; alinha ao contrato de `Initialize-ScriptSession` |
-| `Analise-Espaco-Disco.ps1` | Totalizadores de volume zerados: `System.IO.DriveInfo` não possui `.Size`; corrigido para `TotalSize`/`TotalFreeSpace` |
-| `Inventario-Hardware-Software.ps1` | Objetos CIM nulos (VMs sem `Win32_BaseBoard`) lançavam `PropertyNotFoundException`; campos protegidos com guarda |
+| `Analise-Espaco-Disco.ps1` | Totalizadores de volume zerados: corrigido para `TotalSize`/`TotalFreeSpace` |
+| `Inventario-Hardware-Software.ps1` | Objetos CIM nulos (VMs sem `Win32_BaseBoard`) lançavam `PropertyNotFoundException` |
 | 45 arquivos `.ps1` | UTF-8 com BOM restaurado em conformidade com ADR 0007 |
-
-**Alterado:**
-
-| Componente | Alteração |
-|---|---|
-| `tests/unit/WbaToolkit.Maintenance.Tests.ps1` | Testes de `Remove-SafePath` atualizados para novo contrato de whitelist; teste de recusa fora das raízes adicionado |
-| `tests/unit/WbaToolkit.Core.Tests.ps1` | Assertivas de `Format-FileSize` independentes de cultura (separador decimal é comportamento esperado) |
-| `Analise-Espaco-Disco.ps1`, `Inventario-Hardware-Software.ps1` | Parâmetro padronizado para `-Path` com `[Alias('DiretorioSaida')]` |
-
----
-
-### v1.2.0 — Novos scripts, WinSxS e conformidade PS 5.1
-
-**Adicionado:**
-
-| Artefato | Descrição |
-|---|---|
-| `diagnostics\Diagnostico-Memoria.ps1` | Top-N consumidores de RAM; métricas de memória paginada e física |
-| `diagnostics\Verificar-Atualizacoes-Hardware.ps1` | BIOS, drivers e Windows Update — somente leitura |
-| `maintenance\Backup-Restaurar-Drivers.ps1` | Backup e restauração de drivers OEM via DISM/pnputil; `-DryRun` e `-GerarHtml` |
-| `maintenance\Limpeza-WinSxS.ps1` | Gestão assistida do Component Store: modos Diagnostico, Limpeza, Relatorio |
-| `WbaToolkit.Maintenance` | 8 novas funções: `Remove-SafePath`, `Get-DiskInfo`, `Get-FilesystemErrorEvent`, `Write-MaintenanceEvent`, `Invoke-FilesystemCheck`, `Invoke-EventLogMaintenance`, `Get-ComponentStoreInfo`, `Invoke-ComponentStoreCleanup` |
-
-**Corrigido:**
-
-| Componente | Correção |
-|---|---|
-| 11 arquivos | 25 ocorrências de `[Generic.List/Stack[T]]::new()` substituídas por `New-Object` (ParserError no PS 5.1) |
-| `Invoke-EventLogMaintenance` | Hashtable inline com backtick causava `Token '}' inesperado` no PS 5.1 |
-| 6 scripts | Bloco de identificação `$ScriptName`/`$ScriptPath`/`$ScriptDir` ausente (ADR 0006) |
-| 45 arquivos `.ps1` | UTF-8 BOM restaurado (ADR 0007) |
 
 ---
 
@@ -139,8 +150,11 @@ Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1 -Force
 # Diagnóstico de memória (top 10 processos):
 .\diagnostics\Diagnostico-Memoria.ps1 -Top 10
 
-# Limpeza do WinSxS (somente leitura):
-.\maintenance\Limpeza-WinSxS.ps1 -Modo Diagnostico
+# Limpeza assistida:
+.\maintenance\limpeza-windows.ps1
+
+# Upgrade do sistema (WinGet + Chocolatey):
+.\updates\upgrade-windows.ps1 -Backend All -Action UpgradeAll
 
 # Backup de drivers OEM:
 .\maintenance\Backup-Restaurar-Drivers.ps1 -Modo Backup
