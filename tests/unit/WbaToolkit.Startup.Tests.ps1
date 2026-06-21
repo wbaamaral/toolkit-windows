@@ -1,13 +1,14 @@
 ﻿#requires -version 5.1
 
-$ToolkitRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$CorePath    = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
-$ModulePath  = Join-Path $ToolkitRoot 'modules/WbaToolkit.Startup/WbaToolkit.Startup.psd1'
-
-Import-Module $CorePath   -Force -ErrorAction Stop
-Import-Module $ModulePath -Force -ErrorAction Stop
-
 Describe 'WbaToolkit.Startup' {
+
+    BeforeAll {
+        $ToolkitRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+        $CorePath    = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
+        $ModulePath  = Join-Path $ToolkitRoot 'modules/WbaToolkit.Startup/WbaToolkit.Startup.psd1'
+        Import-Module $CorePath   -Force -ErrorAction Stop
+        Import-Module $ModulePath -Force -ErrorAction Stop
+    }
 
     Context 'Exportacao do modulo' {
         It 'Deve exportar Get-StartupItem' {
