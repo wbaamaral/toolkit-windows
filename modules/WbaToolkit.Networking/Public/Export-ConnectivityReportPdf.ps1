@@ -4,8 +4,10 @@
         Exporta o relatório HTML para PDF quando houver navegador compatível.
 
     .DESCRIPTION
-        Detecta msedge, chromium ou google-chrome e usa o modo headless para imprimir o HTML em PDF.
-        Retorna um objeto com Success=$false e mensagem explicativa se nenhum navegador for encontrado.
+        Detecta msedge, chrome ou chromium — primeiro no PATH e, se ausente (caso comum no Windows),
+        em caminhos de instalação conhecidos (Program Files / LocalAppData) — e usa o modo headless para
+        imprimir o HTML em PDF. Retorna Success=$false com mensagem se nenhum navegador for encontrado
+        ou se o PDF não for efetivamente gerado.
 
     .PARAMETER HtmlPath
         Caminho completo do arquivo HTML de origem, gerado por Export-ConnectivityReport.
@@ -29,11 +31,26 @@
         [string]$PdfPath = ([System.IO.Path]::ChangeExtension($HtmlPath, '.pdf'))
     )
 
-    $browser = @('msedge', 'msedge.exe', 'chromium', 'chromium-browser', 'google-chrome', 'google-chrome-stable') |
+    # 1) Tenta pelo PATH. No Windows, Edge/Chrome normalmente NAO estao no PATH, entao
+    # 2) cai para caminhos de instalacao conhecidos (Program Files / LocalAppData).
+    $browserPath = $null
+    $fromPath = @('msedge', 'msedge.exe', 'chrome', 'chrome.exe', 'chromium', 'chromium-browser', 'google-chrome', 'google-chrome-stable') |
         ForEach-Object { Get-Command $_ -ErrorAction SilentlyContinue | Select-Object -First 1 } |
         Select-Object -First 1
+    if ($fromPath) {
+        $browserPath = if ($fromPath.Path) { $fromPath.Path } else { $fromPath.Source }
+    }
+    else {
+        $candidatos = @()
+        if ($env:ProgramFiles)        { $candidatos += (Join-Path $env:ProgramFiles        'Microsoft\Edge\Application\msedge.exe') }
+        if (${env:ProgramFiles(x86)}) { $candidatos += (Join-Path ${env:ProgramFiles(x86)} 'Microsoft\Edge\Application\msedge.exe') }
+        if ($env:ProgramFiles)        { $candidatos += (Join-Path $env:ProgramFiles        'Google\Chrome\Application\chrome.exe') }
+        if (${env:ProgramFiles(x86)}) { $candidatos += (Join-Path ${env:ProgramFiles(x86)} 'Google\Chrome\Application\chrome.exe') }
+        if ($env:LOCALAPPDATA)        { $candidatos += (Join-Path $env:LOCALAPPDATA        'Google\Chrome\Application\chrome.exe') }
+        $browserPath = $candidatos | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+    }
 
-    if (-not $browser) {
+    if (-not $browserPath) {
         return [pscustomobject]@{
             Success = $false
             Path    = $PdfPath
@@ -50,7 +67,6 @@
     )
 
     try {
-        $browserPath = if ($browser.Path) { $browser.Path } else { $browser.Source }
         & $browserPath @args | Out-Null
 
         # O navegador headless pode sair com codigo 0 sem gerar o PDF (HTML invalido,
