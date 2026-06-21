@@ -396,10 +396,15 @@ Invoke-EventLogMaintenance -Action $resolvedEventLogCleanup -BackupPath $LogDir
 
 Write-Step "Limpando cache de miniaturas e ícones dos usuários" 55
 Invoke-Safe "thumbcache_*.db e iconcache_*.db" {
+    # Os arquivos ficam bloqueados pelo explorer.exe em execucao; best-effort por arquivo
+    # para nao marcar o passo inteiro como falha por handle aberto esperado.
     Get-ChildItem "C:\Users" -Directory -Force -ErrorAction SilentlyContinue |
         ForEach-Object {
-            Remove-Item "$($_.FullName)\AppData\Local\Microsoft\Windows\Explorer\thumbcache_*.db" -Force -ErrorAction SilentlyContinue
-            Remove-Item "$($_.FullName)\AppData\Local\Microsoft\Windows\Explorer\iconcache_*.db" -Force -ErrorAction SilentlyContinue
+            $explorerDir = "$($_.FullName)\AppData\Local\Microsoft\Windows\Explorer"
+            Get-ChildItem $explorerDir -Filter 'thumbcache_*.db' -Force -ErrorAction SilentlyContinue |
+                ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue }
+            Get-ChildItem $explorerDir -Filter 'iconcache_*.db' -Force -ErrorAction SilentlyContinue |
+                ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue }
         }
 }
 

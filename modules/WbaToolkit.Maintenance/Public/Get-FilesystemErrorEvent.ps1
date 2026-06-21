@@ -41,7 +41,8 @@
         return $found
     }
     catch {
-        if ($_.Exception.Message -notmatch 'No events were found') {
+        # Usar FullyQualifiedErrorId e independente de idioma (pt-BR retorna mensagem localizada).
+        if ($_.FullyQualifiedErrorId -ne 'NoMatchingEventsFound,Microsoft.PowerShell.Commands.GetWinEventCommand') {
             Write-Warning "Erro ao consultar log do Sistema: $($_.Exception.Message)"
         }
         return @()

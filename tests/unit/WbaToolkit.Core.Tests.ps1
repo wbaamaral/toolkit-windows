@@ -236,8 +236,14 @@ Describe 'WbaToolkit.Core' {
             $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
             $outputPath = Join-Path ([System.IO.Path]::GetTempPath()) ('wba-docs-' + [guid]::NewGuid().ToString())
             $modulePath = Join-Path $repoRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
+            # ScriptPath explicito: elimina dependencia do CWD (default usa Get-Location).
+            $scriptPaths = @(
+                (Join-Path $repoRoot 'maintenance/Diagnostico-Reparo-HD100.ps1'),
+                (Join-Path $repoRoot 'maintenance/limpeza-windows.ps1'),
+                (Join-Path $repoRoot 'diagnostics/Diagnostico-Driver-Grafico.ps1')
+            )
 
-            $result = Export-ToolkitFunctionDocs -ModulePath $modulePath -OutputPath $outputPath -Force
+            $result = Export-ToolkitFunctionDocs -ModulePath $modulePath -OutputPath $outputPath -ScriptPath $scriptPaths -Force
 
             Test-Path -LiteralPath $result.Path | Should -BeTrue
             [System.IO.Path]::IsPathRooted($result.Path) | Should -BeTrue
