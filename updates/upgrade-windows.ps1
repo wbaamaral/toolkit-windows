@@ -253,11 +253,9 @@ function Invoke-WinGetList {
 }
 
 function Invoke-WinGetUpgrade {
-    [PSCustomObject]@{ Success = $false; Partial = $false; ExitCode = 0; Message = '' }
-
     $result = [PSCustomObject]@{ Success = $false; Partial = $false; ExitCode = 0; Message = '' }
     try {
-        winget upgrade --all --include-unknown --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+        winget upgrade --all --include-unknown --silent --accept-package-agreements --accept-source-agreements --disable-interactivity | Out-Host
         $result.ExitCode = $LASTEXITCODE
         $result.Success  = ($LASTEXITCODE -eq 0 -or $LASTEXITCODE -eq 3010)
         $result.Partial  = ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne 3010)
@@ -275,7 +273,7 @@ function Invoke-WinGetUpgradePackage {
 
     $result = [PSCustomObject]@{ PackageId = $PackageId; Success = $false; ExitCode = 0; Message = '' }
     try {
-        winget upgrade --id $PackageId --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+        winget upgrade --id $PackageId --silent --accept-package-agreements --accept-source-agreements --disable-interactivity | Out-Host
         $result.ExitCode = $LASTEXITCODE
         $result.Success  = ($LASTEXITCODE -eq 0 -or $LASTEXITCODE -eq 3010)
         $result.Message  = if ($result.Success) { "WinGet: $PackageId atualizado." } else { "WinGet: $PackageId exit code $($LASTEXITCODE)." }
@@ -311,7 +309,7 @@ function Invoke-ChocolateyList {
 function Invoke-ChocolateyUpgrade {
     $result = [PSCustomObject]@{ Success = $false; Partial = $false; ExitCode = 0; Message = '' }
     try {
-        choco upgrade all -y --no-progress
+        choco upgrade all -y --no-progress | Out-Host
         $result.ExitCode = $LASTEXITCODE
         $result.Success  = ($LASTEXITCODE -eq 0)
         $result.Partial  = ($LASTEXITCODE -ne 0)
@@ -329,7 +327,7 @@ function Invoke-ChocolateyUpgradePackage {
 
     $result = [PSCustomObject]@{ PackageId = $PackageId; Success = $false; ExitCode = 0; Message = '' }
     try {
-        choco upgrade $PackageId -y --no-progress
+        choco upgrade $PackageId -y --no-progress | Out-Host
         $result.ExitCode = $LASTEXITCODE
         $result.Success  = ($LASTEXITCODE -eq 0)
         $result.Message  = if ($result.Success) { "Choco: $PackageId atualizado." } else { "Choco: $PackageId exit code $($LASTEXITCODE)." }
