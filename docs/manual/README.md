@@ -91,7 +91,7 @@ Destinada a desenvolvedores que estendem ou mantêm os módulos.
 
 | Módulo | Funções públicas | Uso |
 |---|---|---|
-| `WbaToolkit.Core` | 24 | Funções base compartilhadas por todos os scripts |
+| `WbaToolkit.Core` | 25 | Funções base compartilhadas por todos os scripts |
 | `WbaToolkit.Networking` | 16 | Diagnóstico de conectividade e relatórios de rede |
 | `WbaToolkit.Startup` | 7 | Gerenciamento de itens de inicialização do Windows |
 | `WbaToolkit.Maintenance` | 13 | Manutenção avançada: limpeza, WinSxS, sistema de arquivos e preparação de imagem |

@@ -1007,68 +1007,81 @@ yyyy-MM-dd_HHmmss-limpeza-windows.log
 
 ### 13.1. Finalidade
 
-O script `upgrade-windows.ps1` aciona uma rotina simples e conservadora de atualização.
+O script `upgrade-windows.ps1` executa uma rotina de atualização geral com backend resolvido automaticamente ou definido pelo operador. Suporta WinGet, Chocolatey e Windows Update como etapa final.
 
-Ele tenta:
+O backend padrão é **Auto**: resolve WinGet ou Chocolatey conforme o ambiente. O Windows Update é sempre acionado por último em `UpgradeAll`. O script **nunca reinicia automaticamente** a máquina.
 
-- acionar o Windows Update nativo com `UsoClient.exe`;
-- atualizar o Chocolatey, se existir;
-- atualizar pacotes instalados via Chocolatey.
-
-Ele não instala Chocolatey, não instala WinGet e não força reinicialização.
+Durante a execução do WinGet e do Chocolatey, um spinner animado (`| / - \`) com contador de tempo `[HH:MM:SS]` é exibido para indicar que o processo está em andamento.
 
 ### 13.2. Quando usar
 
 Use quando:
 
-- precisar iniciar busca de atualizações do Windows;
-- precisar atualizar pacotes gerenciados pelo Chocolatey;
-- precisar executar uma rotina básica de atualização sem módulos adicionais.
+- precisar atualizar todos os pacotes gerenciados (WinGet, Chocolatey ou ambos);
+- precisar acionar uma varredura do Windows Update;
+- precisar listar pacotes desatualizados sem atualizar (`-Action ListOnly`);
+- precisar selecionar individualmente quais pacotes atualizar (`-Action Select`).
 
 ### 13.3. Execução recomendada
 
 ```powershell
 Set-Location C:\ti\wba-windows-toolkit
-.\updates\upgrade-windows.ps1 -PauseAtEnd
-```
 
-O parâmetro `-PauseAtEnd` mantém a janela aberta no final, útil para copiar mensagens e conferir o resultado.
+# Atualização completa com backend automático:
+.\updates\upgrade-windows.ps1
+
+# Atualização completa via Chocolatey:
+.\updates\upgrade-windows.ps1 -Backend Chocolatey -Action UpgradeAll
+
+# Listar pacotes desatualizados sem atualizar:
+.\updates\upgrade-windows.ps1 -Backend Chocolatey -Action ListOnly
+```
 
 ### 13.4. Principais parâmetros
 
 | Parâmetro | O que faz |
 |---|---|
-| `-Help` | Mostra ajuda |
-| `-Version` | Mostra versão |
-| `-NoWindowsUpdate` | Não aciona Windows Update |
-| `-NoChocolatey` | Não atualiza Chocolatey |
-| `-NoRebootWarning` | Não exibe aviso de reinicialização |
-| `-PauseAtEnd` | Aguarda ENTER antes de fechar |
+| `-Backend` | Backend: `Auto` (padrão), `WinGet`, `Chocolatey`, `All` |
+| `-Action` | Ação: `UpgradeAll` (padrão), `ListOnly`, `Select` |
+| `-NoWinGet` | Impede uso do WinGet nesta execução |
+| `-NoChocolatey` | Impede uso do Chocolatey nesta execução |
+| `-NoWindowsUpdate` | Não aciona Windows Update nesta execução |
+| `-SaveBackendPreference` | Salva o backend resolvido como preferência persistente |
+| `-NonInteractive` | Modo não interativo — falha em configuração inválida |
+| `-Path` | Raiz de relatórios (alias: `-DiretorioSaida`) |
+| `-Help` | Exibe ajuda |
+| `-Version` | Exibe versão do script |
 
 ### 13.5. Exemplos
 
-Executar atualização completa:
+Atualização completa com backend automático:
 
 ```powershell
 .\updates\upgrade-windows.ps1
 ```
 
-Somente Chocolatey:
+Atualização via Chocolatey, sem acionar Windows Update:
 
 ```powershell
-.\updates\upgrade-windows.ps1 -NoWindowsUpdate
+.\updates\upgrade-windows.ps1 -Backend Chocolatey -NoWindowsUpdate
 ```
 
-Somente Windows Update:
+Atualização via WinGet e Chocolatey (ambos):
 
 ```powershell
-.\updates\upgrade-windows.ps1 -NoChocolatey
+.\updates\upgrade-windows.ps1 -Backend All -Action UpgradeAll
 ```
 
-Manter janela aberta:
+Listar pacotes desatualizados no Chocolatey sem atualizar:
 
 ```powershell
-.\updates\upgrade-windows.ps1 -PauseAtEnd
+.\updates\upgrade-windows.ps1 -Backend Chocolatey -Action ListOnly
+```
+
+Selecionar pacotes individualmente (interativo):
+
+```powershell
+.\updates\upgrade-windows.ps1 -Backend Chocolatey -Action Select
 ```
 
 ### 13.6. Onde fica o log
@@ -1085,9 +1098,11 @@ Nome esperado:
 yyyy-MM-dd_HHmmss-upgrade-windows.log
 ```
 
+O diretório raiz pode ser customizado com `-Path C:\outro\diretorio`.
+
 ### 13.7. Como acompanhar o Windows Update
 
-O `UsoClient.exe` normalmente não mostra progresso detalhado no console.
+O `UsoClient.exe` aciona a varredura em background e não exibe progresso no console.
 
 Depois de rodar o script, confira manualmente:
 
@@ -1103,8 +1118,9 @@ Configurações > Windows Update
 
 ### 13.8. Cuidados
 
-- Atualizações podem exigir reinicialização.
-- Chocolatey depende da internet e do repositório configurado.
+- Atualizações podem exigir reinicialização — o script informa se há reboot pendente no resumo final.
+- Chocolatey e WinGet dependem de conexão com a internet e dos repositórios configurados.
+- O WinGet pode levar vários minutos para atualizar seus índices de pacotes — o spinner com contador de tempo indica que o processo está em andamento.
 - Se Chocolatey falhar por timeout, tente novamente mais tarde.
 - Não desligue o computador durante instalação de atualização.
 

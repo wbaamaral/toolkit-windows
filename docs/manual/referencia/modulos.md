@@ -21,6 +21,7 @@ Localização: `modules/WbaToolkit.Core/WbaToolkit.Core.psm1`
 | `Write-Info` | Saída informativa |
 | `Write-Title` | Cabeçalho de seção principal |
 | `Write-Section` | Cabeçalho de subseção |
+| `Write-Step` | Marcador de progresso textual `[NN%] mensagem` em Cyan; sem `Write-Progress` (ADR 0021) |
 
 ### Entrada do usuário
 
