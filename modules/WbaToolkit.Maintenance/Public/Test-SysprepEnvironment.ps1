@@ -33,11 +33,14 @@
     $avisos   = New-Object 'System.Collections.Generic.List[string]'
     $buildNum = 0
     $versaoSO = ''
+    $edicao   = ''
 
     if (-not (Test-IsAdministrator)) {
         $erros.Add('Este script requer execucao como Administrador.')
     }
 
+    # Falha em obter a versao via CIM e impeditiva (nao apenas informativa): sem ela
+    # nao ha como validar build/edicao com seguranca antes de um sysprep irreversivel.
     try {
         $so = Get-CimInstanceSafe -ClassName 'Win32_OperatingSystem'
         if ($so) {
@@ -45,15 +48,28 @@
             $versaoSO = $so.Caption
         }
         else {
-            $avisos.Add('Nao foi possivel obter informacoes do sistema operacional via CIM.')
+            $erros.Add('Nao foi possivel obter informacoes do sistema operacional via CIM (verificacao obrigatoria).')
         }
     }
     catch {
-        $avisos.Add("Verificacao de versao do SO falhou: $($_.Exception.Message)")
+        $erros.Add("Verificacao de versao do SO via CIM falhou: $($_.Exception.Message)")
     }
 
     if ($buildNum -gt 0 -and $buildNum -lt 10240) {
         $erros.Add("Sistema operacional nao suportado (build $buildNum). Requer Windows 10 Pro (build 10240+) ou Windows 11.")
+    }
+
+    # Edicao via EditionID (independente de idioma; Caption seria localizado). Sysprep
+    # so e suportado em Pro/Enterprise/Education — Home (Core) deve invalidar.
+    try {
+        $edicao = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' `
+            -Name 'EditionID' -ErrorAction Stop).EditionID
+    }
+    catch {
+        $erros.Add("Nao foi possivel determinar a edicao do Windows (EditionID): $($_.Exception.Message)")
+    }
+    if ($edicao -and $edicao -notmatch 'Professional|Enterprise|Education') {
+        $erros.Add("Edicao do Windows nao suportada para sysprep: '$edicao'. Requer Pro, Enterprise ou Education.")
     }
 
     $sysprepExe = [System.IO.Path]::Combine(
@@ -81,6 +97,7 @@
     return [pscustomobject]@{
         IsValid     = ($erros.Count -eq 0)
         OsVersion   = $versaoSO
+        Edition     = $edicao
         BuildNumber = $buildNum
         Errors      = $erros.ToArray()
         Warnings    = $avisos.ToArray()

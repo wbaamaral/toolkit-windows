@@ -29,7 +29,9 @@
     $exitCode = 0
 
     try {
-        $rawLines = & dism.exe /Online /Cleanup-Image /AnalyzeComponentStore 2>&1
+        # /English forca a saida em ingles independentemente do idioma do Windows
+        # (alvo do projeto e pt-BR); mantem o parsing por rotulos em ingles estavel.
+        $rawLines = & dism.exe /English /Online /Cleanup-Image /AnalyzeComponentStore 2>&1
         $exitCode = $LASTEXITCODE
     }
     catch {
@@ -46,11 +48,14 @@
     foreach ($rawLine in $rawLines) {
         $line = [string]$rawLine
 
-        if ($line -match 'Total\s*\(Installed\)\s*Size\s*:\s*([\d,\.]+)\s*(GB|MB|KB|bytes?)') {
-            $storeSizeGB = ConvertTo-StoreSizeGB -Value ($Matches[1] -replace ',', '.') -Unit $Matches[2]
+        # Rotulo do tamanho do store varia por versao do DISM: builds atuais (19041+)
+        # usam "Actual Size of Component Store"; versoes antigas, "Total (Installed) Size".
+        # "Actual Size" aparece depois de "Windows Explorer Reported Size" e prevalece.
+        if ($line -match '(?:Actual Size of Component Store|Windows Explorer Reported Size of Component Store|Total\s*\(Installed\)\s*Size)\s*:\s*([\d,\.]+)\s*(GB|MB|KB|bytes?)') {
+            $storeSizeGB = ConvertTo-StoreSizeGB -Value $Matches[1] -Unit $Matches[2]
         }
         elseif ($line -match 'Backups?\s+and\s+Disabled\s+Features?\s*:\s*([\d,\.]+)\s*(GB|MB|KB|bytes?)') {
-            $reclaimableGB = ConvertTo-StoreSizeGB -Value ($Matches[1] -replace ',', '.') -Unit $Matches[2]
+            $reclaimableGB = ConvertTo-StoreSizeGB -Value $Matches[1] -Unit $Matches[2]
         }
         elseif ($line -match 'Cleanup\s+Recommended\s*:\s*(Yes|No)') {
             $recommended = $Matches[1] -eq 'Yes'
@@ -58,6 +63,14 @@
         elseif ($line -match 'Date\s+of\s+Last\s+Cleanup\s*:\s*(.+)') {
             $lastAnalysis = $Matches[1].Trim()
         }
+    }
+
+    # Se nenhum campo-chave foi reconhecido, a saida do DISM provavelmente nao esta
+    # no formato esperado (idioma inesperado, versao diferente ou falha) — avisa em
+    # vez de retornar campos nulos silenciosamente.
+    if ($null -eq $storeSizeGB -and $null -eq $reclaimableGB -and $null -eq $recommended) {
+        Write-Warning ("Saida do DISM AnalyzeComponentStore nao reconhecida (ExitCode $exitCode). " +
+            'Campos de tamanho/recomendacao indisponiveis.')
     }
 
     [pscustomobject]@{
