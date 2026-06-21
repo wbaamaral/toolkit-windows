@@ -74,18 +74,21 @@
 | `spec/qualidade/padrao-feedback-operador.md` | Especificação de UX ao operador: limiar 15 s, cores padronizadas, uso de `Write-Step` vs `Write-Progress` |
 | `tests/unit/WbaToolkit.Core.Tests.ps1` | 4 novos testes para `Write-Step` (export + 3 comportamentos) |
 | `tests/unit/WbaToolkit.Maintenance.Tests.ps1` | 2 novos testes `Invoke-EventLogMaintenance -Action Ask` em contexto não-interativo (BCK-021) |
+| `Invoke-ProcessWithSpinner` | Spinner animado (`\|/-`) com contador `[HH:MM:SS]` durante execução de WinGet e Chocolatey; output exibido após conclusão |
 
 **Reescrito:**
 
 | Componente | Descrição |
 |---|---|
-| `updates\upgrade-windows.ps1` | Reescrito com TDD/DDD: backends WinGet, Chocolatey, All; ações UpgradeAll/ListOnly/Select; detecção de reboot pendente; 62/62 testes Pester PS 5.1 e PS 7.6.2 |
+| `updates\upgrade-windows.ps1` | Reescrito com TDD/DDD: backends WinGet, Chocolatey, All; ações UpgradeAll/ListOnly/Select; detecção de reboot pendente; 62/62 testes Pester PS 5.1 e PS 7.6.2; spinner com timer validado em produção real (PS 7.6.3, TI02) |
 
 **Corrigido:**
 
 | Componente | Correção |
 |---|---|
 | `Invoke-EventLogMaintenance` | NullArrayIndex em `-Action Ask` via SSH: `do-while` guarded com `IsNullOrEmpty`; `ContainsKey` antes do lookup (BCK-021) |
+| `Invoke-ChocolateyUpgrade` / `Invoke-WinGetUpgrade` | Output stream contaminava retorno da função → `PropertyNotFoundException` no resumo com StrictMode 2.0; corrigido com `Invoke-ProcessWithSpinner` |
+| `Invoke-WinGetUpgrade` | PSCustomObject orphan emitido como segundo retorno da função — removido |
 | `Get-ServiceStartupState` | Injeção WQL via nomes de serviço com aspas simples: `$safeName = $name -replace "'","''"` (BCK-014) |
 | `Write-ScriptLog` | Encoding explícito (`-Encoding UTF8`) no `Add-Content` (BCK-014) |
 | `Export-ToolkitDocumentation` | UTF-8 com BOM via `[UTF8Encoding]::new($true)` (BCK-014) |
