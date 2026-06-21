@@ -46,6 +46,10 @@ Describe 'WbaToolkit.Core' {
             (Get-Command Write-Section -ErrorAction Stop).CommandType | Should -Be 'Function'
         }
 
+        It 'Deve exportar Write-Step' {
+            (Get-Command Write-Step -ErrorAction Stop).CommandType | Should -Be 'Function'
+        }
+
         It 'Deve exportar Read-YesNo' {
             (Get-Command Read-YesNo -ErrorAction Stop).CommandType | Should -Be 'Function'
         }
@@ -474,6 +478,18 @@ Describe 'WbaToolkit.Core' {
             finally {
                 if (Test-Path -LiteralPath $configPath) { Remove-Item -LiteralPath $configPath -Force }
             }
+        }
+    }
+
+    Context 'Write-Step' {
+        It 'Deve executar sem lancar excecao' {
+            { Write-Step -Message 'Etapa de teste' -Percent 42 } | Should -Not -Throw
+        }
+        It 'Deve aceitar Percent 0' {
+            { Write-Step 'Inicio' 0 } | Should -Not -Throw
+        }
+        It 'Deve aceitar Percent 100' {
+            { Write-Step 'Fim' 100 } | Should -Not -Throw
         }
     }
 
