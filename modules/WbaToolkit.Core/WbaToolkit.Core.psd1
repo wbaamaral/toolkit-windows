@@ -29,6 +29,7 @@
         'Set-ToolkitReportsRoot',
         'Get-ToolkitReportsRoot',
         'Initialize-ToolkitReportSession',
+        'Write-Step',
         'Export-ToolkitFunctionDocs',
         'Export-ToolkitDocumentation'
     )

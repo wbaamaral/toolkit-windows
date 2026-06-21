@@ -58,8 +58,12 @@
         Write-Host "  [2] Limpar apenas logs com eventos de falha/erro (backup em $BackupPath)"
         Write-Host "  [3] Nao efetuar limpeza de eventos" -ForegroundColor Green
         Write-Host ""
-        do { $choice = Read-Host "Escolha [1/2/3]" } while ($choice -notmatch '^[123]$')
-        $Action = @{ '1' = 'All'; '2' = 'ErrorOnly'; '3' = 'None' }[$choice]
+        $choice = $null
+        try {
+            do { $choice = Read-Host "Escolha [1/2/3]" } while ((-not [string]::IsNullOrEmpty($choice)) -and ($choice -notmatch '^[123]$'))
+        } catch { $choice = $null }
+        $map = @{ '1' = 'All'; '2' = 'ErrorOnly'; '3' = 'None' }
+        $Action = if ($choice -and $map.ContainsKey($choice)) { $map[$choice] } else { 'None' }
     }
 
     switch ($Action) {

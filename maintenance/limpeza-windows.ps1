@@ -205,20 +205,6 @@ function Show-Help {
     Write-Host ""
 }
 
-function Write-Step {
-    param (
-        [string]$Message,
-        [int]$Percent
-    )
-
-    # Nota: nao usamos Write-Progress aqui de proposito. Como o script intercala
-    # etapas longas (SFC/DISM) com perguntas interativas (chkdsk, Visualizador de
-    # Eventos), a barra de progresso do PowerShell (especialmente no PS 7) fica
-    # fixa no rodape e cobre os prompts, deixando o operador sem ver as perguntas.
-    # O marcador textual "[NN%] mensagem" cumpre o papel de feedback sem esse efeito.
-    Write-Host ""
-    Write-Host "[$Percent%] $Message" -ForegroundColor Cyan
-}
 
 function Invoke-DismComponentCleanupStep {
     # Wrapper de apresentacao: executa a limpeza do Component Store sem o prompt de
