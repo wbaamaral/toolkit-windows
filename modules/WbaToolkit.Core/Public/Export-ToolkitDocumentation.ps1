@@ -81,7 +81,7 @@
     $warningCount   = 0
     $portalIndex    = $null
     $technicalIndex = $null
-    $enc            = [System.Text.Encoding]::UTF8
+    $enc            = [System.Text.UTF8Encoding]::new($true)
 
     if ($Mode -in ('Portal', 'All')) {
         $null = New-Item -Path $OutputPath -ItemType Directory -Force
