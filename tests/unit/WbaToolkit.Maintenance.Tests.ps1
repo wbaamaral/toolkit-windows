@@ -26,8 +26,10 @@ Describe 'WbaToolkit.Maintenance' {
             (Get-Command Invoke-SysprepPreparation -ErrorAction Stop).CommandType | Should -Be 'Function'
         }
         It 'Nao deve exportar funcoes privadas' {
-            Get-Command Backup-DefaultUserHive    -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
-            Get-Command Invoke-RegFileImport      -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+            Get-Command Backup-DefaultUserHive               -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+            Get-Command Invoke-RegFileImport                 -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+            Get-Command Read-RegFileContent                  -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+            Get-Command Get-SysprepAppxProvisioningIssue     -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
         }
     }
 
@@ -486,6 +488,202 @@ Describe 'WbaToolkit.Maintenance' {
                 }
                 finally { Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue }
             }
+        }
+    }
+
+    Context 'Read-RegFileContent - deteccao de encoding (BCK-022)' {
+        It 'Le arquivo ASCII com hive de usuario' {
+            InModuleScope WbaToolkit.Maintenance {
+                $f = [System.IO.Path]::GetTempFileName() + '.reg'
+                try {
+                    Set-Content -Path $f -Encoding ASCII -Value "Windows Registry Editor Version 5.00`r`n`r`n[hkey_users\default\Software\WBA\Teste]`r`n"
+                    $conteudo = Read-RegFileContent -Path $f
+                    $conteudo | Should -Match 'hkey_users\\default'
+                }
+                finally { Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue }
+            }
+        }
+        It 'Le arquivo UTF-8 sem BOM' {
+            InModuleScope WbaToolkit.Maintenance {
+                $f = [System.IO.Path]::GetTempFileName() + '.reg'
+                try {
+                    $enc = New-Object System.Text.UTF8Encoding($false)
+                    [System.IO.File]::WriteAllText($f, "Windows Registry Editor Version 5.00`r`n`r`n[hkey_users\default\Software\WBA\Teste]`r`n", $enc)
+                    $conteudo = Read-RegFileContent -Path $f
+                    $conteudo | Should -Match 'hkey_users\\default'
+                }
+                finally { Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue }
+            }
+        }
+        It 'Le arquivo UTF-8 com BOM' {
+            InModuleScope WbaToolkit.Maintenance {
+                $f = [System.IO.Path]::GetTempFileName() + '.reg'
+                try {
+                    $enc = New-Object System.Text.UTF8Encoding($true)
+                    [System.IO.File]::WriteAllText($f, "Windows Registry Editor Version 5.00`r`n`r`n[HKEY_CURRENT_USER\Software\WBA\Teste]`r`n", $enc)
+                    $conteudo = Read-RegFileContent -Path $f
+                    $conteudo | Should -Match 'HKEY_CURRENT_USER'
+                }
+                finally { Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue }
+            }
+        }
+        It 'Le arquivo UTF-16 LE com BOM' {
+            InModuleScope WbaToolkit.Maintenance {
+                $f = [System.IO.Path]::GetTempFileName() + '.reg'
+                try {
+                    [System.IO.File]::WriteAllText($f, "Windows Registry Editor Version 5.00`r`n`r`n[HKEY_USERS\.DEFAULT\Software\WBA\Teste]`r`n", [System.Text.Encoding]::Unicode)
+                    $conteudo = Read-RegFileContent -Path $f
+                    $conteudo | Should -Match 'HKEY_USERS'
+                }
+                finally { Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue }
+            }
+        }
+        It 'Lanca erro para arquivo vazio' {
+            InModuleScope WbaToolkit.Maintenance {
+                $f = [System.IO.Path]::GetTempFileName() + '.reg'
+                try {
+                    [System.IO.File]::WriteAllBytes($f, [byte[]]@())
+                    { Read-RegFileContent -Path $f } | Should -Throw '*vazio*'
+                }
+                finally { Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue }
+            }
+        }
+    }
+
+    Context 'Invoke-RegFileImport - ASCII aceito e substituicao validada (BCK-022)' {
+        It 'Aceita .reg ASCII com hkey_users\default sem falso negativo de hive' {
+            InModuleScope WbaToolkit.Maintenance {
+                Mock -CommandName 'reg' -MockWith { $global:LASTEXITCODE = 0 }
+                $f = Join-Path ([System.IO.Path]::GetTempPath()) "wba_ascii_$([System.Guid]::NewGuid().ToString('N')).reg"
+                Set-Content -Path $f -Encoding ASCII -Value "Windows Registry Editor Version 5.00`r`n`r`n[hkey_users\default\Software\WBA\T]`r`n"
+                try {
+                    { Invoke-RegFileImport -RegFilePath $f -MountPoint 'WBA_DefaultProfile' } | Should -Not -Throw
+                    Should -Invoke -CommandName 'reg' -Times 1 -Exactly
+                }
+                finally { Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue }
+            }
+        }
+        It 'Arquivo temporario entregue ao reg contem HKEY_USERS\MountPoint substituido' {
+            InModuleScope WbaToolkit.Maintenance {
+                $script:capturedContent = $null
+                Mock -CommandName 'reg' -MockWith {
+                    $importArg = $args | Where-Object { $_ -match '\.reg$' }
+                    if ($importArg -and (Test-Path -LiteralPath $importArg)) {
+                        $script:capturedContent = [System.IO.File]::ReadAllText($importArg, [System.Text.Encoding]::Unicode)
+                    }
+                    $global:LASTEXITCODE = 0
+                }
+                $f = Join-Path ([System.IO.Path]::GetTempPath()) "wba_subst_$([System.Guid]::NewGuid().ToString('N')).reg"
+                Set-Content -Path $f -Encoding ASCII -Value "Windows Registry Editor Version 5.00`r`n`r`n[hkey_users\default\Software\WBA\T]`r`n"
+                try {
+                    Invoke-RegFileImport -RegFilePath $f -MountPoint 'WBA_DefaultProfile'
+                    $script:capturedContent | Should -Not -BeNullOrEmpty
+                    $script:capturedContent | Should -Match 'HKEY_USERS\\WBA_DefaultProfile'
+                    $script:capturedContent | Should -Not -Match '(?i)hkey_users\\\.?default(?!\w)'
+                }
+                finally { Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue }
+            }
+        }
+        It 'Rejeita .reg somente HKLM' {
+            InModuleScope WbaToolkit.Maintenance {
+                Mock -CommandName 'reg' -MockWith { $global:LASTEXITCODE = 0 }
+                $f = Join-Path ([System.IO.Path]::GetTempPath()) "wba_hklm_$([System.Guid]::NewGuid().ToString('N')).reg"
+                Set-Content -Path $f -Encoding ASCII -Value "Windows Registry Editor Version 5.00`r`n`r`n[HKEY_LOCAL_MACHINE\Software\WBA\T]`r`n"
+                try {
+                    { Invoke-RegFileImport -RegFilePath $f -MountPoint 'WBA_DefaultProfile' } | Should -Throw '*hive de usuario*'
+                    Should -Invoke -CommandName 'reg' -Times 0 -Exactly
+                }
+                finally { Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue }
+            }
+        }
+    }
+
+    Context 'Get-SysprepAppxProvisioningIssue - validacao Appx (BCK-022)' {
+        It 'Retorna lista vazia quando todos os pacotes estao provisionados' {
+            InModuleScope WbaToolkit.Maintenance {
+                Mock -CommandName 'Get-AppxProvisionedPackage' -MockWith {
+                    [pscustomobject]@{ DisplayName = 'Microsoft.Exemplo' }
+                }
+                Mock -CommandName 'Get-AppxPackage' -MockWith {
+                    [pscustomobject]@{
+                        Name = 'Microsoft.Exemplo'
+                        PackageFullName = 'Microsoft.Exemplo_1.0.0_x64__abc'
+                        Version = '1.0.0'
+                        Architecture = 'X64'
+                        Publisher = 'CN=Microsoft'
+                        PackageUserInformation = @()
+                    }
+                }
+                $resultado = @(Get-SysprepAppxProvisioningIssue)
+                $resultado.Count | Should -Be 0
+            }
+        }
+        It 'Detecta pacote instalado para usuario e nao provisionado' {
+            InModuleScope WbaToolkit.Maintenance {
+                Mock -CommandName 'Get-AppxProvisionedPackage' -MockWith { @() }
+                Mock -CommandName 'Get-AppxPackage' -MockWith {
+                    [pscustomobject]@{
+                        Name = 'Microsoft.LanguageExperiencePackpt-BR'
+                        PackageFullName = 'Microsoft.LanguageExperiencePackpt-BR_19041.80.279.0_neutral__8wekyb3d8bbwe'
+                        Version = '19041.80.279.0'
+                        Architecture = 'Neutral'
+                        Publisher = 'CN=Microsoft'
+                        PackageUserInformation = @()
+                    }
+                }
+                $resultado = @(Get-SysprepAppxProvisioningIssue)
+                $resultado.Count        | Should -BeGreaterThan 0
+                $resultado[0].Severity  | Should -Be 'Blocker'
+                $resultado[0].Reason    | Should -Be 'InstalledForUserButNotProvisioned'
+                $resultado[0].Name      | Should -Be 'Microsoft.LanguageExperiencePackpt-BR'
+            }
+        }
+        It 'Lanca erro bloqueante quando Get-AppxPackage falha' {
+            InModuleScope WbaToolkit.Maintenance {
+                Mock -CommandName 'Get-AppxProvisionedPackage' -MockWith { @() }
+                Mock -CommandName 'Get-AppxPackage' -MockWith { throw 'Falha simulada' }
+                { Get-SysprepAppxProvisioningIssue } | Should -Throw '*Sysprep bloqueada por seguranca*'
+            }
+        }
+        It 'Lanca erro bloqueante quando Get-AppxProvisionedPackage falha' {
+            InModuleScope WbaToolkit.Maintenance {
+                Mock -CommandName 'Get-AppxProvisionedPackage' -MockWith { throw 'Falha simulada' }
+                { Get-SysprepAppxProvisioningIssue } | Should -Throw '*Sysprep bloqueada por seguranca*'
+            }
+        }
+    }
+
+    Context 'Test-SysprepEnvironment - SysprepBlockers (BCK-022)' {
+        It 'Deve ter propriedade SysprepBlockers no retorno' {
+            $r = Test-SysprepEnvironment
+            $r.PSObject.Properties.Name | Should -Contain 'SysprepBlockers'
+        }
+        It 'SysprepBlockers deve ser array' {
+            $r = Test-SysprepEnvironment
+            $r.SysprepBlockers.GetType().IsArray | Should -BeTrue
+        }
+        It 'Com bloqueador Appx: IsValid false e SysprepBlockers nao vazio' {
+            Mock -CommandName 'Get-SysprepAppxProvisioningIssue' -ModuleName 'WbaToolkit.Maintenance' -MockWith {
+                [pscustomobject]@{
+                    Name            = 'Microsoft.LanguageExperiencePackpt-BR'
+                    PackageFullName = 'Microsoft.LanguageExperiencePackpt-BR_19041.80.279.0_neutral__8wekyb3d8bbwe'
+                    Version         = '19041.80.279.0'
+                    Architecture    = 'Neutral'
+                    Publisher       = 'CN=Microsoft'
+                    Users           = @()
+                    Reason          = 'InstalledForUserButNotProvisioned'
+                    Severity        = 'Blocker'
+                }
+            }
+            $r = Test-SysprepEnvironment
+            $r.IsValid               | Should -BeFalse
+            $r.SysprepBlockers.Count | Should -BeGreaterThan 0
+            ($r.Errors -join ' ')    | Should -Match 'Appx'
+        }
+        It 'Sem bloqueador Appx: SysprepBlockers vazio' {
+            Mock -CommandName 'Get-SysprepAppxProvisioningIssue' -ModuleName 'WbaToolkit.Maintenance' -MockWith { @() }
+            $r = Test-SysprepEnvironment
+            $r.SysprepBlockers.Count | Should -Be 0
         }
     }
 

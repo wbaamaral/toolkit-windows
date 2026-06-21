@@ -18,10 +18,7 @@
         [string]$MountPoint
     )
 
-    # .reg exportados pelo regedit sao UTF-16 LE (com BOM). StreamReader detecta o BOM
-    # (UTF-16 LE/BE, UTF-8) e cai para UTF-16 LE quando ausente — formato padrao do Windows.
-    $reader = New-Object System.IO.StreamReader($RegFilePath, [System.Text.Encoding]::Unicode, $true)
-    try { $conteudo = $reader.ReadToEnd() } finally { $reader.Dispose() }
+    $conteudo = Read-RegFileContent -Path $RegFilePath
 
     # Reescreve todas as referencias de hive do usuario para o ponto de montagem ativo,
     # cobrindo as tres formas que um .reg pode usar. Sem isso, HKEY_CURRENT_USER seria
@@ -46,8 +43,8 @@
     # Garante que o .reg referenciava o hive do usuario; importar sem substituir
     # escreveria no hive ativo (HKCU do usuario logado) em vez do perfil Default.
     if ($totalSubs -eq 0) {
-        throw ("Nenhuma referencia de hive (HKEY_CURRENT_USER, HKEY_USERS\.DEFAULT ou HKEY_USERS\DEFAULT) " +
-            "encontrada em '$RegFilePath'. Importacao abortada para evitar escrita no hive ativo.")
+        throw ("Arquivo .reg lido com sucesso, mas nenhuma referencia de hive de usuario foi encontrada. " +
+            "Importacao abortada para evitar escrita fora do perfil Default.")
     }
 
     $tempPath = [System.IO.Path]::Combine(

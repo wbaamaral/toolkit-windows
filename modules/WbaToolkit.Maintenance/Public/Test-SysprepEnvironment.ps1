@@ -24,13 +24,14 @@
 
     .OUTPUTS
         System.Management.Automation.PSCustomObject
-        Objeto com as propriedades: IsValid, OsVersion, BuildNumber, Errors, Warnings.
+        Objeto com as propriedades: IsValid, OsVersion, Edition, BuildNumber, Errors, Warnings, SysprepBlockers.
     #>
     [CmdletBinding()]
     param()
 
-    $erros    = New-Object 'System.Collections.Generic.List[string]'
-    $avisos   = New-Object 'System.Collections.Generic.List[string]'
+    $erros     = New-Object 'System.Collections.Generic.List[string]'
+    $avisos    = New-Object 'System.Collections.Generic.List[string]'
+    $bloqueios = New-Object 'System.Collections.Generic.List[object]'
     $buildNum = 0
     $versaoSO = ''
     $edicao   = ''
@@ -94,12 +95,24 @@
         }
     }
 
+    try {
+        $appxBloqueantes = @(Get-SysprepAppxProvisioningIssue)
+        foreach ($b in $appxBloqueantes) {
+            $bloqueios.Add($b)
+            $erros.Add("Pacote Appx pode bloquear Sysprep: $($b.PackageFullName) instalado para usuario, mas nao provisionado para todos os usuarios.")
+        }
+    }
+    catch {
+        $erros.Add($_.Exception.Message)
+    }
+
     return [pscustomobject]@{
-        IsValid     = ($erros.Count -eq 0)
-        OsVersion   = $versaoSO
-        Edition     = $edicao
-        BuildNumber = $buildNum
-        Errors      = $erros.ToArray()
-        Warnings    = $avisos.ToArray()
+        IsValid         = ($erros.Count -eq 0)
+        OsVersion       = $versaoSO
+        Edition         = $edicao
+        BuildNumber     = $buildNum
+        Errors          = $erros.ToArray()
+        Warnings        = $avisos.ToArray()
+        SysprepBlockers = $bloqueios.ToArray()
     }
 }

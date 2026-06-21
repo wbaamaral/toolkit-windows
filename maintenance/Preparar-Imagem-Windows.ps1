@@ -101,6 +101,44 @@ function Write-SysprepLog {
     Write-ScriptLog -Message $Message -Level $Level -LogPath $logPath
 }
 
+function Save-SysprepPreparationReport {
+    param(
+        [Parameter(Mandatory = $true)]$Session,
+        [Parameter(Mandatory = $true)]$Ambiente,
+        [Parameter(Mandatory = $true)]$Resultados,
+        [Parameter(Mandatory = $true)][string]$SysprepEstado,
+        [bool]$SysprepExecutado    = $false,
+        [bool]$SysprepBloqueado    = $false,
+        $SysprepExitCode           = $null,
+        [object[]]$SysprepBloqueadores = @()
+    )
+    $aplicados = @($Resultados | Where-Object { $_.Success })
+    $falhos    = @($Resultados | Where-Object { -not $_.Success })
+
+    $relatorio = [pscustomobject]@{
+        Inicio              = $Session.StartedAt
+        Fim                 = Get-Date
+        Modo                = $Session.Mode
+        ApenasDryRun        = [bool]$ApenasDryRun
+        SemSysprep          = [bool]$SemSysprep
+        ComputerName        = $env:COMPUTERNAME
+        OsVersion           = $Ambiente.OsVersion
+        BuildNumber         = $Ambiente.BuildNumber
+        TweaksAplicados     = $aplicados.Count
+        TweaksFalhos        = $falhos.Count
+        Tweaks              = @($Resultados)
+        SysprepEstado       = $SysprepEstado
+        SysprepExecutado    = $SysprepExecutado
+        SysprepBloqueado    = $SysprepBloqueado
+        SysprepExitCode     = $SysprepExitCode
+        SysprepBloqueadores = @($SysprepBloqueadores)
+    }
+
+    $jsonPath = Join-Path $Session.Path 'relatorio-preparacao-imagem.json'
+    $relatorio | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $jsonPath
+    return $jsonPath
+}
+
 # ─── inicializacao ───────────────────────────────────────────────────────────
 
 Write-Title "WBA Windows Toolkit - Preparacao de Imagem Windows $ScriptVersion"
@@ -133,7 +171,27 @@ if (-not $ambiente.IsValid) {
         Write-Fail $erro
         Write-SysprepLog -Level 'ERROR' -Message $erro
     }
-    Write-SysprepLog -Message 'Pre-verificacao falhou. Encerrando.'
+
+    $estadoFalha = if ($ambiente.SysprepBlockers -and $ambiente.SysprepBlockers.Count -gt 0) {
+        Write-Fail 'Sysprep bloqueado: existem pacotes Appx instalados para usuario, mas nao provisionados para todos os usuarios.'
+        Write-Fail 'Consulte o log e valide manualmente antes de tentar generalizar a imagem.'
+        'BloqueadoAppx'
+    } else {
+        'BloqueadoFalhaPreVerificacao'
+    }
+
+    if ($script:Session) {
+        $jsonSaida = Save-SysprepPreparationReport `
+            -Session            $script:Session `
+            -Ambiente           $ambiente `
+            -Resultados         @() `
+            -SysprepEstado      $estadoFalha `
+            -SysprepBloqueado   $true `
+            -SysprepBloqueadores @($ambiente.SysprepBlockers)
+        Write-SysprepLog -Message "Relatorio gravado: $jsonSaida"
+    }
+
+    Write-SysprepLog -Message "Pre-verificacao falhou ($estadoFalha). Encerrando."
     exit 1
 }
 
@@ -212,9 +270,37 @@ if ($falhos.Count -gt 0) {
     Write-Warn "$($falhos.Count) tweak(s) com falha. Consulte o log: $(Join-Path $script:Session.LogsPath 'preparar-imagem.log')"
 }
 
+# ─── bloqueio por falha de tweak (Fase 2) ────────────────────────────────────
+
+if ($falhos.Count -gt 0) {
+    Write-Fail "$($falhos.Count) tweak(s) falharam. Sysprep bloqueado para evitar imagem incompleta."
+    Write-Fail 'Corrija as falhas e execute novamente antes de generalizar o sistema.'
+    Write-SysprepLog -Level 'ERROR' -Message "Sysprep bloqueado: $($falhos.Count) tweak(s) falharam."
+
+    $jsonSaida = Save-SysprepPreparationReport `
+        -Session          $script:Session `
+        -Ambiente         $ambiente `
+        -Resultados       $resultados `
+        -SysprepEstado    'BloqueadoFalhaTweaks' `
+        -SysprepBloqueado $true
+    Write-SysprepLog -Message "Relatorio gravado: $jsonSaida"
+    Write-Ok "Relatorio JSON: $jsonSaida"
+    Write-Title "Sessao encerrada com falha: $($script:Session.Path)"
+    exit 1
+}
+
 # ─── sysprep.exe ─────────────────────────────────────────────────────────────
 
-if (-not $SemSysprep) {
+$sysprepEstado    = 'NaoSolicitado'
+$sysprepExecutado = $false
+$sysprepExitCode  = $null
+
+if ($SemSysprep) {
+    $sysprepEstado = 'IgnoradoPorParametro'
+    Write-Info 'Sysprep ignorado por -SemSysprep.'
+    Write-SysprepLog -Message 'Sysprep ignorado por parametro -SemSysprep.'
+}
+else {
     Write-Section 'Execucao do sysprep.exe'
     Write-Warn 'O sysprep.exe ira DESLIGAR o sistema apos a generalizacao.'
     Write-Warn 'Salve todos os arquivos abertos antes de confirmar.'
@@ -232,9 +318,27 @@ if (-not $SemSysprep) {
         )
         Write-SysprepLog -Message 'Iniciando sysprep.exe /oobe /generalize /shutdown.'
         Write-Warn 'Executando sysprep.exe. O sistema sera desligado em instantes...'
-        Start-Process -FilePath $sysprepExe -ArgumentList '/oobe /generalize /shutdown' -Wait
+
+        $sysprepEstado    = 'Iniciado'
+        $sysprepExecutado = $true
+        $processo = Start-Process -FilePath $sysprepExe `
+            -ArgumentList '/oobe /generalize /shutdown' `
+            -Wait -PassThru
+        $sysprepExitCode = $processo.ExitCode
+        Write-SysprepLog -Message "sysprep.exe encerrado com ExitCode: $sysprepExitCode."
+
+        if ($sysprepExitCode -eq 0) {
+            $sysprepEstado = 'Concluido'
+        }
+        else {
+            $sysprepEstado = 'Falhou'
+            Write-Fail "sysprep.exe falhou com ExitCode $sysprepExitCode."
+            Write-Fail 'Verifique C:\Windows\System32\Sysprep\Panther\setuperr.log'
+            Write-SysprepLog -Level 'ERROR' -Message "Sysprep falhou. Verifique C:\Windows\System32\Sysprep\Panther\setuperr.log"
+        }
     }
     else {
+        $sysprepEstado = 'IgnoradoPeloOperador'
         Write-Info 'Execucao do sysprep.exe ignorada. Execute manualmente quando pronto.'
         Write-SysprepLog -Message 'Execucao do sysprep.exe ignorada pelo operador.'
     }
@@ -244,21 +348,18 @@ if (-not $SemSysprep) {
 
 Write-Section 'Relatorio da sessao'
 
-$relatorio = [pscustomobject]@{
-    Inicio       = $script:Session.StartedAt
-    Fim          = Get-Date
-    Modo         = $script:Session.Mode
-    ApenasDryRun = [bool]$ApenasDryRun
-    SemSysprep   = [bool]$SemSysprep
-    ComputerName = $env:COMPUTERNAME
-    OsVersion    = $ambiente.OsVersion
-    BuildNumber  = $ambiente.BuildNumber
-    Tweaks       = @($resultados)
-}
-
-$jsonPath = Join-Path $script:Session.Path 'relatorio-preparacao-imagem.json'
-$relatorio | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $jsonPath
+$jsonPath = Save-SysprepPreparationReport `
+    -Session          $script:Session `
+    -Ambiente         $ambiente `
+    -Resultados       $resultados `
+    -SysprepEstado    $sysprepEstado `
+    -SysprepExecutado $sysprepExecutado `
+    -SysprepExitCode  $sysprepExitCode
 
 Write-SysprepLog -Message 'Sessao encerrada.'
 Write-Ok "Relatorio JSON: $jsonPath"
 Write-Title "Sessao concluida: $($script:Session.Path)"
+
+if ($sysprepEstado -eq 'Falhou') {
+    exit $sysprepExitCode
+}
