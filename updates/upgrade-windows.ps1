@@ -263,17 +263,23 @@ function Invoke-ProcessWithSpinner {
     $frames = '|', '/', '-', '\'
     $i      = 0
     try {
-        $proc = Start-Process -FilePath $FilePath -ArgumentList $ArgumentList `
+        $proc      = Start-Process -FilePath $FilePath -ArgumentList $ArgumentList `
             -RedirectStandardOutput $tmpOut -RedirectStandardError $tmpErr `
             -NoNewWindow -PassThru -ErrorAction Stop
+        $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
         while (-not $proc.HasExited) {
-            Write-Host "`r$($frames[$i % 4]) $Label" -NoNewline -ForegroundColor Cyan
+            $elapsed = $stopwatch.Elapsed
+            $ts      = '{0:00}:{1:00}:{2:00}' -f $elapsed.Hours, $elapsed.Minutes, $elapsed.Seconds
+            $line    = "$($frames[$i % 4]) $Label [$ts]"
+            Write-Host "`r$line" -NoNewline -ForegroundColor Cyan
             $i++
             Start-Sleep -Milliseconds 200
         }
         $proc.WaitForExit()
-        Write-Host ("`r" + (' ' * ($Label.Length + 4)) + "`r") -NoNewline
+        $stopwatch.Stop()
+        $clearLen = $Label.Length + 20
+        Write-Host ("`r" + (' ' * $clearLen) + "`r") -NoNewline
 
         $out = Get-Content -LiteralPath $tmpOut -ErrorAction SilentlyContinue
         $err = Get-Content -LiteralPath $tmpErr -ErrorAction SilentlyContinue
@@ -283,7 +289,7 @@ function Invoke-ProcessWithSpinner {
         return $proc.ExitCode
     }
     catch {
-        Write-Host ("`r" + (' ' * ($Label.Length + 4)) + "`r") -NoNewline
+        Write-Host ("`r" + (' ' * ($Label.Length + 20)) + "`r") -NoNewline
         throw
     }
     finally {
