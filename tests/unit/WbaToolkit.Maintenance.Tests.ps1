@@ -628,7 +628,9 @@ Describe 'WbaToolkit.Maintenance' {
                         Version = '19041.80.279.0'
                         Architecture = 'Neutral'
                         Publisher = 'CN=Microsoft'
-                        PackageUserInformation = @()
+                        PackageUserInformation = @(
+                            [pscustomobject]@{ UserSecurityId = 'S-1-5-21-1234567890-1234567890-1234567890-1001' }
+                        )
                     }
                 }
                 $resultado = @(Get-SysprepAppxProvisioningIssue)

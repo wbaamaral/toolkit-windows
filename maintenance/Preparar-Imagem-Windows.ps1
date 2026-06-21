@@ -162,13 +162,11 @@ Write-Section 'Verificacao de pre-requisitos'
 $ambiente = Test-SysprepEnvironment
 
 foreach ($aviso in $ambiente.Warnings) {
-    Write-Warn $aviso
     Write-SysprepLog -Level 'WARN' -Message $aviso
 }
 
 if (-not $ambiente.IsValid) {
     foreach ($erro in $ambiente.Errors) {
-        Write-Fail $erro
         Write-SysprepLog -Level 'ERROR' -Message $erro
     }
 
