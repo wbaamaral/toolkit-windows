@@ -237,4 +237,38 @@ Describe 'WbaToolkit.Networking' {
             $bytes[2] | Should -Be 0xBF
         }
     }
+
+    Context 'BCK-010 - Test-UdpPortConnectivity (deteccao via ICMP/timeout)' {
+        It 'Classifica porta UDP fechada/sem-resposta sem lancar e dentro do timeout' {
+            $sw = [System.Diagnostics.Stopwatch]::StartNew()
+            $r  = Test-UdpPortConnectivity -TargetAddress '127.0.0.1' -Port 9 -TimeoutSeconds 2
+            $sw.Stop()
+            $r.Protocol       | Should -Be 'UDP'
+            $r.Classification | Should -BeIn @('Failed', 'Inconclusive', 'Success')
+            $r.Status         | Should -BeIn @('Fechada', 'Sem resposta', 'Aberta', 'Falha')
+            # -TimeoutSeconds agora e respeitado: nao deve exceder ~timeout + folga.
+            $sw.Elapsed.TotalSeconds | Should -BeLessThan 5
+        }
+    }
+
+    Context 'BCK-010 - Export-ConnectivityReportPdf (valida PDF gerado)' {
+        It 'Retorna Success=$false quando o navegador executa mas nao gera o PDF' {
+            $script:stubBrowser = Join-Path $env:TEMP "wba_stub_browser_$([guid]::NewGuid().ToString('N')).cmd"
+            Set-Content -LiteralPath $script:stubBrowser -Value '@exit /b 0' -Encoding ASCII
+            Mock -CommandName 'Get-Command' -ModuleName 'WbaToolkit.Networking' -MockWith {
+                [pscustomobject]@{ Path = $script:stubBrowser; Source = $script:stubBrowser }
+            }
+            $html = Join-Path $env:TEMP "wba_in_$([guid]::NewGuid().ToString('N')).html"
+            Set-Content -LiteralPath $html -Value '<html></html>' -Encoding UTF8
+            $pdf = [System.IO.Path]::ChangeExtension($html, '.pdf')
+            try {
+                $r = Export-ConnectivityReportPdf -HtmlPath $html -PdfPath $pdf
+                $r.Success | Should -BeFalse
+                $r.Message | Should -Match 'nao foi gerado'
+            }
+            finally {
+                Remove-Item -LiteralPath $script:stubBrowser, $html, $pdf -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
 }

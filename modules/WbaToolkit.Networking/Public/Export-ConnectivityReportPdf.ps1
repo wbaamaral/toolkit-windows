@@ -52,10 +52,23 @@
     try {
         $browserPath = if ($browser.Path) { $browser.Path } else { $browser.Source }
         & $browserPath @args | Out-Null
-        [pscustomobject]@{
-            Success = $true
-            Path    = $PdfPath
-            Type    = 'PDF'
+
+        # O navegador headless pode sair com codigo 0 sem gerar o PDF (HTML invalido,
+        # destino sem permissao de escrita): so reportamos sucesso se o arquivo existir.
+        if ((Test-Path -LiteralPath $PdfPath) -and ((Get-Item -LiteralPath $PdfPath).Length -gt 0)) {
+            [pscustomobject]@{
+                Success = $true
+                Path    = $PdfPath
+                Type    = 'PDF'
+            }
+        }
+        else {
+            [pscustomobject]@{
+                Success = $false
+                Path    = $PdfPath
+                Type    = 'PDF'
+                Message = "O navegador executou mas o PDF nao foi gerado em '$PdfPath'."
+            }
         }
     }
     catch {
