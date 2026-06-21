@@ -18,14 +18,37 @@
         [string]$MountPoint
     )
 
-    $conteudo = [System.IO.File]::ReadAllText($RegFilePath, [System.Text.Encoding]::UTF8)
+    # .reg exportados pelo regedit sao UTF-16 LE (com BOM). StreamReader detecta o BOM
+    # (UTF-16 LE/BE, UTF-8) e cai para UTF-16 LE quando ausente — formato padrao do Windows.
+    $reader = New-Object System.IO.StreamReader($RegFilePath, [System.Text.Encoding]::Unicode, $true)
+    try { $conteudo = $reader.ReadToEnd() } finally { $reader.Dispose() }
 
-    $substituido = [System.Text.RegularExpressions.Regex]::Replace(
-        $conteudo,
-        'hkey_users\\default',
-        "HKEY_USERS\\$MountPoint",
-        [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+    # Reescreve todas as referencias de hive do usuario para o ponto de montagem ativo,
+    # cobrindo as tres formas que um .reg pode usar. Sem isso, HKEY_CURRENT_USER seria
+    # importado no hive do usuario logado em vez do perfil Default.
+    $alvo    = "HKEY_USERS\$MountPoint"
+    $padroes = @(
+        'hkey_users\\\.default',   # HKEY_USERS\.DEFAULT
+        'hkey_users\\default',     # HKEY_USERS\DEFAULT (forma usada pelo toolkit)
+        'hkey_current_user'        # HKEY_CURRENT_USER
     )
+    $substituido = $conteudo
+    $totalSubs   = 0
+    foreach ($padrao in $padroes) {
+        $totalSubs += [System.Text.RegularExpressions.Regex]::Matches(
+            $substituido, $padrao,
+            [System.Text.RegularExpressions.RegexOptions]::IgnoreCase).Count
+        $substituido = [System.Text.RegularExpressions.Regex]::Replace(
+            $substituido, $padrao, $alvo,
+            [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+    }
+
+    # Garante que o .reg referenciava o hive do usuario; importar sem substituir
+    # escreveria no hive ativo (HKCU do usuario logado) em vez do perfil Default.
+    if ($totalSubs -eq 0) {
+        throw ("Nenhuma referencia de hive (HKEY_CURRENT_USER, HKEY_USERS\.DEFAULT ou HKEY_USERS\DEFAULT) " +
+            "encontrada em '$RegFilePath'. Importacao abortada para evitar escrita no hive ativo.")
+    }
 
     $tempPath = [System.IO.Path]::Combine(
         [System.IO.Path]::GetTempPath(),

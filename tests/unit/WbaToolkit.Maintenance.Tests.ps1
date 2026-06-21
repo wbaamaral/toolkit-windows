@@ -244,14 +244,29 @@ Describe 'WbaToolkit.Maintenance' {
                 ''
                 '[==========================100.0%==========================]'
                 'Component Store (WinSxS) information:'
-                'Windows Explorer Reported Size of Component Store : 8.50 GB'
-                'Actual Size of Component Store : 8.00 GB'
-                'Backups and Disabled Features : 1.20 GB'
+                'Windows Explorer Reported Size of Component Store : 8.96 GB'
+                'Actual Size of Component Store : 8.50 GB'
+                '    Shared with Windows : 5.00 GB'
+                '    Backups and Disabled Features : 1.20 GB'
+                '    Cache and Temporary Data : 0.30 GB'
                 'Date of Last Cleanup : 2026-06-01 03:00:00'
+                'Number of Reclaimable Packages : 0'
                 'Component Store Cleanup Recommended : No'
                 'The operation completed successfully.'
                 $global:LASTEXITCODE = 0
             }
+        }
+
+        It 'Deve invocar o DISM com /English (BCK-008, saida estavel em pt-BR)' {
+            Get-ComponentStoreInfo | Out-Null
+            Should -Invoke -CommandName 'dism.exe' -ModuleName 'WbaToolkit.Maintenance' `
+                -ParameterFilter { $args -contains '/English' } -Times 1 -Exactly
+        }
+
+        It 'Deve parsear tamanho e recuperavel com InvariantCulture (BCK-008)' {
+            $resultado = Get-ComponentStoreInfo
+            $resultado.StoreSizeGB       | Should -Be 8.5
+            $resultado.ReclaimableSizeGB | Should -Be 1.2
         }
 
         It 'Nao deve invocar o DISM real e deve retornar objeto com o contrato esperado' {
@@ -387,6 +402,113 @@ Describe 'WbaToolkit.Maintenance' {
             }
             finally {
                 Remove-Item -LiteralPath $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+
+    Context 'ConvertTo-StoreSizeGB - parsing independente de cultura (BCK-008)' {
+        It 'Converte "8.50" GB com ponto decimal (InvariantCulture)' {
+            InModuleScope WbaToolkit.Maintenance {
+                ConvertTo-StoreSizeGB -Value '8.50' -Unit 'GB' | Should -Be 8.5
+            }
+        }
+        It 'Ignora separador de milhar e converte MB para GB' {
+            InModuleScope WbaToolkit.Maintenance {
+                ConvertTo-StoreSizeGB -Value '1,024' -Unit 'MB' | Should -Be 1
+            }
+        }
+        It 'Retorna nulo para valor nao numerico' {
+            InModuleScope WbaToolkit.Maintenance {
+                ConvertTo-StoreSizeGB -Value 'N/A' -Unit 'GB' | Should -BeNullOrEmpty
+            }
+        }
+    }
+
+    Context 'Test-SysprepEnvironment - edicao e CIM (BCK-011)' {
+        It 'Inclui a propriedade Edition no retorno' {
+            (Test-SysprepEnvironment).PSObject.Properties.Name | Should -Contain 'Edition'
+        }
+        It 'Invalida quando o CIM nao retorna o sistema operacional' {
+            Mock -CommandName 'Get-CimInstanceSafe' -ModuleName 'WbaToolkit.Maintenance' -MockWith { $null }
+            $r = Test-SysprepEnvironment
+            $r.IsValid              | Should -BeFalse
+            ($r.Errors -join ' ')   | Should -Match 'CIM'
+        }
+        It 'Invalida edicao Home (Core)' {
+            Mock -CommandName 'Get-ItemProperty' -ModuleName 'WbaToolkit.Maintenance' `
+                -ParameterFilter { $Name -eq 'EditionID' } -MockWith {
+                    [pscustomobject]@{ EditionID = 'Core' }
+                }
+            $r = Test-SysprepEnvironment
+            ($r.Errors -join ' ') | Should -Match 'Edicao do Windows nao suportada'
+        }
+    }
+
+    Context 'Invoke-RegFileImport - reescrita de hive e validacao (BCK-011)' {
+        It 'Reescreve HKEY_CURRENT_USER e importa (.reg UTF-16 LE, reg mockado)' {
+            InModuleScope WbaToolkit.Maintenance {
+                Mock -CommandName 'reg' -MockWith { $global:LASTEXITCODE = 0 }
+                $f = Join-Path ([System.IO.Path]::GetTempPath()) "wba_rfi_$([System.Guid]::NewGuid().ToString('N')).reg"
+                [System.IO.File]::WriteAllText(
+                    $f,
+                    "Windows Registry Editor Version 5.00`r`n`r`n[HKEY_CURRENT_USER\Software\WBA\T]`r`n",
+                    [System.Text.Encoding]::Unicode)
+                try {
+                    { Invoke-RegFileImport -RegFilePath $f -MountPoint 'WBA_DefaultProfile' } | Should -Not -Throw
+                    Should -Invoke -CommandName 'reg' -Times 1 -Exactly
+                }
+                finally { Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue }
+            }
+        }
+        It 'Lanca e nao importa quando nao ha referencia de hive para substituir' {
+            InModuleScope WbaToolkit.Maintenance {
+                Mock -CommandName 'reg' -MockWith { $global:LASTEXITCODE = 0 }
+                $f = Join-Path ([System.IO.Path]::GetTempPath()) "wba_rfi_$([System.Guid]::NewGuid().ToString('N')).reg"
+                [System.IO.File]::WriteAllText(
+                    $f,
+                    "Windows Registry Editor Version 5.00`r`n`r`n[HKEY_LOCAL_MACHINE\Software\WBA\T]`r`n",
+                    [System.Text.Encoding]::Unicode)
+                try {
+                    { Invoke-RegFileImport -RegFilePath $f -MountPoint 'WBA_DefaultProfile' } |
+                        Should -Throw '*Nenhuma referencia de hive*'
+                    Should -Invoke -CommandName 'reg' -Times 0 -Exactly
+                }
+                finally { Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue }
+            }
+        }
+    }
+
+    Context 'Invoke-WithDefaultUserHive - unload com retry e erro elevavel (BCK-009)' {
+        It 'Desmonta com sucesso e retorna o valor do ScriptBlock' {
+            InModuleScope WbaToolkit.Maintenance {
+                Mock -CommandName 'Get-DefaultUserHivePath' -MockWith { 'C:\fake\NTUSER.DAT' }
+                Mock -CommandName 'Test-Path' -MockWith { $false }
+                Mock -CommandName 'reg' -MockWith { $global:LASTEXITCODE = 0 }
+                Invoke-WithDefaultUserHive -ScriptBlock { param($m) "montado:$m" } |
+                    Should -Be 'montado:WBA_DefaultProfile'
+            }
+        }
+        It 'Repete o unload 3x e lanca erro elevavel quando falha' {
+            InModuleScope WbaToolkit.Maintenance {
+                Mock -CommandName 'Get-DefaultUserHivePath' -MockWith { 'C:\fake\NTUSER.DAT' }
+                Mock -CommandName 'Test-Path' -MockWith { $false }
+                Mock -CommandName 'Start-Sleep' -MockWith { }
+                Mock -CommandName 'reg' -MockWith {
+                    if ($args -contains 'unload') { $global:LASTEXITCODE = 1; return 'erro unload' }
+                    $global:LASTEXITCODE = 0
+                }
+                { Invoke-WithDefaultUserHive -ScriptBlock { 'ok' } } | Should -Throw '*desmontar*'
+                Should -Invoke -CommandName 'reg' -ParameterFilter { $args -contains 'unload' } -Times 3 -Exactly
+            }
+        }
+        It 'Limpa montagem stale antes de carregar' {
+            InModuleScope WbaToolkit.Maintenance {
+                Mock -CommandName 'Get-DefaultUserHivePath' -MockWith { 'C:\fake\NTUSER.DAT' }
+                Mock -CommandName 'Test-Path' -MockWith { $true }
+                Mock -CommandName 'Write-Warn' -MockWith { }
+                Mock -CommandName 'reg' -MockWith { $global:LASTEXITCODE = 0 }
+                Invoke-WithDefaultUserHive -ScriptBlock { 'x' } | Out-Null
+                Should -Invoke -CommandName 'reg' -ParameterFilter { $args -contains 'unload' } -Times 2 -Exactly
             }
         }
     }

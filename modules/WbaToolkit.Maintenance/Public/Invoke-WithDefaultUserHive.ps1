@@ -35,21 +35,48 @@
     $mountKey  = "HKU\$mountName"
     $hivePath  = Get-DefaultUserHivePath
 
+    # Limpa montagem stale de uma execucao anterior que nao desmontou: senao o
+    # 'reg load' falha e o hive fica preso, quebrando logon/criacao de perfis.
+    if (Test-Path -LiteralPath "Registry::HKEY_USERS\$mountName") {
+        Write-Warn "Montagem stale detectada em '$mountKey' (execucao anterior). Desmontando antes de prosseguir."
+        [System.GC]::Collect()
+        [System.GC]::WaitForPendingFinalizers()
+        & reg unload $mountKey 2>&1 | Out-Null
+    }
+
     $loadOutput = & reg load $mountKey $hivePath 2>&1
     if ($LASTEXITCODE -ne 0) {
         throw "Falha ao montar hive do perfil Default em '$mountKey': $loadOutput"
     }
 
+    $resultado  = $null
+    $erroScript = $null
     try {
-        return (& $ScriptBlock $mountName)
+        $resultado = & $ScriptBlock $mountName
     }
-    finally {
+    catch {
+        $erroScript = $_
+    }
+
+    # Desmonta com retry: handles do registro podem demorar a liberar; o GC entre
+    # tentativas libera RegistryKey finalizaveis que mantem o hive aberto.
+    $desmontado   = $false
+    $unloadOutput = ''
+    for ($tentativa = 1; $tentativa -le 3; $tentativa++) {
         [System.GC]::Collect()
         [System.GC]::WaitForPendingFinalizers()
-
         $unloadOutput = & reg unload $mountKey 2>&1
-        if ($LASTEXITCODE -ne 0) {
-            Write-Warn "Nao foi possivel desmontar o hive '$mountKey'. Execute manualmente: reg unload $mountKey"
-        }
+        if ($LASTEXITCODE -eq 0) { $desmontado = $true; break }
+        Start-Sleep -Milliseconds 400
     }
+
+    # Erro do ScriptBlock tem prioridade — nao mascarar a causa original.
+    if ($erroScript) { throw $erroScript }
+
+    if (-not $desmontado) {
+        throw ("Nao foi possivel desmontar o hive '$mountKey' apos 3 tentativas: $unloadOutput. " +
+            "O hive segue montado — execute manualmente: reg unload $mountKey")
+    }
+
+    return $resultado
 }
