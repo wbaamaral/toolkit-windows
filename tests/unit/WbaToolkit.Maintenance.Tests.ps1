@@ -194,11 +194,11 @@ Describe 'WbaToolkit.Maintenance' {
 
     Context 'Invoke-EventLogMaintenance — Action Ask em contexto nao-interativo (BCK-021)' {
         It 'Nao deve lancar NullArrayIndex quando Read-Host retorna nulo (contexto nao-interativo)' {
-            Mock -CommandName 'Read-Host' -MockWith { $null }
+            Mock -CommandName 'Read-Host' -ModuleName 'WbaToolkit.Maintenance' -MockWith { $null }
             { Invoke-EventLogMaintenance -Action Ask -BackupPath 'C:\temp' } | Should -Not -Throw
         }
         It 'Nao deve lancar NullArrayIndex quando Read-Host retorna string vazia' {
-            Mock -CommandName 'Read-Host' -MockWith { '' }
+            Mock -CommandName 'Read-Host' -ModuleName 'WbaToolkit.Maintenance' -MockWith { '' }
             { Invoke-EventLogMaintenance -Action Ask -BackupPath 'C:\temp' } | Should -Not -Throw
         }
     }
