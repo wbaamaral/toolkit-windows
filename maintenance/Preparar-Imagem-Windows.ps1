@@ -110,28 +110,30 @@ function Save-SysprepPreparationReport {
         [bool]$SysprepExecutado    = $false,
         [bool]$SysprepBloqueado    = $false,
         $SysprepExitCode           = $null,
-        [object[]]$SysprepBloqueadores = @()
+        [object[]]$SysprepBloqueadores = @(),
+        [string]$MachineSid        = ''
     )
     $aplicados = @($Resultados | Where-Object { $_.Success })
     $falhos    = @($Resultados | Where-Object { -not $_.Success })
 
     $relatorio = [pscustomobject]@{
-        Inicio              = $Session.StartedAt
-        Fim                 = Get-Date
-        Modo                = $Session.Mode
-        ApenasDryRun        = [bool]$ApenasDryRun
-        SemSysprep          = [bool]$SemSysprep
-        ComputerName        = $env:COMPUTERNAME
-        OsVersion           = $Ambiente.OsVersion
-        BuildNumber         = $Ambiente.BuildNumber
-        TweaksAplicados     = $aplicados.Count
-        TweaksFalhos        = $falhos.Count
-        Tweaks              = @($Resultados)
-        SysprepEstado       = $SysprepEstado
-        SysprepExecutado    = $SysprepExecutado
-        SysprepBloqueado    = $SysprepBloqueado
-        SysprepExitCode     = $SysprepExitCode
-        SysprepBloqueadores = @($SysprepBloqueadores)
+        Inicio                 = $Session.StartedAt
+        Fim                    = Get-Date
+        Modo                   = $Session.Mode
+        ApenasDryRun           = [bool]$ApenasDryRun
+        SemSysprep             = [bool]$SemSysprep
+        ComputerName           = $env:COMPUTERNAME
+        MachineSidAntesSysprep = $MachineSid
+        OsVersion              = $Ambiente.OsVersion
+        BuildNumber            = $Ambiente.BuildNumber
+        TweaksAplicados        = $aplicados.Count
+        TweaksFalhos           = $falhos.Count
+        Tweaks                 = @($Resultados)
+        SysprepEstado          = $SysprepEstado
+        SysprepExecutado       = $SysprepExecutado
+        SysprepBloqueado       = $SysprepBloqueado
+        SysprepExitCode        = $SysprepExitCode
+        SysprepBloqueadores    = @($SysprepBloqueadores)
     }
 
     $jsonPath = Join-Path $Session.Path 'relatorio-preparacao-imagem.json'
@@ -154,6 +156,28 @@ $script:Session = Initialize-ScriptSession `
 
 Write-SysprepLog -Message "Sessao iniciada. ApenasDryRun: $ApenasDryRun. SemSysprep: $SemSysprep."
 Write-Info "Relatorios em: $($script:Session.Path)"
+
+# ─── sid da maquina ───────────────────────────────────────────────────────────
+
+$machineSid = ''
+try {
+    $localUser = Get-LocalUser -ErrorAction Stop | Select-Object -First 1
+    if ($localUser -and $localUser.SID) {
+        $userSid  = $localUser.SID.Value
+        $lastDash = $userSid.LastIndexOf('-')
+        if ($lastDash -gt 0) {
+            $machineSid = $userSid.Substring(0, $lastDash)
+        }
+    }
+}
+catch {
+    Write-SysprepLog -Level 'WARN' -Message "Nao foi possivel capturar SID da maquina: $($_.Exception.Message)"
+}
+
+if ($machineSid) {
+    Write-Info "SID da maquina (pre-Sysprep): $machineSid"
+    Write-SysprepLog -Message "SID da maquina antes do Sysprep: $machineSid"
+}
 
 # ─── pre-verificacao ──────────────────────────────────────────────────────────
 
@@ -196,12 +220,13 @@ if (-not $ambiente.IsValid) {
 
     if ($script:Session) {
         $jsonSaida = Save-SysprepPreparationReport `
-            -Session            $script:Session `
-            -Ambiente           $ambiente `
-            -Resultados         @() `
-            -SysprepEstado      $estadoFalha `
-            -SysprepBloqueado   $true `
-            -SysprepBloqueadores @($ambiente.SysprepBlockers)
+            -Session             $script:Session `
+            -Ambiente            $ambiente `
+            -Resultados          @() `
+            -SysprepEstado       $estadoFalha `
+            -SysprepBloqueado    $true `
+            -SysprepBloqueadores @($ambiente.SysprepBlockers) `
+            -MachineSid          $machineSid
         Write-SysprepLog -Message "Relatorio gravado: $jsonSaida"
     }
 
@@ -328,7 +353,8 @@ if ($falhos.Count -gt 0) {
         -Ambiente         $ambiente `
         -Resultados       $resultados `
         -SysprepEstado    'BloqueadoFalhaTweaks' `
-        -SysprepBloqueado $true
+        -SysprepBloqueado $true `
+        -MachineSid       $machineSid
     Write-SysprepLog -Message "Relatorio gravado: $jsonSaida"
     Write-Ok "Relatorio JSON: $jsonSaida"
     Write-Title "Sessao encerrada com falha: $($script:Session.Path)"
@@ -385,7 +411,8 @@ else {
                 -Resultados           $resultados `
                 -SysprepEstado        $sysprepEstado `
                 -SysprepBloqueado     $true `
-                -SysprepBloqueadores  @($validacaoSysprep.SysprepBlockers)
+                -SysprepBloqueadores  @($validacaoSysprep.SysprepBlockers) `
+                -MachineSid           $machineSid
             Write-SysprepLog -Message "Relatorio gravado: $jsonSaida"
             Write-Ok "Relatorio JSON: $jsonSaida"
             Write-Title "Sessao encerrada com bloqueio: $($script:Session.Path)"
@@ -425,13 +452,14 @@ else {
 Write-Section 'Relatorio da sessao'
 
 $jsonPath = Save-SysprepPreparationReport `
-    -Session          $script:Session `
-    -Ambiente         $ambiente `
-    -Resultados       $resultados `
-    -SysprepEstado      $sysprepEstado `
-    -SysprepExecutado   $sysprepExecutado `
-    -SysprepExitCode    $sysprepExitCode `
-    -SysprepBloqueadores @($ambiente.SysprepBlockers)
+    -Session             $script:Session `
+    -Ambiente            $ambiente `
+    -Resultados          $resultados `
+    -SysprepEstado       $sysprepEstado `
+    -SysprepExecutado    $sysprepExecutado `
+    -SysprepExitCode     $sysprepExitCode `
+    -SysprepBloqueadores @($ambiente.SysprepBlockers) `
+    -MachineSid          $machineSid
 
 Write-SysprepLog -Message 'Sessao encerrada.'
 Write-Ok "Relatorio JSON: $jsonPath"
