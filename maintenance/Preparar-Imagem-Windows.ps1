@@ -263,6 +263,7 @@ if ($gpoEncontrado) {
 }
 Write-Info '  [SECEDIT] Politica de seguranca local resetada para padrao Windows (sem complexidade de senha)'
 if (-not $SemSysprep) {
+    Write-Info '  [APPX] Pacotes Appx bloqueadores (ex: LanguageExperiencePack PT-BR) removidos para todos os usuarios antes do Sysprep'
     Write-Info '  [SYSPREP] sysprep.exe /oobe /generalize /shutdown  (somente apos confirmacao separada)'
 }
 
@@ -426,6 +427,28 @@ else {
             'Sysprep',
             'sysprep.exe'
         )
+        Write-Section 'Removendo pacotes Appx bloqueadores'
+        Write-SysprepLog -Message 'Verificando e removendo pacotes Appx bloqueadores antes do Sysprep.'
+        $appxPreRemocao = Test-SysprepEnvironment -AppxPolicy 'Warn'
+        if ($appxPreRemocao.SysprepBlockers -and $appxPreRemocao.SysprepBlockers.Count -gt 0) {
+            foreach ($bloqueador in $appxPreRemocao.SysprepBlockers) {
+                Write-SysprepLog -Message "Removendo Appx bloqueador: $($bloqueador.PackageFullName)"
+                try {
+                    Remove-AppxPackage -Package $bloqueador.PackageFullName -AllUsers -ErrorAction Stop
+                    Write-Ok "Removido: $($bloqueador.Name)"
+                    Write-SysprepLog -Message "Appx removido: $($bloqueador.PackageFullName)"
+                }
+                catch {
+                    Write-Warn "Nao foi possivel remover $($bloqueador.Name): $($_.Exception.Message)"
+                    Write-SysprepLog -Level 'WARN' -Message "Falha ao remover Appx $($bloqueador.PackageFullName): $($_.Exception.Message)"
+                }
+            }
+        }
+        else {
+            Write-Ok 'Nenhum pacote Appx bloqueador encontrado.'
+            Write-SysprepLog -Message 'Nenhum pacote Appx bloqueador encontrado para remover.'
+        }
+
         Write-SysprepLog -Message 'Validando bloqueadores Appx antes de iniciar sysprep.exe.'
         $validacaoSysprep = Test-SysprepEnvironment -AppxPolicy 'Block'
         if (-not $validacaoSysprep.IsValid) {
