@@ -55,9 +55,16 @@
     try {
         [System.IO.File]::WriteAllText($tempPath, $substituido, [System.Text.Encoding]::Unicode)
 
+        # reg.exe em Windows PT-BR escreve em stderr mesmo em sucesso, gerando ErrorRecord
+        # que dispara NativeCommandError com $ErrorActionPreference='Stop'. Suspender Stop
+        # impede falso positivo; $LASTEXITCODE continua sendo a fonte de verdade.
+        $prevEAP = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
         $saida = & reg import $tempPath 2>&1
+        $ErrorActionPreference = $prevEAP
+
         if ($LASTEXITCODE -ne 0) {
-            throw "reg import falhou (codigo $LASTEXITCODE): $saida"
+            throw "reg import falhou (codigo $LASTEXITCODE): $($saida -join ' ')"
         }
     }
     finally {

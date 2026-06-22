@@ -49,6 +49,8 @@
 param(
     [switch]$ApenasDryRun,
     [switch]$SemSysprep,
+    [switch]$Confirmar,
+    [switch]$ConfirmarSysprep,
     [Alias('DiretorioSaida')]
     [string]$Path
 )
@@ -280,7 +282,12 @@ Write-Warn 'Todos os usuarios criados apos este ponto herdarao as configuracoes 
 Write-Warn 'Um backup do NTUSER.DAT sera criado automaticamente antes de qualquer alteracao.'
 Write-Host ''
 
-$confirmacao = Read-UserInput -Question 'Digite CONFIRMAR para prosseguir (qualquer outra entrada cancela)'
+$confirmacao = if ($Confirmar) {
+    Write-SysprepLog -Message 'Confirmacao automatica via -Confirmar.'
+    'CONFIRMAR'
+} else {
+    Read-UserInput -Question 'Digite CONFIRMAR para prosseguir (qualquer outra entrada cancela)'
+}
 
 if ($confirmacao -ne 'CONFIRMAR') {
     Write-SysprepLog -Message 'Operacao cancelada pelo operador na etapa de confirmacao.'
@@ -378,9 +385,14 @@ else {
     Write-Warn 'Salve todos os arquivos abertos antes de confirmar.'
     Write-Host ''
 
-    $executarSysprep = Read-YesNo `
-        -Question 'Executar sysprep.exe /oobe /generalize /shutdown agora?' `
-        -DefaultYes:$false
+    $executarSysprep = if ($ConfirmarSysprep) {
+        Write-SysprepLog -Message 'Sysprep confirmado automaticamente via -ConfirmarSysprep.'
+        $true
+    } else {
+        Read-YesNo `
+            -Question 'Executar sysprep.exe /oobe /generalize /shutdown agora?' `
+            -DefaultYes:$false
+    }
 
     if ($executarSysprep) {
         $sysprepExe = [System.IO.Path]::Combine(
