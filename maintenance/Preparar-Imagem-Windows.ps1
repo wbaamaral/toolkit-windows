@@ -1,7 +1,7 @@
 ﻿# =============================================================================
-# [NAO VALIDADO] Script sem execucao real documentada em Windows.
-# Nao recomendado para uso em producao ate validacao operacional.
-# Registro: nao-validado/README.md
+# [VALIDADO] Execucao real em Windows 10 Pro build 19045 PT-BR (SRVNFE01).
+# Validado em 2026-06-22: 6/6 tweaks OK, GPO+AutoLogon+secedit limpos,
+# Sysprep generalizou com novo SID, OOBE sem restricao de senha. BCK-022.
 # =============================================================================
 #requires -version 5.1
 <#
