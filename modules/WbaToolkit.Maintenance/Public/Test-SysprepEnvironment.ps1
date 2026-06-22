@@ -24,14 +24,18 @@
 
     .OUTPUTS
         System.Management.Automation.PSCustomObject
-        Objeto com as propriedades: IsValid, OsVersion, Edition, BuildNumber, Errors, Warnings, SysprepBlockers.
+        Objeto com as propriedades: IsValid, OsVersion, Edition, BuildNumber, Errors, Warnings, SysprepBlockers, AppxIssues.
     #>
     [CmdletBinding()]
-    param()
+    param(
+        [ValidateSet('Block', 'Warn', 'Skip')]
+        [string]$AppxPolicy = 'Block'
+    )
 
     $erros     = New-Object 'System.Collections.Generic.List[string]'
     $avisos    = New-Object 'System.Collections.Generic.List[string]'
     $bloqueios = New-Object 'System.Collections.Generic.List[object]'
+    $appxIssues = New-Object 'System.Collections.Generic.List[object]'
     $buildNum = 0
     $versaoSO = ''
     $edicao   = ''
@@ -95,15 +99,36 @@
         }
     }
 
-    try {
-        $appxBloqueantes = @(Get-SysprepAppxProvisioningIssue)
-        foreach ($b in $appxBloqueantes) {
-            $bloqueios.Add($b)
-            $erros.Add("Pacote Appx pode bloquear Sysprep: $($b.PackageFullName) instalado para usuario, mas nao provisionado para todos os usuarios.")
+    if ($AppxPolicy -ne 'Skip') {
+        try {
+            $appxDetectados = @(Get-SysprepAppxProvisioningIssue -IncludeWarnings)
+            foreach ($b in $appxDetectados) {
+                $appxIssues.Add($b)
+                $mensagem = "Pacote Appx pode bloquear Sysprep: $($b.PackageFullName) instalado para usuario, mas nao provisionado para todos os usuarios. Severidade: $($b.Severity). Motivo: $($b.Reason)."
+
+                if ($b.Severity -eq 'Blocker') {
+                    $bloqueios.Add($b)
+
+                    if ($AppxPolicy -eq 'Block') {
+                        $erros.Add($mensagem)
+                    }
+                    else {
+                        $avisos.Add($mensagem)
+                    }
+                }
+                else {
+                    $avisos.Add($mensagem)
+                }
+            }
         }
-    }
-    catch {
-        $erros.Add($_.Exception.Message)
+        catch {
+            if ($AppxPolicy -eq 'Block') {
+                $erros.Add($_.Exception.Message)
+            }
+            else {
+                $avisos.Add($_.Exception.Message)
+            }
+        }
     }
 
     return [pscustomobject]@{
@@ -114,5 +139,6 @@
         Errors          = $erros.ToArray()
         Warnings        = $avisos.ToArray()
         SysprepBlockers = $bloqueios.ToArray()
+        AppxIssues      = $appxIssues.ToArray()
     }
 }

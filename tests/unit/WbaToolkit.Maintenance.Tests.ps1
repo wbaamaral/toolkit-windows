@@ -71,6 +71,8 @@ Describe 'WbaToolkit.Maintenance' {
             $resultado.PSObject.Properties.Name   | Should -Contain 'BuildNumber'
             $resultado.PSObject.Properties.Name   | Should -Contain 'Errors'
             $resultado.PSObject.Properties.Name   | Should -Contain 'Warnings'
+            $resultado.PSObject.Properties.Name   | Should -Contain 'SysprepBlockers'
+            $resultado.PSObject.Properties.Name   | Should -Contain 'AppxIssues'
         }
         It 'Deve retornar IsValid false quando nao e Administrador' {
             $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
@@ -640,6 +642,34 @@ Describe 'WbaToolkit.Maintenance' {
                 $resultado[0].Name      | Should -Be 'Microsoft.LanguageExperiencePackpt-BR'
             }
         }
+        It 'Classifica framework ou pacote nao removivel como aviso quando solicitado' {
+            InModuleScope WbaToolkit.Maintenance {
+                Mock -CommandName 'Get-AppxProvisionedPackage' -MockWith { @() }
+                Mock -CommandName 'Get-AppxPackage' -MockWith {
+                    [pscustomobject]@{
+                        Name = 'Microsoft.UI.Xaml.2.8'
+                        PackageFullName = 'Microsoft.UI.Xaml.2.8_8.2501.31001.0_x86__8wekyb3d8bbwe'
+                        Version = '8.2501.31001.0'
+                        Architecture = 'X86'
+                        Publisher = 'CN=Microsoft'
+                        IsFramework = $true
+                        IsResourcePackage = $false
+                        NonRemovable = $false
+                        InstallLocation = 'C:\Program Files\WindowsApps\Microsoft.UI.Xaml.2.8_8.2501.31001.0_x86__8wekyb3d8bbwe'
+                        PackageUserInformation = @(
+                            [pscustomobject]@{ UserSecurityId = 'S-1-5-21-1234567890-1234567890-1234567890-1001'; PackageUserInstallState = 'Installed' }
+                        )
+                    }
+                }
+                $resultadoSemAvisos = @(Get-SysprepAppxProvisioningIssue)
+                $resultadoComAvisos = @(Get-SysprepAppxProvisioningIssue -IncludeWarnings)
+
+                $resultadoSemAvisos.Count        | Should -Be 0
+                $resultadoComAvisos.Count        | Should -Be 1
+                $resultadoComAvisos[0].Severity  | Should -Be 'Warning'
+                $resultadoComAvisos[0].Reason    | Should -Be 'SystemFrameworkResourceOrNonRemovableNotProvisioned'
+            }
+        }
         It 'Lanca erro bloqueante quando Get-AppxPackage falha' {
             InModuleScope WbaToolkit.Maintenance {
                 Mock -CommandName 'Get-AppxProvisionedPackage' -MockWith { @() }
@@ -681,6 +711,24 @@ Describe 'WbaToolkit.Maintenance' {
             $r.IsValid               | Should -BeFalse
             $r.SysprepBlockers.Count | Should -BeGreaterThan 0
             ($r.Errors -join ' ')    | Should -Match 'Appx'
+        }
+        It 'Com AppxPolicy Warn: bloqueador Appx vira aviso e nao invalida por si so' {
+            Mock -CommandName 'Get-SysprepAppxProvisioningIssue' -ModuleName 'WbaToolkit.Maintenance' -MockWith {
+                [pscustomobject]@{
+                    Name            = 'Microsoft.LanguageExperiencePackpt-BR'
+                    PackageFullName = 'Microsoft.LanguageExperiencePackpt-BR_19041.80.279.0_neutral__8wekyb3d8bbwe'
+                    Version         = '19041.80.279.0'
+                    Architecture    = 'Neutral'
+                    Publisher       = 'CN=Microsoft'
+                    Users           = @('S-1-5-21-1234567890-1234567890-1234567890-1001')
+                    Reason          = 'InstalledForUserButNotProvisioned'
+                    Severity        = 'Blocker'
+                }
+            }
+            $r = Test-SysprepEnvironment -AppxPolicy Warn
+            $r.SysprepBlockers.Count | Should -BeGreaterThan 0
+            ($r.Warnings -join ' ')  | Should -Match 'Appx'
+            ($r.Errors -join ' ')    | Should -Not -Match 'Appx'
         }
         It 'Sem bloqueador Appx: SysprepBlockers vazio' {
             Mock -CommandName 'Get-SysprepAppxProvisioningIssue' -ModuleName 'WbaToolkit.Maintenance' -MockWith { @() }

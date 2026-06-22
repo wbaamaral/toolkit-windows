@@ -159,10 +159,16 @@ Write-Info "Relatorios em: $($script:Session.Path)"
 
 Write-Section 'Verificacao de pre-requisitos'
 
-$ambiente = Test-SysprepEnvironment
+$ambiente = Test-SysprepEnvironment -AppxPolicy 'Warn'
 
 foreach ($aviso in $ambiente.Warnings) {
     Write-SysprepLog -Level 'WARN' -Message $aviso
+}
+
+if ($ambiente.SysprepBlockers -and $ambiente.SysprepBlockers.Count -gt 0) {
+    Write-Warn 'Foram encontrados pacotes Appx que podem bloquear o sysprep.exe.'
+    Write-Warn 'A preparacao do perfil Default pode continuar, mas a generalizacao sera bloqueada ate a correcao.'
+    Write-SysprepLog -Level 'WARN' -Message "Appx em modo aviso: $($ambiente.SysprepBlockers.Count) possivel(is) bloqueador(es)."
 }
 
 if (-not $ambiente.IsValid) {
@@ -314,6 +320,36 @@ else {
             'Sysprep',
             'sysprep.exe'
         )
+        Write-SysprepLog -Message 'Validando bloqueadores Appx antes de iniciar sysprep.exe.'
+        $validacaoSysprep = Test-SysprepEnvironment -AppxPolicy 'Block'
+        if (-not $validacaoSysprep.IsValid) {
+            foreach ($erro in $validacaoSysprep.Errors) {
+                Write-SysprepLog -Level 'ERROR' -Message $erro
+            }
+
+            $sysprepEstado = if ($validacaoSysprep.SysprepBlockers -and $validacaoSysprep.SysprepBlockers.Count -gt 0) {
+                Write-Fail 'Sysprep bloqueado: existem pacotes Appx instalados para usuario, mas nao provisionados para todos os usuarios.'
+                Write-Fail 'Corrija os bloqueadores Appx antes de generalizar a imagem.'
+                'BloqueadoAppx'
+            }
+            else {
+                Write-Fail 'Sysprep bloqueado: a pre-verificacao obrigatoria falhou.'
+                'BloqueadoFalhaPreVerificacao'
+            }
+
+            $jsonSaida = Save-SysprepPreparationReport `
+                -Session              $script:Session `
+                -Ambiente             $validacaoSysprep `
+                -Resultados           $resultados `
+                -SysprepEstado        $sysprepEstado `
+                -SysprepBloqueado     $true `
+                -SysprepBloqueadores  @($validacaoSysprep.SysprepBlockers)
+            Write-SysprepLog -Message "Relatorio gravado: $jsonSaida"
+            Write-Ok "Relatorio JSON: $jsonSaida"
+            Write-Title "Sessao encerrada com bloqueio: $($script:Session.Path)"
+            exit 1
+        }
+
         Write-SysprepLog -Message 'Iniciando sysprep.exe /oobe /generalize /shutdown.'
         Write-Warn 'Executando sysprep.exe. O sistema sera desligado em instantes...'
 
@@ -350,9 +386,10 @@ $jsonPath = Save-SysprepPreparationReport `
     -Session          $script:Session `
     -Ambiente         $ambiente `
     -Resultados       $resultados `
-    -SysprepEstado    $sysprepEstado `
-    -SysprepExecutado $sysprepExecutado `
-    -SysprepExitCode  $sysprepExitCode
+    -SysprepEstado      $sysprepEstado `
+    -SysprepExecutado   $sysprepExecutado `
+    -SysprepExitCode    $sysprepExitCode `
+    -SysprepBloqueadores @($ambiente.SysprepBlockers)
 
 Write-SysprepLog -Message 'Sessao encerrada.'
 Write-Ok "Relatorio JSON: $jsonPath"
