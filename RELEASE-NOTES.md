@@ -1,6 +1,6 @@
-# WBA Windows Toolkit — v1.4.0
+# WBA Windows Toolkit — v1.5.0
 
-> **v1.4.0** · PowerShell 5.1 · Windows 10 / Server 2016+
+> **v1.5.0** · PowerShell 5.1 · Windows 10 / Server 2016+
 
 ---
 
@@ -63,6 +63,43 @@
 ---
 
 ## O que mudou nesta versão
+
+### v1.5.0 — Sysprep robusto, remoção interativa de bloqueadores Appx e correções DISM/cleanmgr
+
+**Adicionado:**
+
+| Artefato | Descrição |
+|---|---|
+| `Preparar-Imagem-Windows.ps1` `-IgnorarBloqueadoresAppx` | Parâmetro para lista de pacotes Appx permitidos quando remoção falha mas o bloqueio pode ser ignorado em contextos controlados |
+
+**Reescrito:**
+
+| Componente | Descrição |
+|---|---|
+| `Preparar-Imagem-Windows.ps1` — fluxo AppX | Ciclo interativo: detecta bloqueadores Appx → pergunta por pacote (`Deseja remover? S/N`) → reescaneia → loop até limpar tudo ou operador cancelar. `-Confirmar` auto-aprova remoções. `HashSet` rastreia falhas para não repetir tentativa infinita |
+
+**Corrigido:**
+
+| Componente | Correção |
+|---|---|
+| `Preparar-Imagem-Windows.ps1` | AutoLogon e GPO detectados e limpos antes do Sysprep |
+| `Preparar-Imagem-Windows.ps1` | SID da máquina registrado no relatório antes do Sysprep (rastreabilidade de clones) |
+| `Preparar-Imagem-Windows.ps1` | `secedit /configure /cfg secedit.inf` reseta Local Security Policy antes do Sysprep |
+| `Preparar-Imagem-Windows.ps1` | `reg.exe` em PT-BR emite `NativeCommandError` espúrio com `EAP=Stop` — capturado e suprimido |
+| `Preparar-Imagem-Windows.ps1` | `LanguageExperiencePackpt-BR` (`IsResourcePackage=true`) reclassificado como bloqueador real (BCK-022) |
+| `Preparar-Imagem-Windows.ps1` | `${appxCiclo}:` — PS 5.1 interpretava `$appxCiclo:` como referência de drive (`$env:`, `$HKLM:`); `${}` desambigua |
+| `Invoke-ComponentStoreCleanup` | DISM usa `\r` para atualizar barra ASCII in-place; no pipeline cada frame virava nova linha — filtro `^\s*\[=` elimina flooding |
+| `Invoke-ComponentStoreCleanup` | DISM em pipe usa OEM code page do sistema (850 em PT-BR) independentemente de `chcp 65001`; `[Console]::OutputEncoding` temporariamente ajustado para decodificar corretamente |
+| `limpeza-windows.ps1` | `cleanmgr.exe` é GUI: `Start-Process -Wait` travava indefinidamente em SSH/WinRM/Task Scheduler; detectado via `[Environment]::UserInteractive` e pulado com aviso |
+
+**Validado em produção (VM pt-BR, Sysprep completo):**
+
+| Artefato | Resultado |
+|---|---|
+| Ciclo AppX interativo | `LanguageExperiencePackpt-BR` + `BingSearch` removidos; Ciclo 2 retornou limpo; `sysprep /oobe /generalize` concluiu — novo SID + hostname confirmados |
+| Filtro barra DISM | Sem flooding de novas linhas durante `StartComponentCleanup` |
+
+---
 
 ### v1.4.0 — Validação PS 5.1, upgrade completo, Write-Step e correções de robustez
 
