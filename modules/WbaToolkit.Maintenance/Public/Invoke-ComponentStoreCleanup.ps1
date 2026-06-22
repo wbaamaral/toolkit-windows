@@ -87,7 +87,13 @@
     # a captura para RawOutput/log) para que o usuario veja o avanco.
     Write-Host "    DISM em execucao (pode levar varios minutos). Progresso abaixo:" -ForegroundColor DarkGray
 
+    # DISM em pipe escreve na OEM code page do sistema (ex: 850 em PT-BR), ignorando
+    # chcp/OutputEncoding do console. Restaurar temporariamente para decodificar certo.
+    $prevEncoding = [Console]::OutputEncoding
     try {
+        [Console]::OutputEncoding = [System.Text.Encoding]::GetEncoding(
+            [System.Globalization.CultureInfo]::CurrentCulture.TextInfo.OEMCodePage)
+
         $dismCmd = if ($Level -eq 'Aggressive') {
             { & dism.exe /Online /Cleanup-Image /StartComponentCleanup /ResetBase 2>&1 }
         } else {
@@ -115,6 +121,9 @@
             RawOutput    = $_.Exception.Message
             Success      = $false
         }
+    }
+    finally {
+        [Console]::OutputEncoding = $prevEncoding
     }
 
     $diskAfter    = Get-DiskInfo
