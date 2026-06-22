@@ -261,6 +261,7 @@ if ($autoLogonEncontrado) {
 if ($gpoEncontrado) {
     Write-Info '  [GPO] Chaves de diretiva de grupo removidas (HKLM:\SOFTWARE\Policies e CurrentVersion\Policies)'
 }
+Write-Info '  [SECEDIT] Politica de seguranca local resetada para padrao Windows (sem complexidade de senha)'
 if (-not $SemSysprep) {
     Write-Info '  [SYSPREP] sysprep.exe /oobe /generalize /shutdown  (somente apos confirmacao separada)'
 }
@@ -321,6 +322,31 @@ if ($gpoEncontrado) {
             Write-SysprepLog -Message "Chave de diretiva removida: $gpoPath"
         }
     }
+}
+
+# A politica de seguranca local (secedit) persiste apos a limpeza do registry e
+# sobrevive ao Sysprep. Resetar sempre com defltbase.inf garante que restricoes
+# de senha e outras politicas nao bloqueiem o OOBE da imagem generalizada.
+Write-Section 'Resetando politica de seguranca local'
+$defltBase = Join-Path $env:SystemRoot 'inf\defltbase.inf'
+$sdbPath   = Join-Path $env:TEMP "wba_secedit_$([System.Guid]::NewGuid().ToString('N')).sdb"
+try {
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    $saida = & secedit /configure /cfg $defltBase /db $sdbPath /areas SECURITYPOLICY /quiet 2>&1
+    $seceditExit = $LASTEXITCODE
+    $ErrorActionPreference = $prevEAP
+    if ($seceditExit -ne 0) {
+        Write-Warn "secedit falhou ao resetar politica de seguranca (codigo $seceditExit)."
+        Write-SysprepLog -Level 'WARN' -Message "secedit /configure falhou (codigo $seceditExit): $($saida -join ' ')"
+    }
+    else {
+        Write-Ok 'Politica de seguranca local resetada para valores padrao (sem complexidade de senha).'
+        Write-SysprepLog -Message 'Local Security Policy resetada via secedit defltbase.inf.'
+    }
+}
+finally {
+    Remove-Item -LiteralPath $sdbPath -Force -ErrorAction SilentlyContinue
 }
 
 # ─── fase execucao ────────────────────────────────────────────────────────────
