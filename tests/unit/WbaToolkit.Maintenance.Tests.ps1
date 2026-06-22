@@ -791,6 +791,54 @@ Describe 'WbaToolkit.Maintenance' {
         }
     }
 
+    Context 'Test-SysprepEnvironment - AutoLogon e GPO' {
+        It 'AutoLogon configurado: AutoLogonDetectado true e aviso adicionado' {
+            Mock -CommandName 'Get-ItemProperty' -ModuleName 'WbaToolkit.Maintenance' -MockWith {
+                [pscustomobject]@{ AutoAdminLogon = '1' }
+            } -ParameterFilter { $Name -eq 'AutoAdminLogon' }
+            Mock -CommandName 'Test-Path' -ModuleName 'WbaToolkit.Maintenance' -MockWith { $false } `
+                -ParameterFilter { $LiteralPath -like '*Policies*' }
+            $r = Test-SysprepEnvironment
+            $r.AutoLogonDetectado   | Should -BeTrue
+            ($r.Warnings -join ' ') | Should -Match 'AutoLogon'
+        }
+        It 'AutoLogon nao configurado: AutoLogonDetectado false e sem aviso de AutoLogon' {
+            Mock -CommandName 'Get-ItemProperty' -ModuleName 'WbaToolkit.Maintenance' -MockWith {
+                $null
+            } -ParameterFilter { $Name -eq 'AutoAdminLogon' }
+            Mock -CommandName 'Test-Path' -ModuleName 'WbaToolkit.Maintenance' -MockWith { $false } `
+                -ParameterFilter { $LiteralPath -like '*Policies*' }
+            $r = Test-SysprepEnvironment
+            $r.AutoLogonDetectado   | Should -BeFalse
+            ($r.Warnings -join ' ') | Should -Not -Match 'AutoLogon'
+        }
+        It 'GPO encontrado: GpoDetectado true e aviso adicionado' {
+            Mock -CommandName 'Get-ItemProperty' -ModuleName 'WbaToolkit.Maintenance' -MockWith {
+                $null
+            } -ParameterFilter { $Name -eq 'AutoAdminLogon' }
+            Mock -CommandName 'Test-Path' -ModuleName 'WbaToolkit.Maintenance' -MockWith { $true } `
+                -ParameterFilter { $LiteralPath -like '*Policies*' }
+            $r = Test-SysprepEnvironment
+            $r.GpoDetectado         | Should -BeTrue
+            ($r.Warnings -join ' ') | Should -Match 'diretiva'
+        }
+        It 'GPO ausente: GpoDetectado false e sem aviso de diretiva' {
+            Mock -CommandName 'Get-ItemProperty' -ModuleName 'WbaToolkit.Maintenance' -MockWith {
+                $null
+            } -ParameterFilter { $Name -eq 'AutoAdminLogon' }
+            Mock -CommandName 'Test-Path' -ModuleName 'WbaToolkit.Maintenance' -MockWith { $false } `
+                -ParameterFilter { $LiteralPath -like '*Policies*' }
+            $r = Test-SysprepEnvironment
+            $r.GpoDetectado         | Should -BeFalse
+            ($r.Warnings -join ' ') | Should -Not -Match 'diretiva'
+        }
+        It 'Retorno contem propriedades AutoLogonDetectado e GpoDetectado' {
+            $r = Test-SysprepEnvironment
+            $r.PSObject.Properties.Name | Should -Contain 'AutoLogonDetectado'
+            $r.PSObject.Properties.Name | Should -Contain 'GpoDetectado'
+        }
+    }
+
     Context 'Invoke-WithDefaultUserHive - unload com retry e erro elevavel (BCK-009)' {
         It 'Desmonta com sucesso e retorna o valor do ScriptBlock' {
             InModuleScope WbaToolkit.Maintenance {

@@ -165,6 +165,16 @@ foreach ($aviso in $ambiente.Warnings) {
     Write-SysprepLog -Level 'WARN' -Message $aviso
 }
 
+$autoLogonEncontrado = $ambiente.AutoLogonDetectado
+$gpoEncontrado       = $ambiente.GpoDetectado
+
+if ($autoLogonEncontrado) {
+    Write-Warn 'AutoLogon detectado (AutoAdminLogon=1). Sera desativado antes da execucao do Sysprep.'
+}
+if ($gpoEncontrado) {
+    Write-Warn 'Diretivas de grupo encontradas no registro. Serao removidas antes do Sysprep.'
+}
+
 if ($ambiente.SysprepBlockers -and $ambiente.SysprepBlockers.Count -gt 0) {
     Write-Warn 'Foram encontrados pacotes Appx que podem bloquear o sysprep.exe.'
     Write-Warn 'A preparacao do perfil Default pode continuar, mas a generalizacao sera bloqueada ate a correcao.'
@@ -218,6 +228,12 @@ foreach ($s in $simulados) {
     Write-Info "  [TWEAK]  $($s.Tweak)"
 }
 Write-Info '  [BACKUP] Copia de seguranca do NTUSER.DAT criada antes das modificacoes'
+if ($autoLogonEncontrado) {
+    Write-Info '  [AUTOLOGON] AutoAdminLogon=0 e DefaultPassword removido do registro Winlogon'
+}
+if ($gpoEncontrado) {
+    Write-Info '  [GPO] Chaves de diretiva de grupo removidas (HKLM:\SOFTWARE\Policies e CurrentVersion\Policies)'
+}
 if (-not $SemSysprep) {
     Write-Info '  [SYSPREP] sysprep.exe /oobe /generalize /shutdown  (somente apos confirmacao separada)'
 }
@@ -248,6 +264,32 @@ if ($confirmacao -ne 'CONFIRMAR') {
 }
 
 Write-SysprepLog -Message 'Confirmacao recebida. Iniciando aplicacao dos tweaks.'
+
+# ─── limpeza pre-sysprep ──────────────────────────────────────────────────────
+
+if ($autoLogonEncontrado) {
+    Write-Section 'Desativando AutoLogon'
+    $winlogonReg = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
+    Set-ItemProperty -Path $winlogonReg -Name 'AutoAdminLogon' -Value '0' -ErrorAction SilentlyContinue
+    Remove-ItemProperty -Path $winlogonReg -Name 'DefaultPassword' -ErrorAction SilentlyContinue
+    Write-Ok 'AutoLogon desativado (AutoAdminLogon=0). Senha removida do registro.'
+    Write-SysprepLog -Message 'AutoLogon desativado e DefaultPassword removido.'
+}
+
+if ($gpoEncontrado) {
+    Write-Section 'Removendo diretivas de grupo do registro'
+    $gpoCaminhos = @(
+        'HKLM:\SOFTWARE\Policies\Microsoft',
+        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies'
+    )
+    foreach ($gpoPath in $gpoCaminhos) {
+        if (Test-Path -LiteralPath $gpoPath) {
+            Remove-Item -LiteralPath $gpoPath -Recurse -Force -ErrorAction SilentlyContinue
+            Write-Ok "Removido: $gpoPath"
+            Write-SysprepLog -Message "Chave de diretiva removida: $gpoPath"
+        }
+    }
+}
 
 # ─── fase execucao ────────────────────────────────────────────────────────────
 
