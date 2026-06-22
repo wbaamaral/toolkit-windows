@@ -437,11 +437,7 @@ else {
         $appxPreRemocao = Test-SysprepEnvironment -AppxPolicy 'Warn'
         if ($appxPreRemocao.SysprepBlockers -and $appxPreRemocao.SysprepBlockers.Count -gt 0) {
             foreach ($bloqueador in $appxPreRemocao.SysprepBlockers) {
-                if ($IgnorarBloqueadoresAppx -and ($bloqueador.Name -in $IgnorarBloqueadoresAppx)) {
-                    Write-Warn "Appx bloqueador ignorado por -IgnorarBloqueadoresAppx: $($bloqueador.Name)"
-                    Write-SysprepLog -Level 'WARN' -Message "Appx ignorado por parametro (Sysprep liberado): $($bloqueador.PackageFullName)"
-                    continue
-                }
+                $ePermitido = $IgnorarBloqueadoresAppx -and ($bloqueador.Name -in $IgnorarBloqueadoresAppx)
                 Write-SysprepLog -Message "Removendo Appx bloqueador: $($bloqueador.PackageFullName)"
                 try {
                     Remove-AppxPackage -Package $bloqueador.PackageFullName -AllUsers -ErrorAction Stop
@@ -449,8 +445,16 @@ else {
                     Write-SysprepLog -Message "Appx removido: $($bloqueador.PackageFullName)"
                 }
                 catch {
-                    Write-Warn "Nao foi possivel remover $($bloqueador.Name): $($_.Exception.Message)"
-                    Write-SysprepLog -Level 'WARN' -Message "Falha ao remover Appx $($bloqueador.PackageFullName): $($_.Exception.Message)"
+                    if ($ePermitido) {
+                        # Remocao falhou mas o operador autorizou prosseguir;
+                        # o gate final abaixo filtra este pacote do criterio de bloqueio.
+                        Write-Warn "Nao foi possivel remover $($bloqueador.Name) — prosseguindo por -IgnorarBloqueadoresAppx: $($_.Exception.Message)"
+                        Write-SysprepLog -Level 'WARN' -Message "Falha ao remover Appx permitido $($bloqueador.PackageFullName): $($_.Exception.Message)"
+                    }
+                    else {
+                        Write-Warn "Nao foi possivel remover $($bloqueador.Name): $($_.Exception.Message)"
+                        Write-SysprepLog -Level 'WARN' -Message "Falha ao remover Appx $($bloqueador.PackageFullName): $($_.Exception.Message)"
+                    }
                 }
             }
         }
