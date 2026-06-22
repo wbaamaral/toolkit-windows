@@ -265,9 +265,12 @@ if ($gpoEncontrado) {
 }
 Write-Info '  [SECEDIT] Politica de seguranca local resetada para padrao Windows (sem complexidade de senha)'
 if (-not $SemSysprep) {
-    Write-Info '  [APPX] Pacotes Appx bloqueadores (ex: LanguageExperiencePack PT-BR) removidos para todos os usuarios antes do Sysprep'
+    Write-Info '  [APPX] Ciclo interativo: cada bloqueador Appx detectado sera apresentado ao operador para remocao ou cancelamento'
+    if ($Confirmar) {
+        Write-Info '  [APPX] Modo -Confirmar: remocao automatica de todos os bloqueadores sem prompt'
+    }
     if ($IgnorarBloqueadoresAppx -and $IgnorarBloqueadoresAppx.Count -gt 0) {
-        Write-Info "  [APPX] Ignorados (sem remocao, Sysprep liberado): $($IgnorarBloqueadoresAppx -join ', ')"
+        Write-Info "  [APPX] Ignorados (fora do ciclo interativo, Sysprep liberado): $($IgnorarBloqueadoresAppx -join ', ')"
     }
     Write-Info '  [SYSPREP] sysprep.exe /oobe /generalize /shutdown  (somente apos confirmacao separada)'
 }
@@ -433,11 +436,81 @@ else {
             'sysprep.exe'
         )
         Write-Section 'Removendo pacotes Appx bloqueadores'
-        Write-SysprepLog -Message 'Verificando e removendo pacotes Appx bloqueadores antes do Sysprep.'
-        $appxPreRemocao = Test-SysprepEnvironment -AppxPolicy 'Warn'
-        if ($appxPreRemocao.SysprepBlockers -and $appxPreRemocao.SysprepBlockers.Count -gt 0) {
-            foreach ($bloqueador in $appxPreRemocao.SysprepBlockers) {
-                $ePermitido = $IgnorarBloqueadoresAppx -and ($bloqueador.Name -in $IgnorarBloqueadoresAppx)
+        Write-SysprepLog -Message 'Iniciando ciclo de remocao interativa de bloqueadores Appx.'
+
+        $appxRemocaoFalhou = [System.Collections.Generic.HashSet[string]]::new(
+            [System.StringComparer]::OrdinalIgnoreCase)
+        $appxUltimoScan = $null
+        $appxCiclo      = 0
+
+        while ($true) {
+            $appxCiclo++
+            $appxUltimoScan = Test-SysprepEnvironment -AppxPolicy 'Warn'
+
+            # Pacotes em -IgnorarBloqueadoresAppx ficam fora do ciclo interativo;
+            # o gate final abaixo e o sysprep.exe sao os arbitros para eles.
+            $bloqueadoresAtivos = @($appxUltimoScan.SysprepBlockers | Where-Object {
+                -not ($IgnorarBloqueadoresAppx -and $_.Name -in $IgnorarBloqueadoresAppx)
+            })
+
+            if ($bloqueadoresAtivos.Count -eq 0) {
+                $msg = if ($appxCiclo -eq 1) {
+                    'Nenhum pacote Appx bloqueador encontrado.'
+                } else {
+                    'Todos os bloqueadores Appx foram resolvidos.'
+                }
+                Write-Ok $msg
+                Write-SysprepLog -Message "Ciclo $appxCiclo: sem bloqueadores Appx ativos. Prosseguindo."
+                break
+            }
+
+            Write-SysprepLog -Message "Ciclo $appxCiclo: $($bloqueadoresAtivos.Count) bloqueador(es) detectado(s)."
+
+            foreach ($bloqueador in $bloqueadoresAtivos) {
+                if ($appxRemocaoFalhou.Contains($bloqueador.PackageFullName)) {
+                    Write-Fail "Remocao ja tentada e falhou para '$($bloqueador.Name)'. Sysprep nao pode prosseguir."
+                    Write-SysprepLog -Level 'ERROR' -Message "Remocao previa falhou para $($bloqueador.PackageFullName). Sysprep bloqueado."
+                    $jsonSaida = Save-SysprepPreparationReport `
+                        -Session             $script:Session `
+                        -Ambiente            $appxUltimoScan `
+                        -Resultados          $resultados `
+                        -SysprepEstado       'BloqueadoAppx' `
+                        -SysprepBloqueado    $true `
+                        -SysprepBloqueadores @($appxUltimoScan.SysprepBlockers) `
+                        -MachineSid          $machineSid
+                    Write-SysprepLog -Message "Relatorio gravado: $jsonSaida"
+                    Write-Ok "Relatorio JSON: $jsonSaida"
+                    Write-Title "Sessao encerrada com bloqueio: $($script:Session.Path)"
+                    exit 1
+                }
+
+                $removerAppx = if ($Confirmar) {
+                    Write-SysprepLog -Message "Remocao automatica por -Confirmar: $($bloqueador.PackageFullName)"
+                    Write-Warn "Removendo automaticamente (-Confirmar): $($bloqueador.Name)"
+                    $true
+                } else {
+                    Read-YesNo `
+                        -Question "Pacote '$($bloqueador.Name)' e bloqueante para Sysprep. Deseja remover?" `
+                        -DefaultYes:$false
+                }
+
+                if (-not $removerAppx) {
+                    Write-Fail "Operador cancelou a remocao de '$($bloqueador.Name)'. Sysprep nao sera executado."
+                    Write-SysprepLog -Level 'ERROR' -Message "Operador recusou remocao de $($bloqueador.PackageFullName). Sysprep cancelado."
+                    $jsonSaida = Save-SysprepPreparationReport `
+                        -Session             $script:Session `
+                        -Ambiente            $appxUltimoScan `
+                        -Resultados          $resultados `
+                        -SysprepEstado       'CanceladoPeloOperador' `
+                        -SysprepBloqueado    $true `
+                        -SysprepBloqueadores @($appxUltimoScan.SysprepBlockers) `
+                        -MachineSid          $machineSid
+                    Write-SysprepLog -Message "Relatorio gravado: $jsonSaida"
+                    Write-Ok "Relatorio JSON: $jsonSaida"
+                    Write-Title "Sessao encerrada: cancelado pelo operador."
+                    exit 1
+                }
+
                 Write-SysprepLog -Message "Removendo Appx bloqueador: $($bloqueador.PackageFullName)"
                 try {
                     Remove-AppxPackage -Package $bloqueador.PackageFullName -AllUsers -ErrorAction Stop
@@ -445,22 +518,11 @@ else {
                     Write-SysprepLog -Message "Appx removido: $($bloqueador.PackageFullName)"
                 }
                 catch {
-                    if ($ePermitido) {
-                        # Remocao falhou mas o operador autorizou prosseguir;
-                        # o gate final abaixo filtra este pacote do criterio de bloqueio.
-                        Write-Warn "Nao foi possivel remover $($bloqueador.Name) — prosseguindo por -IgnorarBloqueadoresAppx: $($_.Exception.Message)"
-                        Write-SysprepLog -Level 'WARN' -Message "Falha ao remover Appx permitido $($bloqueador.PackageFullName): $($_.Exception.Message)"
-                    }
-                    else {
-                        Write-Warn "Nao foi possivel remover $($bloqueador.Name): $($_.Exception.Message)"
-                        Write-SysprepLog -Level 'WARN' -Message "Falha ao remover Appx $($bloqueador.PackageFullName): $($_.Exception.Message)"
-                    }
+                    [void]$appxRemocaoFalhou.Add($bloqueador.PackageFullName)
+                    Write-Warn "Falha ao remover '$($bloqueador.Name)': $($_.Exception.Message)"
+                    Write-SysprepLog -Level 'WARN' -Message "Falha ao remover $($bloqueador.PackageFullName): $($_.Exception.Message)"
                 }
             }
-        }
-        else {
-            Write-Ok 'Nenhum pacote Appx bloqueador encontrado.'
-            Write-SysprepLog -Message 'Nenhum pacote Appx bloqueador encontrado para remover.'
         }
 
         Write-SysprepLog -Message 'Validando bloqueadores Appx antes de iniciar sysprep.exe.'
