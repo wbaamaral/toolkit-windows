@@ -52,7 +52,8 @@ param(
     [switch]$Confirmar,
     [switch]$ConfirmarSysprep,
     [Alias('DiretorioSaida')]
-    [string]$Path
+    [string]$Path,
+    [string[]]$IgnorarBloqueadoresAppx = @()
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -131,11 +132,12 @@ function Save-SysprepPreparationReport {
         TweaksAplicados        = $aplicados.Count
         TweaksFalhos           = $falhos.Count
         Tweaks                 = @($Resultados)
-        SysprepEstado          = $SysprepEstado
-        SysprepExecutado       = $SysprepExecutado
-        SysprepBloqueado       = $SysprepBloqueado
-        SysprepExitCode        = $SysprepExitCode
-        SysprepBloqueadores    = @($SysprepBloqueadores)
+        SysprepEstado             = $SysprepEstado
+        SysprepExecutado          = $SysprepExecutado
+        SysprepBloqueado          = $SysprepBloqueado
+        SysprepExitCode           = $SysprepExitCode
+        SysprepBloqueadores       = @($SysprepBloqueadores)
+        IgnorarBloqueadoresAppx   = @($IgnorarBloqueadoresAppx)
     }
 
     $jsonPath = Join-Path $Session.Path 'relatorio-preparacao-imagem.json'
@@ -156,7 +158,7 @@ $script:Session = Initialize-ScriptSession `
     -BasePath $Path `
     -ExecutionMode 'Preparacao'
 
-Write-SysprepLog -Message "Sessao iniciada. ApenasDryRun: $ApenasDryRun. SemSysprep: $SemSysprep."
+Write-SysprepLog -Message "Sessao iniciada. ApenasDryRun: $ApenasDryRun. SemSysprep: $SemSysprep. IgnorarBloqueadoresAppx: $($IgnorarBloqueadoresAppx -join ', ')."
 Write-Info "Relatorios em: $($script:Session.Path)"
 
 # ─── sid da maquina ───────────────────────────────────────────────────────────
@@ -264,6 +266,9 @@ if ($gpoEncontrado) {
 Write-Info '  [SECEDIT] Politica de seguranca local resetada para padrao Windows (sem complexidade de senha)'
 if (-not $SemSysprep) {
     Write-Info '  [APPX] Pacotes Appx bloqueadores (ex: LanguageExperiencePack PT-BR) removidos para todos os usuarios antes do Sysprep'
+    if ($IgnorarBloqueadoresAppx -and $IgnorarBloqueadoresAppx.Count -gt 0) {
+        Write-Info "  [APPX] Ignorados (sem remocao, Sysprep liberado): $($IgnorarBloqueadoresAppx -join ', ')"
+    }
     Write-Info '  [SYSPREP] sysprep.exe /oobe /generalize /shutdown  (somente apos confirmacao separada)'
 }
 
@@ -432,6 +437,11 @@ else {
         $appxPreRemocao = Test-SysprepEnvironment -AppxPolicy 'Warn'
         if ($appxPreRemocao.SysprepBlockers -and $appxPreRemocao.SysprepBlockers.Count -gt 0) {
             foreach ($bloqueador in $appxPreRemocao.SysprepBlockers) {
+                if ($IgnorarBloqueadoresAppx -and ($bloqueador.Name -in $IgnorarBloqueadoresAppx)) {
+                    Write-Warn "Appx bloqueador ignorado por -IgnorarBloqueadoresAppx: $($bloqueador.Name)"
+                    Write-SysprepLog -Level 'WARN' -Message "Appx ignorado por parametro (Sysprep liberado): $($bloqueador.PackageFullName)"
+                    continue
+                }
                 Write-SysprepLog -Message "Removendo Appx bloqueador: $($bloqueador.PackageFullName)"
                 try {
                     Remove-AppxPackage -Package $bloqueador.PackageFullName -AllUsers -ErrorAction Stop
@@ -451,7 +461,16 @@ else {
 
         Write-SysprepLog -Message 'Validando bloqueadores Appx antes de iniciar sysprep.exe.'
         $validacaoSysprep = Test-SysprepEnvironment -AppxPolicy 'Block'
-        if (-not $validacaoSysprep.IsValid) {
+
+        # Cada bloqueador Appx adiciona exatamente um erro em Test-SysprepEnvironment.
+        # Subtrair a contagem de ignorados revela se ha erros remanescentes reais.
+        $bloqueadoresIgnoradosCount = if ($IgnorarBloqueadoresAppx -and $validacaoSysprep.SysprepBlockers) {
+            @($validacaoSysprep.SysprepBlockers | Where-Object { $_.Name -in $IgnorarBloqueadoresAppx }).Count
+        } else { 0 }
+        $errosRemanescentes = $validacaoSysprep.Errors.Count - $bloqueadoresIgnoradosCount
+        $validoEfetivo = $validacaoSysprep.IsValid -or ($errosRemanescentes -eq 0)
+
+        if (-not $validoEfetivo) {
             foreach ($erro in $validacaoSysprep.Errors) {
                 Write-SysprepLog -Level 'ERROR' -Message $erro
             }
