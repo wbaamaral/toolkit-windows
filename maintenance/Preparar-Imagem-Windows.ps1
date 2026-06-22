@@ -460,11 +460,11 @@ else {
                     'Todos os bloqueadores Appx foram resolvidos.'
                 }
                 Write-Ok $msg
-                Write-SysprepLog -Message "Ciclo $appxCiclo: sem bloqueadores Appx ativos. Prosseguindo."
+                Write-SysprepLog -Message "Ciclo ${appxCiclo}: sem bloqueadores Appx ativos. Prosseguindo."
                 break
             }
 
-            Write-SysprepLog -Message "Ciclo $appxCiclo: $($bloqueadoresAtivos.Count) bloqueador(es) detectado(s)."
+            Write-SysprepLog -Message "Ciclo ${appxCiclo}: $($bloqueadoresAtivos.Count) bloqueador(es) detectado(s)."
 
             foreach ($bloqueador in $bloqueadoresAtivos) {
                 if ($appxRemocaoFalhou.Contains($bloqueador.PackageFullName)) {
