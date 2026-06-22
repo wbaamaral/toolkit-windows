@@ -422,12 +422,18 @@ if (-not $NoRecycleBin) {
 }
 
 Write-Step "Executando limpeza integrada do Windows" 78
-Invoke-Safe "cleanmgr silencioso (sageset:99 + sagerun:99)" {
-    $cleanKey = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches"
-    Get-ChildItem $cleanKey -ErrorAction SilentlyContinue | ForEach-Object {
-        Set-ItemProperty -Path $_.PSPath -Name StateFlags0099 -Type DWord -Value 2 -ErrorAction SilentlyContinue
+# cleanmgr.exe e uma aplicacao GUI; em sessoes nao interativas (SSH, WinRM, Task Scheduler)
+# Start-Process -Wait bloqueia indefinidamente sem desktop. Detectar e pular neste caso.
+if (-not [Environment]::UserInteractive) {
+    Write-Warn "Sessao nao interativa detectada — cleanmgr ignorado (requer desktop). Execute manualmente em sessao local."
+} else {
+    Invoke-Safe "cleanmgr silencioso (sageset:99 + sagerun:99)" {
+        $cleanKey = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches"
+        Get-ChildItem $cleanKey -ErrorAction SilentlyContinue | ForEach-Object {
+            Set-ItemProperty -Path $_.PSPath -Name StateFlags0099 -Type DWord -Value 2 -ErrorAction SilentlyContinue
+        }
+        Start-Process cleanmgr.exe -ArgumentList "/sagerun:99" -Wait -ErrorAction SilentlyContinue
     }
-    Start-Process cleanmgr.exe -ArgumentList "/sagerun:99" -Wait -ErrorAction SilentlyContinue
 }
 
 if (-not $NoSfc) {
