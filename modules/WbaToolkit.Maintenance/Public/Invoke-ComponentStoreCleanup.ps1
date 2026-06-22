@@ -88,16 +88,22 @@
     Write-Host "    DISM em execucao (pode levar varios minutos). Progresso abaixo:" -ForegroundColor DarkGray
 
     try {
-        if ($Level -eq 'Aggressive') {
-            & dism.exe /Online /Cleanup-Image /StartComponentCleanup /ResetBase 2>&1 |
-                Tee-Object -Variable rawLines |
-                ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
+        $dismCmd = if ($Level -eq 'Aggressive') {
+            { & dism.exe /Online /Cleanup-Image /StartComponentCleanup /ResetBase 2>&1 }
+        } else {
+            { & dism.exe /Online /Cleanup-Image /StartComponentCleanup 2>&1 }
         }
-        else {
-            & dism.exe /Online /Cleanup-Image /StartComponentCleanup 2>&1 |
-                Tee-Object -Variable rawLines |
-                ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
-        }
+
+        & $dismCmd |
+            Tee-Object -Variable rawLines |
+            ForEach-Object {
+                $linha = [string]$_
+                # DISM usa \r para atualizar barra ASCII in-place; cada frame vira
+                # linha separada no pipeline. Filtrar para nao gerar nova linha por frame.
+                if ($linha -notmatch '^\s*\[=') {
+                    Write-Host "    $linha" -ForegroundColor DarkGray
+                }
+            }
         $exitCode = $LASTEXITCODE
     }
     catch {
