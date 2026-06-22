@@ -603,6 +603,9 @@ Describe 'WbaToolkit.Maintenance' {
     Context 'Get-SysprepAppxProvisioningIssue - validacao Appx (BCK-022)' {
         It 'Retorna lista vazia quando todos os pacotes estao provisionados' {
             InModuleScope WbaToolkit.Maintenance {
+                Mock -CommandName 'Get-Service' -MockWith {
+                    [pscustomobject]@{ Status = 'Running'; StartType = 'Automatic' }
+                } -ParameterFilter { $Name -eq 'AppXSvc' }
                 Mock -CommandName 'Get-AppxProvisionedPackage' -MockWith {
                     [pscustomobject]@{ DisplayName = 'Microsoft.Exemplo' }
                 }
@@ -622,6 +625,9 @@ Describe 'WbaToolkit.Maintenance' {
         }
         It 'Detecta pacote instalado para usuario e nao provisionado' {
             InModuleScope WbaToolkit.Maintenance {
+                Mock -CommandName 'Get-Service' -MockWith {
+                    [pscustomobject]@{ Status = 'Running'; StartType = 'Automatic' }
+                } -ParameterFilter { $Name -eq 'AppXSvc' }
                 Mock -CommandName 'Get-AppxProvisionedPackage' -MockWith { @() }
                 Mock -CommandName 'Get-AppxPackage' -MockWith {
                     [pscustomobject]@{
@@ -644,6 +650,9 @@ Describe 'WbaToolkit.Maintenance' {
         }
         It 'Classifica framework ou pacote nao removivel como aviso quando solicitado' {
             InModuleScope WbaToolkit.Maintenance {
+                Mock -CommandName 'Get-Service' -MockWith {
+                    [pscustomobject]@{ Status = 'Running'; StartType = 'Automatic' }
+                } -ParameterFilter { $Name -eq 'AppXSvc' }
                 Mock -CommandName 'Get-AppxProvisionedPackage' -MockWith { @() }
                 Mock -CommandName 'Get-AppxPackage' -MockWith {
                     [pscustomobject]@{
@@ -672,6 +681,9 @@ Describe 'WbaToolkit.Maintenance' {
         }
         It 'Lanca erro bloqueante quando Get-AppxPackage falha' {
             InModuleScope WbaToolkit.Maintenance {
+                Mock -CommandName 'Get-Service' -MockWith {
+                    [pscustomobject]@{ Status = 'Running'; StartType = 'Automatic' }
+                } -ParameterFilter { $Name -eq 'AppXSvc' }
                 Mock -CommandName 'Get-AppxProvisionedPackage' -MockWith { @() }
                 Mock -CommandName 'Get-AppxPackage' -MockWith { throw 'Falha simulada' }
                 { Get-SysprepAppxProvisioningIssue } | Should -Throw '*Sysprep bloqueada por seguranca*'
@@ -679,8 +691,50 @@ Describe 'WbaToolkit.Maintenance' {
         }
         It 'Lanca erro bloqueante quando Get-AppxProvisionedPackage falha' {
             InModuleScope WbaToolkit.Maintenance {
+                Mock -CommandName 'Get-Service' -MockWith {
+                    [pscustomobject]@{ Status = 'Running'; StartType = 'Automatic' }
+                } -ParameterFilter { $Name -eq 'AppXSvc' }
                 Mock -CommandName 'Get-AppxProvisionedPackage' -MockWith { throw 'Falha simulada' }
                 { Get-SysprepAppxProvisioningIssue } | Should -Throw '*Sysprep bloqueada por seguranca*'
+            }
+        }
+        It 'Lanca erro bloqueante quando AppXSvc nao esta em execucao' {
+            InModuleScope WbaToolkit.Maintenance {
+                Mock -CommandName 'Get-Service' -MockWith {
+                    [pscustomobject]@{ Status = 'Stopped'; StartType = 'Manual' }
+                } -ParameterFilter { $Name -eq 'AppXSvc' }
+                { Get-SysprepAppxProvisioningIssue } | Should -Throw '*Sysprep bloqueada por seguranca*'
+            }
+        }
+        It 'Lanca erro bloqueante quando AppXSvc nao existe' {
+            InModuleScope WbaToolkit.Maintenance {
+                Mock -CommandName 'Get-Service' -MockWith { $null } -ParameterFilter { $Name -eq 'AppXSvc' }
+                { Get-SysprepAppxProvisioningIssue } | Should -Throw '*Sysprep bloqueada por seguranca*'
+            }
+        }
+        It 'Classifica LanguageExperiencePack como bloqueador mesmo sendo IsResourcePackage' {
+            InModuleScope WbaToolkit.Maintenance {
+                Mock -CommandName 'Get-Service' -MockWith {
+                    [pscustomobject]@{ Status = 'Running'; StartType = 'Automatic' }
+                } -ParameterFilter { $Name -eq 'AppXSvc' }
+                Mock -CommandName 'Get-AppxProvisionedPackage' -MockWith { @() }
+                Mock -CommandName 'Get-AppxPackage' -MockWith {
+                    [pscustomobject]@{
+                        Name              = 'Microsoft.LanguageExperiencePackpt-BR'
+                        PackageFullName   = 'Microsoft.LanguageExperiencePackpt-BR_19041.80.279.0_neutral__8wekyb3d8bbwe'
+                        Version           = '19041.80.279.0'
+                        Architecture      = 'Neutral'
+                        Publisher         = 'CN=Microsoft'
+                        IsResourcePackage = $true
+                        PackageUserInformation = @(
+                            [pscustomobject]@{ UserSecurityId = 'S-1-5-21-1234567890-1234567890-1234567890-1001'; PackageUserInstallState = 'Installed' }
+                        )
+                    }
+                }
+                $resultado = @(Get-SysprepAppxProvisioningIssue)
+                $resultado.Count       | Should -Be 1
+                $resultado[0].Severity | Should -Be 'Blocker'
+                $resultado[0].Reason   | Should -Be 'LanguagePackInstalledForUserButNotProvisioned'
             }
         }
     }

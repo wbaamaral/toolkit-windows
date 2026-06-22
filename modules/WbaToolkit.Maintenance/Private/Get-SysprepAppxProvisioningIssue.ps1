@@ -32,6 +32,14 @@
         return [bool]$prop.Value
     }
 
+    $appxSvc = Get-Service -Name 'AppXSvc' -ErrorAction SilentlyContinue
+    if (-not $appxSvc) {
+        throw 'Servico AppXSvc nao encontrado. Nao e possivel validar pacotes Appx. Execucao do Sysprep bloqueada por seguranca.'
+    }
+    if ($appxSvc.Status -ne 'Running') {
+        throw "Servico AppXSvc nao esta em execucao (Status: $($appxSvc.Status)). Inicie o servico e tente novamente. Execucao do Sysprep bloqueada por seguranca."
+    }
+
     try {
         $provisionados = @{}
         Get-AppxProvisionedPackage -Online -ErrorAction Stop | ForEach-Object {
@@ -104,12 +112,19 @@
             $isSystemApp = $pkg.InstallLocation.StartsWith($systemAppsRoot, [System.StringComparison]::OrdinalIgnoreCase)
         }
 
+        $isLanguagePack = $pkg.Name -like 'Microsoft.LanguageExperiencePack*'
+
         $severity = 'Blocker'
         $reason   = 'InstalledForUserButNotProvisioned'
 
         if ($isFramework -or $isResourcePackage -or $isNonRemovable -or $isSystemApp) {
-            $severity = 'Warning'
-            $reason   = 'SystemFrameworkResourceOrNonRemovableNotProvisioned'
+            if ($isLanguagePack) {
+                # Language packs sao resource packages mas bloqueiam o Sysprep mesmo assim.
+                $reason = 'LanguagePackInstalledForUserButNotProvisioned'
+            } else {
+                $severity = 'Warning'
+                $reason   = 'SystemFrameworkResourceOrNonRemovableNotProvisioned'
+            }
         }
 
         if ($severity -eq 'Warning' -and -not $IncludeWarnings) {
