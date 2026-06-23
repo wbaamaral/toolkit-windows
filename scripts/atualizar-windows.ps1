@@ -396,6 +396,25 @@ function Get-UpgradeExitCode {
     return 0
 }
 
+function Get-ResultPropertyValue {
+    [CmdletBinding()]
+    param(
+        [AllowNull()]$Object,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    if ($null -eq $Object) {
+        return $null
+    }
+
+    $property = $Object.PSObject.Properties[$Name]
+    if ($null -eq $property) {
+        return $null
+    }
+
+    return $property.Value
+}
+
 # ---------------------------------------------------------------------------
 # Selecao de pacotes (interativo)
 # ---------------------------------------------------------------------------
@@ -468,23 +487,29 @@ function Show-UpgradeSummary {
         $backendLabel = if ($Summary.PSObject.Properties['Resolution'] -and $Summary.Resolution) { $Summary.Resolution.Backend } else { 'Backend' }
         Write-Host "${backendLabel}:" -ForegroundColor Yellow
         $br = $Summary.BackendResult
-        $status = if ($br.Success) { 'Concluido' } elseif ($br.Partial) { 'Falha parcial' } else { 'Falha total' }
+        $brSuccess = [bool](Get-ResultPropertyValue -Object $br -Name 'Success')
+        $brPartial = [bool](Get-ResultPropertyValue -Object $br -Name 'Partial')
+        $status = if ($brSuccess) { 'Concluido' } elseif ($brPartial) { 'Falha parcial' } else { 'Falha total' }
         Write-Host "    Status             : $status"
-        Write-Host "    ExitCode           : $($br.ExitCode)"
-        if ($br.PSObject.Properties['Message'] -and $br.Message) { Write-Host "    Mensagem           : $($br.Message)" }
+        Write-Host "    ExitCode           : $([string](Get-ResultPropertyValue -Object $br -Name 'ExitCode'))"
+        $brMessage = Get-ResultPropertyValue -Object $br -Name 'Message'
+        if ($null -ne $brMessage -and $brMessage -ne '') { Write-Host "    Mensagem           : $brMessage" }
     }
 
     if ($Summary.PSObject.Properties['WUResult'] -and $Summary.WUResult) {
         Write-Host ''
         Write-Host 'Windows Update:' -ForegroundColor Yellow
         $wr = $Summary.WUResult
-        if ($wr.Skipped) {
+        $wrSkipped = [bool](Get-ResultPropertyValue -Object $wr -Name 'Skipped')
+        $wrSuccess = [bool](Get-ResultPropertyValue -Object $wr -Name 'Success')
+        if ($wrSkipped) {
             Write-Host '    Status             : Ignorado via -NoWindowsUpdate'
         }
         else {
-            $wuStatus = if ($wr.Success) { 'Acionado' } else { 'Falha' }
+            $wuStatus = if ($wrSuccess) { 'Acionado' } else { 'Falha' }
             Write-Host "    Status             : $wuStatus"
-            if ($wr.PSObject.Properties['Message'] -and $wr.Message) { Write-Host "    Mensagem           : $($wr.Message)" }
+            $wrMessage = Get-ResultPropertyValue -Object $wr -Name 'Message'
+            if ($null -ne $wrMessage -and $wrMessage -ne '') { Write-Host "    Mensagem           : $wrMessage" }
         }
     }
 
@@ -633,13 +658,19 @@ function Invoke-UpgradeAll {
             $wgResult = Invoke-WinGetUpgrade
             Write-Section 'Chocolatey — upgrade geral'
             $chResult = Invoke-ChocolateyUpgrade
-            $wgMsg = if ($null -ne $wgResult -and $wgResult.PSObject.Properties['Message']) { $wgResult.Message } else { '' }
-            $chMsg = if ($null -ne $chResult -and $chResult.PSObject.Properties['Message']) { $chResult.Message } else { '' }
+            $wgSuccess = [bool](Get-ResultPropertyValue -Object $wgResult -Name 'Success')
+            $wgPartial = [bool](Get-ResultPropertyValue -Object $wgResult -Name 'Partial')
+            $wgExitCode = [int](Get-ResultPropertyValue -Object $wgResult -Name 'ExitCode')
+            $wgMessage = [string](Get-ResultPropertyValue -Object $wgResult -Name 'Message')
+            $chSuccess = [bool](Get-ResultPropertyValue -Object $chResult -Name 'Success')
+            $chPartial = [bool](Get-ResultPropertyValue -Object $chResult -Name 'Partial')
+            $chExitCode = [int](Get-ResultPropertyValue -Object $chResult -Name 'ExitCode')
+            $chMessage = [string](Get-ResultPropertyValue -Object $chResult -Name 'Message')
             $backendResult = [PSCustomObject]@{
-                Success  = $wgResult.Success -and $chResult.Success
-                Partial  = $wgResult.Partial -or $chResult.Partial
-                ExitCode = [Math]::Max($wgResult.ExitCode, $chResult.ExitCode)
-                Message  = "WinGet: $wgMsg | Chocolatey: $chMsg"
+                Success     = $wgSuccess -and $chSuccess
+                Partial     = $wgPartial -or $chPartial
+                ExitCode    = [Math]::Max($wgExitCode, $chExitCode)
+                Message     = "WinGet: $wgMessage | Chocolatey: $chMessage"
                 WinGet      = $wgResult
                 Chocolatey  = $chResult
             }

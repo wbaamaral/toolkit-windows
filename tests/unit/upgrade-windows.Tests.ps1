@@ -24,4 +24,10 @@ Describe 'Xtudo rotas de update' {
         $script:launcherContent | Should -Match "Label\s+=\s+'Atualizar Windows'"
         $script:launcherContent | Should -Match "Keywords\s+=\s+@\('atualizar', 'update', 'windows update', 'winget', 'chocolatey'\)"
     }
+
+    It 'Protege o resumo contra objetos sem propriedades esperadas' {
+        $script:updateContent | Should -Match 'function\s+Get-ResultPropertyValue'
+        $script:updateContent | Should -Match 'Get-ResultPropertyValue -Object \$br -Name ''Success'''
+        $script:updateContent | Should -Match 'Get-ResultPropertyValue -Object \$wr -Name ''Success'''
+    }
 }
