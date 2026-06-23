@@ -1,10 +1,5 @@
 ﻿#!/usr/bin/env pwsh
 #requires -version 5.1
-[CmdletBinding()]
-param(
-    [Parameter(ValueFromRemainingArguments = $true)]
-    [string[]]$RemainingArgs
-)
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::InputEncoding  = [System.Text.Encoding]::UTF8
@@ -19,8 +14,8 @@ $target = Join-Path $PSScriptRoot '../maintenance/limpeza-windows.ps1'
 # O atalho do Xtudo precisa ser seguro e previsivel no modo MVP.
 # Quando nao ha argumentos explicitos, usamos a trilha nao interativa
 # recomendada para automacao.
-$invokeArgs = if ($RemainingArgs -and $RemainingArgs.Count -gt 0) {
-    @($RemainingArgs)
+$invokeArgs = if ($args.Count -gt 0) {
+    $args
 }
 else {
     @('-ChkdskAction', 'Skip', '-EventLogCleanup', 'None', '-NoReboot')
