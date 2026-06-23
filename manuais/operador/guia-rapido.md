@@ -4,6 +4,20 @@ Autor: **wbaamaral** — v1.2.0
 
 Manual completo: [`manual-operador-wba-windows-toolkit.md`](../manual-operador-wba-windows-toolkit.md)
 
+Entrada recomendada do MVP:
+
+```powershell
+.\xtudo.ps1
+```
+
+Atalhos principais:
+
+1. Limpar Windows
+2. Diagnosticar disco 100%
+3. Diagnosticar memória
+4. Diagnosticar gráfico
+5. Preparar imagem
+
 ---
 
 ## Pré-requisitos

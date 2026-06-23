@@ -223,7 +223,10 @@ function Select-XtudoEntry {
                 Write-Host ("  {0}. {1} [{2}] -> {3}" -f ($i + 1), $matches[$i].Label, $matches[$i].Category, $matches[$i].Path)
             }
             Write-Host ''
-            $choice = Read-Host 'Escolha um numero'
+            $choice = Read-Host 'Escolha um numero ou 0 para cancelar'
+            if ($choice -match '^(0|q|quit|sair)$') {
+                return $null
+            }
             if ($choice -match '^[1-9][0-9]*$') {
                 $picked = [int]$choice - 1
                 if ($picked -ge 0 -and $picked -lt $matches.Count) {

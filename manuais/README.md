@@ -17,6 +17,8 @@ manuais/
 
 Destinado a técnicos e suporte que executam scripts operacionais no campo.
 
+Entrada recomendada do MVP: [`../xtudo.ps1`](../xtudo.ps1)
+
 | Documento | Finalidade |
 |---|---|
 | [`manual-operador-wba-windows-toolkit.md`](manual-operador-wba-windows-toolkit.md) | Manual completo do operador |
