@@ -144,10 +144,8 @@ function Get-XtudoEntry {
 
 function Show-XtudoBanner {
     Write-Host ''
-    Write-Host '============================================================' -ForegroundColor Cyan
-    Write-Host ' Xtudo - WBA Windows Toolkit' -ForegroundColor Cyan
-    Write-Host '============================================================' -ForegroundColor Cyan
-    Write-Host 'Digite 1-5, uma palavra-chave ou pressione Enter para listar tudo.' -ForegroundColor DarkGray
+    Write-Host 'Xtudo - WBA Windows Toolkit' -ForegroundColor Cyan
+    Write-Host '1-5 executa, 0 sai, Enter lista.' -ForegroundColor DarkGray
     Write-Host ''
 }
 
@@ -156,13 +154,11 @@ function Show-XtudoQuickActions {
 
     $quick = @($Entries | Where-Object { $_.Quick })
 
-    Write-Host 'Atalhos rapidos:' -ForegroundColor Cyan
+    Write-Host 'Atalhos:' -ForegroundColor Cyan
     for ($i = 0; $i -lt $quick.Count; $i++) {
         $n = $i + 1
         Write-Host ("  {0}. {1}" -f $n, $quick[$i].Label)
     }
-    Write-Host ''
-    Write-Host 'Busca sugerida: limpeza, disco, memoria, grafico, imagem' -ForegroundColor DarkGray
     Write-Host ''
 
     return $quick
@@ -175,7 +171,6 @@ function Show-XtudoCatalog {
     $groups = $Entries | Group-Object Category | Sort-Object Name
 
     foreach ($group in $groups) {
-        Write-Host ''
         Write-Host ("[{0}]" -f $group.Name) -ForegroundColor Yellow
         foreach ($item in $group.Group) {
             Write-Host ("  - {0} ({1})" -f $item.Label, $item.Id)
@@ -247,9 +242,7 @@ $catalog = New-XtudoCatalog
 if ($Query.Count -gt 0) {
     $entry = Select-XtudoEntry -Entries $catalog -Tokens $Query
     if ($null -eq $entry) {
-        Write-Host ''
-        Write-Host 'Nenhum resultado exato. Use uma palavra-chave como limpeza, disco, memoria, grafico, imagem ou rede.' -ForegroundColor Yellow
-        Write-Host ''
+        Write-Host 'Nenhum resultado exato.' -ForegroundColor Yellow
         Show-XtudoCatalog -Entries $catalog
         exit 1
     }
@@ -262,14 +255,14 @@ while ($true) {
     Show-XtudoBanner
     $quick = Show-XtudoQuickActions -Entries $catalog
 
-    $input = Read-Host 'Opcao, palavra-chave ou Enter para listar tudo'
+    $input = Read-Host 'Opcao, palavra-chave ou Enter'
 
     if ([string]::IsNullOrWhiteSpace($input)) {
         Show-XtudoCatalog -Entries $catalog
         continue
     }
 
-    if ($input -match '^(q|quit|sair)$') {
+    if ($input -match '^(0|q|quit|sair)$') {
         break
     }
 
@@ -287,7 +280,5 @@ while ($true) {
         break
     }
 
-    Write-Host ''
-    Write-Host 'Nao encontrei correspondencia. Tente: limpeza, disco, memoria, grafico, imagem ou rede.' -ForegroundColor Yellow
-    Write-Host ''
+    Write-Host 'Nao encontrei correspondencia.' -ForegroundColor Yellow
 }
