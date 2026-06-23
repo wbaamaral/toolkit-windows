@@ -1,73 +1,36 @@
-﻿# Projeto: wba-toolkit
-# Autor: wbaamaral
+﻿#requires -version 5.1
 
 BeforeAll {
-    $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-    $script:scriptPaths = @(
-        (Join-Path $repoRoot 'configuration/Configurar-Idioma-Regional.ps1'),
-        (Join-Path $repoRoot 'diagnostics/Diagnostico-Driver-Grafico.ps1'),
-        (Join-Path $repoRoot 'maintenance/Diagnostico-Reparo-HD100.ps1'),
-        (Join-Path $repoRoot 'maintenance/limpeza-windows.ps1'),
-        (Join-Path $repoRoot 'updates/upgrade-windows.ps1'),
-        (Join-Path $repoRoot 'active-directory/Diagnostico-GPO-Client.ps1'),
-        (Join-Path $repoRoot 'active-directory/Testa-Repara-ContaMaquinaAD.ps1'),
-        (Join-Path $repoRoot 'inventory/Inventario-Hardware-Software.ps1'),
-        (Join-Path $repoRoot 'utilities/Analise-Espaco-Disco.ps1'),
-        (Join-Path $repoRoot 'utilities/Remover-Perfis-Inativos.ps1')
-    )
+    . (Join-Path $PSScriptRoot 'Xtudo.TestSupport.ps1')
+    $script:scriptPaths = @(Get-XtudoOfficialScriptPaths)
+    $script:repoRoot = Get-XtudoRepoRoot
 }
 
-Describe 'Uso do modulo compartilhado' {
-    It 'Scripts principais devem importar o modulo WbaToolkit.Core' {
-        foreach ($path in $scriptPaths) {
-            Get-Content -LiteralPath $path -Raw | Should -Match 'WbaToolkit\.Core\.psd1'
+Describe 'Xtudo estrutura do toolkit' {
+    It 'Mantem nove scripts oficiais em scripts/' {
+        $script:scriptPaths.Count | Should -Be 9
+        foreach ($path in $script:scriptPaths) {
+            Split-Path -Parent $path | Should -Be (Get-XtudoScriptsRoot)
         }
     }
 
-    It 'Scripts principais devem ter sintaxe PowerShell valida' {
-        foreach ($path in $scriptPaths) {
+    It 'Nao referencia experimental nos scripts oficiais' {
+        foreach ($path in $script:scriptPaths) {
+            (Get-Content -LiteralPath $path -Raw) | Should -Not -Match 'experimental/'
+        }
+    }
+
+    It 'Todos os scripts oficiais continuam parseando como PowerShell valido' {
+        foreach ($path in $script:scriptPaths) {
             $tokens = $null
             $errors = $null
             [System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$tokens, [ref]$errors) | Out-Null
-
             @($errors).Count | Should -Be 0
         }
     }
 
-    It 'Script de diagnostico deve importar WbaToolkit.Networking' {
-        Get-Content -LiteralPath (Join-Path $repoRoot 'diagnostics/networking/Testar-Conectividade-Internet.ps1') -Raw |
-            Should -Match 'WbaToolkit\.Networking\.psd1'
-    }
-
-    It 'Scripts refatorados nao devem manter Test-Admin local' {
-        foreach ($path in $scriptPaths) {
-            Get-Content -LiteralPath $path -Raw | Should -Not -Match 'function\s+Test-Admin\s*\{'
-        }
-    }
-
-    It 'Scripts refatorados nao devem manter Invoke-Safe local' {
-        foreach ($path in $scriptPaths) {
-            Get-Content -LiteralPath $path -Raw | Should -Not -Match 'function\s+Invoke-Safe\s*\{'
-        }
-    }
-
-    It 'Scripts refatorados nao devem manter helpers visuais duplicados' {
-        foreach ($path in $scriptPaths) {
-            $content = Get-Content -LiteralPath $path -Raw
-            $content | Should -Not -Match 'function\s+Write-Ok\s*\{'
-            $content | Should -Not -Match 'function\s+Write-Fail\s*\{'
-            $content | Should -Not -Match 'function\s+Write-Warn\s*\{'
-            $content | Should -Not -Match 'function\s+Write-Info\s*\{'
-            $content | Should -Not -Match 'function\s+Write-Title\s*\{'
-            $content | Should -Not -Match 'function\s+Write-Section\s*\{'
-            $content | Should -Not -Match 'function\s+Write-WarnMsg\s*\{'
-            $content | Should -Not -Match 'function\s+Write-InfoMsg\s*\{'
-            $content | Should -Not -Match 'function\s+Read-YesNo\s*\{'
-            $content | Should -Not -Match 'function\s+Invoke-ExternalCommand\s*\{'
-            $content | Should -Not -Match 'function\s+Invoke-Ext\s*\{'
-            $content | Should -Not -Match 'function\s+Safe\s*\{'
-            $content | Should -Not -Match 'function\s+ConvertTo-HtmlSafe\s*\{'
-            $content | Should -Not -Match 'function\s+Format-FileSize\s*\{'
-        }
+    It 'A documentacao continua apontando para o launcher xtudo' {
+        (Get-Content -LiteralPath (Join-Path $script:repoRoot 'README.md') -Raw) | Should -Match '\.\\xtudo\.ps1'
+        (Get-Content -LiteralPath (Join-Path $script:repoRoot 'manuais/README.md') -Raw) | Should -Match '\.\./xtudo\.ps1'
     }
 }

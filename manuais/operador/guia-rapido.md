@@ -43,71 +43,71 @@ Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1 -Force
 
 ```powershell
 # Diagnóstico padrão:
-.\experimental\diagnostics\networking\Testar-Conectividade-Internet.ps1
+.\scripts\testar-conectividade-internet.ps1
 
 # Com detalhes adicionais no console:
-.\experimental\diagnostics\networking\Testar-Conectividade-Internet.ps1 -Detalhado
+.\scripts\testar-conectividade-internet.ps1 -Detalhado
 ```
 
 ### Diagnóstico de disco (HD100)
 
 ```powershell
 # Diagnóstico padrão:
-.\experimental\maintenance\Diagnostico-Reparo-HD100.ps1
+.\scripts\diagnosticar-disco-100.ps1
 
 # Com relatório HTML:
-.\experimental\maintenance\Diagnostico-Reparo-HD100.ps1 -GerarHtml
+.\scripts\diagnosticar-disco-100.ps1 -GerarHtml
 
 # Modo assistido (oferece ações de reparo):
-.\experimental\maintenance\Diagnostico-Reparo-HD100.ps1 -Modo Assistido -GerarHtml
+.\scripts\diagnosticar-disco-100.ps1 -Modo Assistido -GerarHtml
 
 # Simulação sem executar comandos externos:
-.\experimental\maintenance\Diagnostico-Reparo-HD100.ps1 -DryRun
+.\scripts\diagnosticar-disco-100.ps1 -DryRun
 ```
 
 ### Diagnóstico de driver gráfico
 
 ```powershell
 # Diagnóstico padrão:
-.\experimental\diagnostics\Diagnostico-Driver-Grafico.ps1
+.\scripts\diagnosticar-grafico.ps1
 
 # Com relatório HTML:
-.\experimental\diagnostics\Diagnostico-Driver-Grafico.ps1 -GerarHtml
+.\scripts\diagnosticar-grafico.ps1 -GerarHtml
 
 # Coleta completa (HTML + DXDiag + exportação de log de eventos):
-.\experimental\diagnostics\Diagnostico-Driver-Grafico.ps1 -GerarHtml -ColetarDxDiag -ExportarEvtx
+.\scripts\diagnosticar-grafico.ps1 -GerarHtml -ColetarDxDiag -ExportarEvtx
 ```
 
 ### Diagnóstico de memória
 
 ```powershell
 # Top 10 consumidores de RAM (padrão):
-.\experimental\diagnostics\Diagnostico-Memoria.ps1
+.\scripts\diagnosticar-memoria.ps1
 
 # Top 20 processos:
-.\experimental\diagnostics\Diagnostico-Memoria.ps1 -Top 20
+.\scripts\diagnosticar-memoria.ps1 -Top 20
 
 # Listar todos os processos:
-.\experimental\diagnostics\Diagnostico-Memoria.ps1 -Todos
+.\scripts\diagnosticar-memoria.ps1 -Todos
 
 # Com relatório HTML:
-.\experimental\diagnostics\Diagnostico-Memoria.ps1 -GerarHtml
+.\scripts\diagnosticar-memoria.ps1 -GerarHtml
 ```
 
 ### Verificar atualizações de hardware
 
 ```powershell
 # Diagnóstico completo (BIOS + drivers + Windows Update):
-.\experimental\diagnostics\Verificar-Atualizacoes-Hardware.ps1
+.\scripts\verificar-atualizacoes-hardware.ps1
 
 # Com relatório HTML:
-.\experimental\diagnostics\Verificar-Atualizacoes-Hardware.ps1 -GerarHtml
+.\scripts\verificar-atualizacoes-hardware.ps1 -GerarHtml
 
 # Somente BIOS:
-.\experimental\diagnostics\Verificar-Atualizacoes-Hardware.ps1 -SkipDrivers
+.\scripts\verificar-atualizacoes-hardware.ps1 -SkipDrivers
 
 # Somente drivers:
-.\experimental\diagnostics\Verificar-Atualizacoes-Hardware.ps1 -SkipBios
+.\scripts\verificar-atualizacoes-hardware.ps1 -SkipBios
 ```
 
 ### Inventário de hardware/software
@@ -146,35 +146,35 @@ Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1 -Force
 
 ```powershell
 # Limpeza conservadora sem reiniciar (recomendado):
-.\experimental\maintenance\limpeza-windows.ps1 -NoReboot
+.\scripts\limpar-windows.ps1 -NoReboot
 
 # Somente reparar sistema (SFC + DISM):
-.\experimental\maintenance\limpeza-windows.ps1 -RepararSistema -NoReboot
+.\scripts\limpar-windows.ps1 -RepararSistema -NoReboot
 
 # Limpeza sem SFC/DISM:
-.\experimental\maintenance\limpeza-windows.ps1 -NoSfc -NoReboot
+.\scripts\limpar-windows.ps1 -NoSfc -NoReboot
 
 # Liberar espaço do hiberfil.sys (desativa hibernação):
-.\experimental\maintenance\limpeza-windows.ps1 -DisableHibernation -NoReboot
+.\scripts\limpar-windows.ps1 -DisableHibernation -NoReboot
 ```
 
 ### Limpeza do WinSxS (Component Store)
 
 ```powershell
 # Diagnóstico somente leitura (padrão):
-.\experimental\maintenance\Limpeza-WinSxS.ps1
+.\scripts\limpar-winsxs.ps1
 
 # Relatório em JSON:
-.\experimental\maintenance\Limpeza-WinSxS.ps1 -Modo Relatorio
+.\scripts\limpar-winsxs.ps1 -Modo Relatorio
 
 # Relatório em JSON e HTML:
-.\experimental\maintenance\Limpeza-WinSxS.ps1 -Modo Relatorio -GerarHtml
+.\scripts\limpar-winsxs.ps1 -Modo Relatorio -GerarHtml
 
 # Limpeza assistida (solicita confirmação):
-.\experimental\maintenance\Limpeza-WinSxS.ps1 -Modo Limpeza
+.\scripts\limpar-winsxs.ps1 -Modo Limpeza
 
 # Simulação da limpeza sem alterar nada:
-.\experimental\maintenance\Limpeza-WinSxS.ps1 -Modo Limpeza -DryRun
+.\scripts\limpar-winsxs.ps1 -Modo Limpeza -DryRun
 ```
 
 ### Backup e restauração de drivers
@@ -197,13 +197,13 @@ Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1 -Force
 
 ```powershell
 # Simulação obrigatória antes de qualquer execução:
-.\experimental\maintenance\Preparar-Imagem-Windows.ps1 -ApenasDryRun
+.\scripts\preparar-imagem-windows.ps1 -ApenasDryRun
 
 # Aplicar tweaks sem iniciar sysprep:
-.\experimental\maintenance\Preparar-Imagem-Windows.ps1 -SemSysprep
+.\scripts\preparar-imagem-windows.ps1 -SemSysprep
 
 # Execução completa (tweaks de perfil Default + sysprep):
-.\experimental\maintenance\Preparar-Imagem-Windows.ps1
+.\scripts\preparar-imagem-windows.ps1
 ```
 
 ### Configurar idioma e região
@@ -252,13 +252,13 @@ Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1 -Force
 
 ```powershell
 # Atualização completa (Windows Update + Chocolatey):
-.\experimental\updates\upgrade-windows.ps1 -PauseAtEnd
+.\scripts\atualizar-windows.ps1 -PauseAtEnd
 
 # Somente Windows Update:
-.\experimental\updates\upgrade-windows.ps1 -NoChocolatey -PauseAtEnd
+.\scripts\atualizar-windows.ps1 -NoChocolatey -PauseAtEnd
 
 # Somente Chocolatey:
-.\experimental\updates\upgrade-windows.ps1 -NoWindowsUpdate -PauseAtEnd
+.\scripts\atualizar-windows.ps1 -NoWindowsUpdate -PauseAtEnd
 ```
 
 ### Diagnóstico de GPO

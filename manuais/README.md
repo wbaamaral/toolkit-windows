@@ -42,21 +42,21 @@ Destinada a desenvolvedores que estendem ou mantêm os módulos.
 
 | Script | Caminho | Descrição |
 |---|---|---|
-| Diagnóstico de conectividade | `experimental/diagnostics/networking/Testar-Conectividade-Internet.ps1` | Testa gateway, DNS, ICMP, TCP; relatório HTML |
-| Diagnóstico de driver gráfico | `experimental/diagnostics/Diagnostico-Driver-Grafico.ps1` | GPU, DWM, TDR, WHEA, eventos gráficos, DXDiag |
-| Diagnóstico de memória | `experimental/diagnostics/Diagnostico-Memoria.ps1` | Top-N consumidores de RAM; métricas de memória paginada e física |
-| Verificar atualizações de hardware | `experimental/diagnostics/Verificar-Atualizacoes-Hardware.ps1` | BIOS, drivers e atualizações de hardware pendentes via Windows Update |
+| Diagnóstico de conectividade | `scripts/testar-conectividade-internet.ps1` | Testa gateway, DNS, ICMP, TCP; relatório HTML |
+| Diagnóstico de driver gráfico | `scripts/diagnosticar-grafico.ps1` | GPU, DWM, TDR, WHEA, eventos gráficos, DXDiag |
+| Diagnóstico de memória | `scripts/diagnosticar-memoria.ps1` | Top-N consumidores de RAM; métricas de memória paginada e física |
+| Verificar atualizações de hardware | `scripts/verificar-atualizacoes-hardware.ps1` | BIOS, drivers e atualizações de hardware pendentes via Windows Update |
 
 ### Manutenção
 
 | Script | Caminho | Descrição |
 |---|---|---|
-| Limpeza do Windows | `experimental/maintenance/limpeza-windows.ps1` | Limpeza conservadora e manutenção |
-| Limpeza WinSxS | `experimental/maintenance/Limpeza-WinSxS.ps1` | Component Store: diagnóstico, limpeza assistida e relatório |
+| Limpeza do Windows | `scripts/limpar-windows.ps1` | Limpeza conservadora e manutenção |
+| Limpeza WinSxS | `scripts/limpar-winsxs.ps1` | Component Store: diagnóstico, limpeza assistida e relatório |
 | Backup e restauração de drivers | `experimental/maintenance/Backup-Restaurar-Drivers.ps1` | Backup e restauração de drivers não-Windows via DISM/pnputil |
-| Diagnóstico HD100 | `experimental/maintenance/Diagnostico-Reparo-HD100.ps1` | Uso de disco 100%, SMART, startup |
+| Diagnóstico HD100 | `scripts/diagnosticar-disco-100.ps1` | Uso de disco 100%, SMART, startup |
 | Gerenciar inicialização | `experimental/maintenance/Gerenciar-Inicializacao-Windows.ps1` | Habilitar/desabilitar itens de startup |
-| Preparar imagem corporativa | `experimental/maintenance/Preparar-Imagem-Windows.ps1` | Tweaks de perfil Default + sysprep |
+| Preparar imagem corporativa | `scripts/preparar-imagem-windows.ps1` | Tweaks de perfil Default + sysprep |
 
 ### Inventário
 
@@ -88,7 +88,7 @@ Destinada a desenvolvedores que estendem ou mantêm os módulos.
 
 | Script | Caminho | Descrição |
 |---|---|---|
-| Atualizar Windows | `experimental/updates/upgrade-windows.ps1` | Windows Update e Chocolatey quando disponível |
+| Atualizar Windows | `scripts/atualizar-windows.ps1` | Windows Update e Chocolatey quando disponível |
 
 ## Módulos PowerShell
 

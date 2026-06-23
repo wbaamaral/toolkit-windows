@@ -90,6 +90,14 @@ function New-XtudoCatalog {
             Keywords = @('imagem', 'preparar', 'sysprep', 'golden image', 'default profile')
             Quick    = $true
         }
+        [pscustomobject]@{
+            Id       = 'atualizar-windows'
+            Label    = 'Atualizar Windows'
+            Category = 'Atualização'
+            Path     = 'scripts/atualizar-windows.ps1'
+            Keywords = @('atualizar', 'update', 'windows update', 'winget', 'chocolatey')
+            Quick    = $false
+        }
     )
 }
 

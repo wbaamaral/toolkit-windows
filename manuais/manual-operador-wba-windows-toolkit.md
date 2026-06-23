@@ -55,9 +55,9 @@ Um script PowerShell é um arquivo com extensão `.ps1`. Ele executa uma tarefa 
 Exemplos:
 
 ```powershell
-.\experimental\maintenance\Diagnostico-Reparo-HD100.ps1
-.\experimental\maintenance\limpeza-windows.ps1
-.\experimental\updates\upgrade-windows.ps1
+.\scripts\diagnosticar-disco-100.ps1
+.\scripts\limpar-windows.ps1
+.\scripts\atualizar-windows.ps1
 ```
 
 ### 1.3. O que é um módulo
@@ -1009,11 +1009,11 @@ yyyy-MM-dd_HHmmss-limpeza-windows.log
 - Não use `-DisableHibernation` se o usuário depende de hibernação.
 - Antes de `ChkdskAction Schedule`, avise que pode haver verificação no próximo boot.
 
-## 13. Script `upgrade-windows.ps1`
+## 13. Script `atualizar-windows.ps1`
 
 ### 13.1. Finalidade
 
-O script `upgrade-windows.ps1` aciona uma rotina simples e conservadora de atualização.
+O script `atualizar-windows.ps1` aciona uma rotina simples e conservadora de atualização.
 
 Ele tenta:
 
@@ -1035,7 +1035,7 @@ Use quando:
 
 ```powershell
 Set-Location C:\ti\wba-windows-toolkit
-.\experimental\updates\upgrade-windows.ps1 -PauseAtEnd
+.\scripts\atualizar-windows.ps1 -PauseAtEnd
 ```
 
 O parâmetro `-PauseAtEnd` mantém a janela aberta no final, útil para copiar mensagens e conferir o resultado.
@@ -1056,25 +1056,25 @@ O parâmetro `-PauseAtEnd` mantém a janela aberta no final, útil para copiar m
 Executar atualização completa:
 
 ```powershell
-.\experimental\updates\upgrade-windows.ps1
+.\scripts\atualizar-windows.ps1
 ```
 
 Somente Chocolatey:
 
 ```powershell
-.\experimental\updates\upgrade-windows.ps1 -NoWindowsUpdate
+.\scripts\atualizar-windows.ps1 -NoWindowsUpdate
 ```
 
 Somente Windows Update:
 
 ```powershell
-.\experimental\updates\upgrade-windows.ps1 -NoChocolatey
+.\scripts\atualizar-windows.ps1 -NoChocolatey
 ```
 
 Manter janela aberta:
 
 ```powershell
-.\experimental\updates\upgrade-windows.ps1 -PauseAtEnd
+.\scripts\atualizar-windows.ps1 -PauseAtEnd
 ```
 
 ### 13.6. Onde fica o log
@@ -1442,7 +1442,7 @@ Com DNS específico:
 1. Executar:
 
 ```powershell
-.\experimental\updates\upgrade-windows.ps1 -PauseAtEnd
+.\scripts\atualizar-windows.ps1 -PauseAtEnd
 ```
 
 2. Conferir Windows Update nas Configurações.

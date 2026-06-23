@@ -1,7 +1,7 @@
 # Lab de AD para testar os scripts de Active Directory
 
-Ambiente mínimo para validar `active-directory/Diagnostico-GPO-Client.ps1` e
-`active-directory/Testa-Repara-ContaMaquinaAD.ps1`, que exigem um domínio real.
+Ambiente mínimo para validar `experimental/active-directory/Diagnostico-GPO-Client.ps1` e
+`experimental/active-directory/Testa-Repara-ContaMaquinaAD.ps1`, que exigem um domínio real.
 
 ## Topologia (2 VMs no mesmo segmento de rede)
 
@@ -42,10 +42,10 @@ Faça logon como **usuário de domínio** (`WBA\lab.operador`) para o gpresult d
 
 ```powershell
 # Diagnóstico de GPO / cliente
-.\active-directory\Diagnostico-GPO-Client.ps1 -DomainFQDN wba.test -DCName DC01
+.\experimental\active-directory\Diagnostico-GPO-Client.ps1 -DomainFQDN wba.test -DCName DC01
 
 # Teste/reparo da conta de máquina (leitura é segura)
-.\active-directory\Testa-Repara-ContaMaquinaAD.ps1 -DomainFqdn wba.test -DomainNetBIOS WBA -PreferredDc DC01 -DnsServers 192.168.4.10
+.\experimental\active-directory\Testa-Repara-ContaMaquinaAD.ps1 -DomainFqdn wba.test -DomainNetBIOS WBA -PreferredDc DC01 -DnsServers 192.168.4.10
 ```
 
 ## Exercitando os caminhos de ERRO (para validar o reparo)

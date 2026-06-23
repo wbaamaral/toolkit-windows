@@ -2,14 +2,14 @@
 
 Camada plana de entrada operacional do `Xtudo`.
 
-Cada arquivo aqui usa um nome verbal curto e chama o fluxo operacional atual.
-Os scripts legados foram movidos para `experimental/`.
+Cada arquivo aqui usa um nome verbal curto e contém o fluxo operacional atual do MVP.
+Os diretórios em `experimental/` continuam guardando o backlog e os fluxos ainda não promovidos.
 
 Regra prática:
 
 - operador entra por `.\xtudo.ps1`
-- scripts em `scripts/` são os atalhos oficiais do MVP
-- tudo fora do MVP fica em `experimental/`
+- scripts em `scripts/` são a superfície oficial do MVP
+- `experimental/` fica para o que ainda não foi promovido
 
 Exemplos:
 

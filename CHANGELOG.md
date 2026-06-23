@@ -9,6 +9,8 @@
 - `xtudo.ps1`: launcher único do toolkit com atalhos rápidos e busca por palavra-chave para scripts operacionais
 
 ### Alterado
+- `scripts/`: promoção do MVP para camada oficial do operador com `limpar-windows.ps1`, `limpar-winsxs.ps1`, `diagnosticar-disco-100.ps1`, `diagnosticar-memoria.ps1`, `diagnosticar-grafico.ps1`, `preparar-imagem-windows.ps1`, `testar-conectividade-internet.ps1`, `verificar-atualizacoes-hardware.ps1` e `atualizar-windows.ps1`
+- `manuais/` e `tests/`: caminhos e expectativas atualizados para o estado atual do MVP, com validação Pester 24/24 verde
 - `tools/publish-release.sh`: agora executa `tools/release-check.sh` antes de criar tags e publicar releases
 - `README.md`: rito de release documentado com o pré-voo anti-LFS
 

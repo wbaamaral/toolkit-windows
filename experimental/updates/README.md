@@ -10,11 +10,14 @@ Atalho oficial do MVP:
 
 ---
 
-## Scripts
+## Implementacao interna
 
 ### `upgrade-windows.ps1`
 
 **Função:** Atualização básica e conservadora do Windows 10 Pro via componentes nativos e Chocolatey.
+
+> Este arquivo e a implementacao interna. O operador deve usar o atalho oficial do MVP:
+> `.\scripts\atualizar-windows.ps1`
 
 **Principais ações:**
 
@@ -43,16 +46,16 @@ Atalho oficial do MVP:
 
 ```powershell
 # Execução padrão (ambas as fontes de atualização)
-.\upgrade-windows.ps1
+.\scripts\atualizar-windows.ps1
 
 # Apenas Windows Update, sem Chocolatey
-.\upgrade-windows.ps1 -NoChocolatey
+.\scripts\atualizar-windows.ps1 -NoChocolatey
 
 # Apenas Chocolatey, sem Windows Update
-.\upgrade-windows.ps1 -NoWindowsUpdate
+.\scripts\atualizar-windows.ps1 -NoWindowsUpdate
 
 # Automação silenciosa (sem pausa, sem aviso de reboot)
-.\upgrade-windows.ps1 -NoRebootWarning
+.\scripts\atualizar-windows.ps1 -NoRebootWarning
 ```
 
 **Requisitos:** Administrador local. Windows 10. PowerShell 5.1+. Chocolatey opcional.
