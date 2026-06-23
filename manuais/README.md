@@ -48,6 +48,7 @@ Os itens abaixo são os atalhos oficiais que o operador deve usar hoje.
 | Diagnóstico de memória | `scripts/diagnosticar-memoria.ps1` | Top-N consumidores de RAM; métricas de memória paginada e física |
 | Diagnóstico de driver gráfico | `scripts/diagnosticar-grafico.ps1` | GPU, DWM, TDR, WHEA, eventos gráficos, DXDiag |
 | Diagnóstico de conectividade | `scripts/testar-conectividade-internet.ps1` | Testa gateway, DNS, ICMP, TCP; relatório HTML |
+| Diagnóstico do cliente AD | `scripts/diagnosticar-ad-cliente.ps1` | Saúde do cliente no domínio, canal seguro, DNS, SYSVOL, NETLOGON e serviços essenciais |
 | Verificar atualizações de hardware | `scripts/verificar-atualizacoes-hardware.ps1` | BIOS, drivers e atualizações de hardware pendentes via Windows Update |
 | Preparar imagem corporativa | `scripts/preparar-imagem-windows.ps1` | Tweaks de perfil Default + sysprep |
 | Atualizar Windows | `scripts/atualizar-windows.ps1` | Windows Update e Chocolatey quando disponível |

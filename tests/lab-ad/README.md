@@ -1,7 +1,6 @@
 # Lab de AD para testar os scripts de Active Directory
 
-Ambiente mínimo para validar `experimental/active-directory/Diagnostico-GPO-Client.ps1` e
-`experimental/active-directory/Testa-Repara-ContaMaquinaAD.ps1`, que exigem um domínio real.
+Ambiente mínimo para validar `scripts/diagnosticar-ad-cliente.ps1`, que exige um domínio real.
 
 ## Topologia (2 VMs no mesmo segmento de rede)
 
@@ -41,23 +40,20 @@ Domínio do lab: **wba.test** / NetBIOS **WBA** (parametrizável nos scripts).
 Faça logon como **usuário de domínio** (`WBA\lab.operador`) para o gpresult de usuário.
 
 ```powershell
-# Diagnóstico de GPO / cliente
-.\experimental\active-directory\Diagnostico-GPO-Client.ps1 -DomainFQDN wba.test -DCName DC01
-
-# Teste/reparo da conta de máquina (leitura é segura)
-.\experimental\active-directory\Testa-Repara-ContaMaquinaAD.ps1 -DomainFqdn wba.test -DomainNetBIOS WBA -PreferredDc DC01 -DnsServers 192.168.4.10
+# Diagnóstico do cliente AD
+.\scripts\diagnosticar-ad-cliente.ps1 -DomainFQDN wba.test -PreferredDc DC01 -DnsServers 192.168.4.10
 ```
 
 ## Exercitando os caminhos de ERRO (para validar o reparo)
 
-### A) Secure channel quebrado (Testa-Repara)
+### A) Secure channel quebrado
 No **DC**, resete a conta de máquina do cliente:
 ```powershell
 Reset-ADComputerAccount -Identity '<NOME-DO-CLIENTE>' -Server DC01
 ```
-Depois, no **cliente**, rode o `Testa-Repara-ContaMaquinaAD.ps1` — ele deve detectar o
-canal quebrado e oferecer/efetuar o reparo (`Reset-ComputerMachinePassword`, exige
-credencial com direito de reset).
+Depois, no **cliente**, rode o `diagnosticar-ad-cliente.ps1` em modo assistido —
+ele deve detectar o canal quebrado e oferecer/efetuar o reparo
+(`Reset-ComputerMachinePassword`, exige credencial com direito de reset).
 
 ### B) Skew de tempo (checagem w32tm)
 No **cliente**, desincronize o relógio para validar a detecção de offset:
@@ -69,9 +65,8 @@ Set-Date (Get-Date).AddMinutes(20)   # reverter depois com w32tm /resync
 
 | Script | Contexto | Privilégio |
 |---|---|---|
-| Diagnostico-GPO-Client | usuário de domínio logado | leitura AD (qualquer auth) + elevação p/ gpupdate |
-| Testa-Repara (leitura) | qualquer usuário do domínio | nenhum especial |
-| Testa-Repara (reparo) | `-Credential` | Domain Admin ou direito de reset de conta |
+| diagnosticar-ad-cliente | usuário de domínio logado | leitura AD (qualquer auth) + elevação para ações assistidas |
+| reparo guiado do canal seguro | qualquer usuário do domínio | Domain Admin ou direito de reset de conta |
 
 ## Notas
 - O passo de DNS no cliente é o mais comum de esquecer — sem DNS apontando para o DC,

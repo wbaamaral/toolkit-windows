@@ -54,10 +54,9 @@
             (Join-Path ($PWD.ProviderPath) 'modules\WbaToolkit.Maintenance\WbaToolkit.Maintenance.psd1')
         ),
         [string[]]$ScriptPath = @(
-            (Join-Path ($PWD.ProviderPath) 'active-directory\Diagnostico-GPO-Client.ps1'),
-            (Join-Path ($PWD.ProviderPath) 'active-directory\Testa-Repara-ContaMaquinaAD.ps1'),
             (Join-Path ($PWD.ProviderPath) 'configuration\Configurar-Idioma-Regional.ps1'),
             (Join-Path ($PWD.ProviderPath) 'diagnostics\Diagnostico-Driver-Grafico.ps1'),
+            (Join-Path ($PWD.ProviderPath) 'scripts\diagnosticar-ad-cliente.ps1'),
             (Join-Path ($PWD.ProviderPath) 'diagnostics\networking\Testar-Conectividade-Internet.ps1'),
             (Join-Path ($PWD.ProviderPath) 'inventory\Inventario-Hardware-Software.ps1'),
             (Join-Path ($PWD.ProviderPath) 'maintenance\Diagnostico-Reparo-HD100.ps1'),

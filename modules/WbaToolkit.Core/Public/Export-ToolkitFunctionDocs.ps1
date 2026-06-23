@@ -39,9 +39,8 @@
 
         [Parameter(Mandatory = $false)]
         [string[]]$ScriptPath = @(
-            (Join-Path (Get-Location) 'active-directory/Diagnostico-GPO-Client.ps1'),
-            (Join-Path (Get-Location) 'active-directory/Testa-Repara-ContaMaquinaAD.ps1'),
             (Join-Path (Get-Location) 'configuration/Configurar-Idioma-Regional.ps1'),
+            (Join-Path (Get-Location) 'scripts/diagnosticar-ad-cliente.ps1'),
             (Join-Path (Get-Location) 'diagnostics/networking/Testar-Conectividade-Internet.ps1'),
             (Join-Path (Get-Location) 'diagnostics/Diagnostico-Driver-Grafico.ps1'),
             (Join-Path (Get-Location) 'inventory/Inventario-Hardware-Software.ps1'),

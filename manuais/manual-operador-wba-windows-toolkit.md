@@ -11,12 +11,13 @@ Este documento foi escrito para equipes de suporte e operadores que precisam exe
 Toolkit com segurança.
 
 No estado atual do projeto, a entrada recomendada para o operador é `.\xtudo.ps1`.
-O MVP expõe cinco ações principais:
+O MVP expõe seis ações principais:
 
 - Limpar Windows
 - Diagnosticar disco 100%
 - Diagnosticar memória
 - Diagnosticar gráfico
+- Diagnosticar cliente AD
 - Preparar imagem
 
 O objetivo é explicar:
@@ -1308,98 +1309,70 @@ Excluindo perfis específicos:
 
 ---
 
-## 18. Script `Diagnostico-GPO-Client.ps1`
+## 18. Script `diagnosticar-ad-cliente.ps1`
 
 ### 18.1. Finalidade
 
-O script `Diagnostico-GPO-Client.ps1` diagnostica falhas de aplicação de GPO em clientes
-Windows, verificando canal seguro, conectividade com DC, SYSVOL, GPOs aplicadas e eventos.
+O script `diagnosticar-ad-cliente.ps1` e a ferramenta oficial do MVP para diagnosticar a saude do cliente Windows
+em relacao ao Active Directory. Ele verifica ingresso no dominio, canal seguro, DNS, resolucao de SRV, acesso a
+SYSVOL e NETLOGON, sincronismo de hora, conectividade com o controlador de dominio e servicos essenciais.
 
 ### 18.2. Quando usar
 
 Use quando:
 
-- o usuário reclamar que políticas de grupo não estão sendo aplicadas;
-- `gpupdate /force` falhar ou não surtir efeito;
-- houver erros de canal seguro ou autenticação no domínio;
-- a máquina aparecer como fora do domínio.
+- o usuario reclamar de login no dominio ou acesso a recursos AD;
+- a maquina parecer fora do dominio ou com canal seguro suspeito;
+- houver falha de resolucao DNS para o dominio;
+- SYSVOL ou NETLOGON nao responderem;
+- voce quiser um panorama rapido da saude do cliente AD antes de acionar reparos.
 
 ### 18.3. Principais parâmetros
 
 | Parâmetro | O que faz |
 |---|---|
+| `-Modo` | `Diagnostico` ou `Assistido` |
 | `-DomainFQDN` | FQDN do domínio (detecção automática se omitido) |
-| `-DCName` | DC preferencial (detecção automática se omitido) |
-| `-SkipReparo` | Somente diagnóstico; sem oferecer reparos |
+| `-DomainNetBIOS` | Nome NetBIOS do domínio |
+| `-PreferredDc` | Controlador de domínio preferencial |
+| `-DnsServers` | Lista de DNS esperados no cliente |
+| `-GerarHtml` | Gera relatório HTML |
+| `-AbrirRelatorio` | Abre o relatório ao final |
+| `-Path` | Raiz de relatórios personalizada |
 
 ### 18.4. Exemplos de uso
 
-Diagnóstico com detecção automática:
+Diagnóstico padrão:
 
 ```powershell
-.\active-directory\Diagnostico-GPO-Client.ps1
+.\scripts\diagnosticar-ad-cliente.ps1
 ```
 
-Somente leitura com DC específico:
+Modo assistido com domínio informado:
 
 ```powershell
-.\active-directory\Diagnostico-GPO-Client.ps1 -DCName DC01 -SkipReparo
+.\scripts\diagnosticar-ad-cliente.ps1 -Modo Assistido -DomainFQDN contoso.local
 ```
 
-Com FQDN do domínio informado:
+Diagnóstico com relatório HTML:
 
 ```powershell
-.\active-directory\Diagnostico-GPO-Client.ps1 -DomainFQDN contoso.local
+.\scripts\diagnosticar-ad-cliente.ps1 -GerarHtml -AbrirRelatorio
 ```
 
 ---
 
-## 19. Script `Testa-Repara-ContaMaquinaAD.ps1`
+## 19. Legado experimental de AD
 
 ### 19.1. Finalidade
 
-O script `Testa-Repara-ContaMaquinaAD.ps1` executa sequência interativa de testes para validar
-e reparar a conta de máquina e o canal seguro no domínio Active Directory.
+As ferramentas antigas de Active Directory continuam na árvore `experimental/active-directory/` apenas para
+consulta histórica e comparação. O fluxo oficial do MVP já e o script `.\scripts\diagnosticar-ad-cliente.ps1`.
 
-### 19.2. Quando usar
+### 19.2. Regra prática
 
-Use quando:
-
-- a máquina não conseguir autenticar no domínio;
-- o canal seguro estiver quebrado (`Test-ComputerSecureChannel` retorna `$false`);
-- tickets Kerberos da conta de computador falharem;
-- `net ads testjoin` indicar falha.
-
-### 19.3. Principais parâmetros
-
-| Parâmetro | O que faz |
-|---|---|
-| `-DomainFqdn` | FQDN do domínio (detecção automática se omitido) |
-| `-DomainNetBIOS` | NetBIOS do domínio |
-| `-PreferredDc` | IP ou nome do DC preferencial |
-| `-DnsServers` | Lista de DNS a usar nos testes |
-
-### 19.4. Exemplos de uso
-
-Diagnóstico com detecção automática:
-
-```powershell
-.\active-directory\Testa-Repara-ContaMaquinaAD.ps1
-```
-
-Com domínio e DC específicos:
-
-```powershell
-.\active-directory\Testa-Repara-ContaMaquinaAD.ps1 `
-    -DomainFqdn contoso.local -PreferredDc DC01
-```
-
-Com DNS específico:
-
-```powershell
-.\active-directory\Testa-Repara-ContaMaquinaAD.ps1 `
-    -DomainFqdn contoso.local -DnsServers 192.168.1.7
-```
+Nao use o legado como ponto de entrada do operador. Se precisar evoluir o diagnostico de AD, trabalhe no script
+oficial em `scripts/`.
 
 ---
 

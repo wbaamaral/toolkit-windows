@@ -83,6 +83,14 @@ function New-XtudoCatalog {
             Args     = @('-Modo', 'Diagnostico')
         }
         [pscustomobject]@{
+            Id       = 'diagnosticar-ad-cliente'
+            Label    = 'Diagnosticar AD cliente'
+            Category = 'Diagnóstico'
+            Path     = 'scripts/diagnosticar-ad-cliente.ps1'
+            Keywords = @('ad', 'active directory', 'gpo', 'secure channel', 'netlogon', 'sysvol', 'ldap', 'dominio')
+            Quick    = $false
+        }
+        [pscustomobject]@{
             Id       = 'preparar-imagem-windows'
             Label    = 'Preparar imagem'
             Category = 'Imagem'

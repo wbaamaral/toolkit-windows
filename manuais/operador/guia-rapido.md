@@ -81,6 +81,15 @@ Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1 -Force
 .\scripts\verificar-atualizacoes-hardware.ps1 -SkipBios
 ```
 
+### Diagnóstico do cliente AD
+
+```powershell
+.\scripts\diagnosticar-ad-cliente.ps1
+.\scripts\diagnosticar-ad-cliente.ps1 -Modo Assistido
+.\scripts\diagnosticar-ad-cliente.ps1 -DomainFQDN wba.test -PreferredDc DC01
+.\scripts\diagnosticar-ad-cliente.ps1 -GerarHtml
+```
+
 ### Limpeza do Windows
 
 ```powershell

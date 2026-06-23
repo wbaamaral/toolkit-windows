@@ -2,6 +2,12 @@
 
 Scripts de diagnóstico e reparo de problemas em ambientes Active Directory. Focados no lado cliente: verificam canal seguro, conectividade com controladores de domínio, aplicação de GPO, sincronização de horário Kerberos e integridade da conta de máquina no domínio.
 
+Fluxo oficial atual do MVP:
+
+```powershell
+.\scripts\diagnosticar-ad-cliente.ps1
+```
+
 ---
 
 ## Scripts

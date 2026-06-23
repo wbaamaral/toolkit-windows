@@ -9,8 +9,8 @@ BeforeAll {
 }
 
 Describe 'Xtudo estrutura do toolkit' {
-    It 'Mantem nove scripts oficiais em scripts/' {
-        $script:scriptPaths.Count | Should -Be 9
+    It 'Mantem dez scripts oficiais em scripts/' {
+        $script:scriptPaths.Count | Should -Be 10
         foreach ($path in $script:scriptPaths) {
             Split-Path -Parent $path | Should -Be (Get-XtudoScriptsRoot)
         }
@@ -36,10 +36,11 @@ Describe 'Xtudo estrutura do toolkit' {
         (Get-Content -LiteralPath (Join-Path $script:repoRoot 'manuais/README.md') -Raw) | Should -Match '\.\./xtudo\.ps1'
     }
 
-    It 'Os manuais do operador citam apenas o MVP oficial' {
-        $script:operatorGuideContent | Should -Not -Match 'experimental/'
-        $script:operatorManualContent | Should -Not -Match 'experimental/'
+    It 'Os manuais do operador destacam o MVP oficial atual' {
         $script:operatorGuideContent | Should -Match 'scripts\\limpar-windows\.ps1'
         $script:operatorGuideContent | Should -Match 'scripts\\atualizar-windows\.ps1'
+        $script:operatorGuideContent | Should -Match 'scripts\\diagnosticar-ad-cliente\.ps1'
+        $script:operatorManualContent | Should -Match 'diagnosticar-ad-cliente\.ps1'
+        $script:operatorManualContent | Should -Match 'Legado experimental de AD'
     }
 }

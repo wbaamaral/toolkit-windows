@@ -20,13 +20,14 @@ Describe 'Xtudo launcher' {
         $script:launcherContent | Should -Match 'function\s+Invoke-XtudoScript'
     }
 
-    It 'Mantem cinco atalhos rapidos, busca e rota pesquisavel de update' {
+    It 'Mantem cinco atalhos rapidos, busca e rotas pesquisaveis adicionais' {
         $script:launcherContent | Should -Match "Path\s+=\s+'scripts/limpar-windows\.ps1'"
         $script:launcherContent | Should -Match "Path\s+=\s+'scripts/diagnosticar-disco-100\.ps1'"
         $script:launcherContent | Should -Match "Path\s+=\s+'scripts/diagnosticar-memoria\.ps1'"
         $script:launcherContent | Should -Match "Path\s+=\s+'scripts/diagnosticar-grafico\.ps1'"
         $script:launcherContent | Should -Match "Path\s+=\s+'scripts/preparar-imagem-windows\.ps1'"
         $script:launcherContent | Should -Match "Path\s+=\s+'scripts/atualizar-windows\.ps1'"
+        $script:launcherContent | Should -Match "Path\s+=\s+'scripts/diagnosticar-ad-cliente\.ps1'"
         ($script:launcherContent -match 'Quick\s+=\s+\$true') | Should -BeTrue
         $script:launcherContent | Should -Match '0/q/sair cancela'
         $script:launcherContent | Should -Match "\$input -match '\^\(0\|q\|quit\|sair\)\$'"

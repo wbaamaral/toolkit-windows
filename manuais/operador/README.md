@@ -16,6 +16,7 @@ Entrada oficial do MVP do `Xtudo`.
 - `Diagnosticar disco 100%`
 - `Diagnosticar memória`
 - `Diagnosticar gráfico`
+- `Diagnosticar AD cliente`
 - `Preparar imagem`
 
 ## Quando o operador estiver em dúvida
