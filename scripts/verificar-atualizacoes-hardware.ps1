@@ -1,4 +1,14 @@
-﻿#!/usr/bin/env pwsh
+﻿<#
+.SYNOPSIS
+    Atalho para verificar atualizacoes de hardware.
+
+.DESCRIPTION
+    Encaminha a execução para o script operacional de inventario e updates.
+
+.EXAMPLE
+    .\scripts\verificar-atualizacoes-hardware.ps1
+#>
+#!/usr/bin/env pwsh
 #requires -version 5.1
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8

@@ -1,4 +1,14 @@
-﻿#!/usr/bin/env pwsh
+﻿<#
+.SYNOPSIS
+    Atalho para diagnostico grafico.
+
+.DESCRIPTION
+    Encaminha a execução para o script operacional de diagnostico de video.
+
+.EXAMPLE
+    .\scripts\diagnosticar-grafico.ps1
+#>
+#!/usr/bin/env pwsh
 #requires -version 5.1
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8

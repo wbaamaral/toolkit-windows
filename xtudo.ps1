@@ -1,4 +1,21 @@
-﻿#!/usr/bin/env pwsh
+﻿<#
+.SYNOPSIS
+    Launcher principal do WBA Windows Toolkit.
+
+.DESCRIPTION
+    Exibe o catalogo operacional do MVP, oferece atalhos rapidos e encaminha a
+    execução para os scripts padronizados da pasta scripts/.
+
+.EXAMPLE
+    .\xtudo.ps1
+
+.EXAMPLE
+    .\xtudo.ps1 limpar
+
+.EXAMPLE
+    .\xtudo.ps1 diagnosticar memoria
+#>
+#!/usr/bin/env pwsh
 #requires -version 5.1
 
 [CmdletBinding()]

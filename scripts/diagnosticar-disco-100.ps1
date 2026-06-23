@@ -1,4 +1,14 @@
-﻿#!/usr/bin/env pwsh
+﻿<#
+.SYNOPSIS
+    Atalho para diagnostico de disco 100%.
+
+.DESCRIPTION
+    Encaminha a execução para o script operacional do diagnostico de disco.
+
+.EXAMPLE
+    .\scripts\diagnosticar-disco-100.ps1
+#>
+#!/usr/bin/env pwsh
 #requires -version 5.1
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8

@@ -1,4 +1,14 @@
-﻿#!/usr/bin/env pwsh
+﻿<#
+.SYNOPSIS
+    Atalho para preparar imagem do Windows.
+
+.DESCRIPTION
+    Encaminha a execução para o script operacional de preparação da imagem.
+
+.EXAMPLE
+    .\scripts\preparar-imagem-windows.ps1
+#>
+#!/usr/bin/env pwsh
 #requires -version 5.1
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8

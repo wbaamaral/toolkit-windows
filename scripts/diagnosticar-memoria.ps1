@@ -1,4 +1,14 @@
-﻿#!/usr/bin/env pwsh
+﻿<#
+.SYNOPSIS
+    Atalho para diagnostico de memoria.
+
+.DESCRIPTION
+    Encaminha a execução para o script operacional de diagnostico de RAM.
+
+.EXAMPLE
+    .\scripts\diagnosticar-memoria.ps1
+#>
+#!/usr/bin/env pwsh
 #requires -version 5.1
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8

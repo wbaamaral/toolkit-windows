@@ -1,4 +1,14 @@
-﻿#!/usr/bin/env pwsh
+﻿<#
+.SYNOPSIS
+    Atalho para testar conectividade com a internet.
+
+.DESCRIPTION
+    Encaminha a execução para o script operacional de conectividade.
+
+.EXAMPLE
+    .\scripts\testar-conectividade-internet.ps1
+#>
+#!/usr/bin/env pwsh
 #requires -version 5.1
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
