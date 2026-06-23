@@ -210,12 +210,16 @@ function Invoke-XtudoScript {
     Write-Host ("Caminho:    {0}" -f $Entry.Path) -ForegroundColor DarkGray
     Write-Host ''
 
-    if ($Entry.PSObject.Properties.Name -contains 'Args' -and $Entry.Args -and $Entry.Args.Count -gt 0) {
-        & $target @($Entry.Args)
-        return
+    $invokeArgs = @()
+    if ($Entry.PSObject.Properties.Name -contains 'Args' -and $null -ne $Entry.Args) {
+        foreach ($arg in @($Entry.Args)) {
+            if ($null -ne $arg -and $arg -ne '') {
+                $invokeArgs += [string]$arg
+            }
+        }
     }
 
-    & $target
+    & $target @invokeArgs
 }
 
 function Select-XtudoEntry {

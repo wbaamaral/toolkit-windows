@@ -34,4 +34,9 @@ Describe 'Xtudo launcher' {
         $script:launcherContent | Should -Match 'Resultados encontrados:'
         $script:launcherContent | Should -Match 'Nenhum resultado exato\.'
     }
+
+    It 'Normaliza argumentos antes de chamar scripts' {
+        $script:launcherContent | Should -Match 'foreach \(\$arg in @\(\$Entry\.Args\)\)'
+        $script:launcherContent | Should -Match '\$invokeArgs \+= \[string\]\$arg'
+    }
 }
