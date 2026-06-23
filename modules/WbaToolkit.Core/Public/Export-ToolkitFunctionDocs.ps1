@@ -29,26 +29,26 @@
     param(
         [Parameter(Mandatory = $false)]
         [string[]]$ModulePath = @(
-            (Join-Path (Get-Location) 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'),
-            (Join-Path (Get-Location) 'modules/WbaToolkit.Networking/WbaToolkit.Networking.psd1')
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'modules/WbaToolkit.Networking/WbaToolkit.Networking.psd1')
         ),
 
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [string]$OutputPath = (Join-Path (Get-Location) 'docs-html'),
+        [string]$OutputPath = (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'docs-html'),
 
         [Parameter(Mandatory = $false)]
         [string[]]$ScriptPath = @(
-            (Join-Path (Get-Location) 'configuration/Configurar-Idioma-Regional.ps1'),
-            (Join-Path (Get-Location) 'scripts/diagnosticar-ad-cliente.ps1'),
-            (Join-Path (Get-Location) 'diagnostics/networking/Testar-Conectividade-Internet.ps1'),
-            (Join-Path (Get-Location) 'diagnostics/Diagnostico-Driver-Grafico.ps1'),
-            (Join-Path (Get-Location) 'inventory/Inventario-Hardware-Software.ps1'),
-            (Join-Path (Get-Location) 'maintenance/Diagnostico-Reparo-HD100.ps1'),
-            (Join-Path (Get-Location) 'maintenance/limpeza-windows.ps1'),
-            (Join-Path (Get-Location) 'updates/upgrade-windows.ps1'),
-            (Join-Path (Get-Location) 'utilities/Analise-Espaco-Disco.ps1'),
-            (Join-Path (Get-Location) 'utilities/Remover-Perfis-Inativos.ps1')
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/configuration/Configurar-Idioma-Regional.ps1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'scripts/diagnosticar-ad-cliente.ps1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/diagnostics/networking/Testar-Conectividade-Internet.ps1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/diagnostics/Diagnostico-Driver-Grafico.ps1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/inventory/Inventario-Hardware-Software.ps1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/maintenance/Diagnostico-Reparo-HD100.ps1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'scripts/limpeza-windows.ps1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'scripts/atualizar-windows.ps1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/utilities/Analise-Espaco-Disco.ps1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/utilities/Remover-Perfis-Inativos.ps1')
         ),
 
         [Parameter(Mandatory = $false)]

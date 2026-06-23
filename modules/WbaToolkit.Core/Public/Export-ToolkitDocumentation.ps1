@@ -45,27 +45,27 @@
     # WBA-DOCS: Category=Documentacao; Related=Export-ToolkitFunctionDocs
     [CmdletBinding()]
     param(
-        [string]$OutputPath = (Join-Path ($PWD.ProviderPath) 'docs\portal'),
-        [string]$ManualPath = (Join-Path ($PWD.ProviderPath) 'docs\manual'),
+        [string]$OutputPath = (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'docs/portal'),
+        [string]$ManualPath = (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'manuais'),
         [string[]]$ModulePath = @(
-            (Join-Path ($PWD.ProviderPath) 'modules\WbaToolkit.Core\WbaToolkit.Core.psd1'),
-            (Join-Path ($PWD.ProviderPath) 'modules\WbaToolkit.Networking\WbaToolkit.Networking.psd1'),
-            (Join-Path ($PWD.ProviderPath) 'modules\WbaToolkit.Startup\WbaToolkit.Startup.psd1'),
-            (Join-Path ($PWD.ProviderPath) 'modules\WbaToolkit.Maintenance\WbaToolkit.Maintenance.psd1')
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'modules/WbaToolkit.Networking/WbaToolkit.Networking.psd1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'modules/WbaToolkit.Startup/WbaToolkit.Startup.psd1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'modules/WbaToolkit.Maintenance/WbaToolkit.Maintenance.psd1')
         ),
         [string[]]$ScriptPath = @(
-            (Join-Path ($PWD.ProviderPath) 'configuration\Configurar-Idioma-Regional.ps1'),
-            (Join-Path ($PWD.ProviderPath) 'diagnostics\Diagnostico-Driver-Grafico.ps1'),
-            (Join-Path ($PWD.ProviderPath) 'scripts\diagnosticar-ad-cliente.ps1'),
-            (Join-Path ($PWD.ProviderPath) 'diagnostics\networking\Testar-Conectividade-Internet.ps1'),
-            (Join-Path ($PWD.ProviderPath) 'inventory\Inventario-Hardware-Software.ps1'),
-            (Join-Path ($PWD.ProviderPath) 'maintenance\Diagnostico-Reparo-HD100.ps1'),
-            (Join-Path ($PWD.ProviderPath) 'maintenance\Gerenciar-Inicializacao-Windows.ps1'),
-            (Join-Path ($PWD.ProviderPath) 'maintenance\limpeza-windows.ps1'),
-            (Join-Path ($PWD.ProviderPath) 'maintenance\Preparar-Imagem-Windows.ps1'),
-            (Join-Path ($PWD.ProviderPath) 'updates\upgrade-windows.ps1'),
-            (Join-Path ($PWD.ProviderPath) 'utilities\Analise-Espaco-Disco.ps1'),
-            (Join-Path ($PWD.ProviderPath) 'utilities\Remover-Perfis-Inativos.ps1')
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/configuration/Configurar-Idioma-Regional.ps1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/diagnostics/Diagnostico-Driver-Grafico.ps1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'scripts/diagnosticar-ad-cliente.ps1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/diagnostics/networking/Testar-Conectividade-Internet.ps1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/inventory/Inventario-Hardware-Software.ps1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/maintenance/Diagnostico-Reparo-HD100.ps1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/maintenance/Gerenciar-Inicializacao-Windows.ps1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'scripts/limpeza-windows.ps1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/maintenance/Preparar-Imagem-Windows.ps1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'scripts/atualizar-windows.ps1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/utilities/Analise-Espaco-Disco.ps1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/utilities/Remover-Perfis-Inativos.ps1')
         ),
         [ValidateSet('All', 'Portal', 'TechnicalReference')]
         [string]$Mode = 'All',
@@ -106,7 +106,7 @@
 
         # --- changelog.html (opcional) ---
         if ($IncludeChangelog) {
-            $changelogPath = Join-Path ($PWD.ProviderPath) 'CHANGELOG.md'
+            $changelogPath = Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'CHANGELOG.md'
             if (Test-Path -LiteralPath $changelogPath) {
                 $clMd   = [System.IO.File]::ReadAllText($changelogPath, $enc)
                 $clBody = ConvertFrom-MarkdownSimple -Markdown $clMd
