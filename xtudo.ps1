@@ -1,23 +1,5 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 #requires -version 5.1
-<#
-.SYNOPSIS
-    Launcher unico do WBA Windows Toolkit.
-
-.DESCRIPTION
-    Centraliza o acesso aos scripts operacionais por busca, categorias e atalhos rapidos.
-    Esta primeira versao opera sobre a estrutura atual do repositorio e prepara a migracao
-    para uma arvore plana com nomes verbais curtos.
-
-.EXAMPLE
-    .\xtudo.ps1
-
-.EXAMPLE
-    .\xtudo.ps1 limpar
-
-.EXAMPLE
-    .\xtudo.ps1 diagnosticar memoria
-#>
 
 [CmdletBinding()]
 param(
