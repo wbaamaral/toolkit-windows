@@ -2,6 +2,12 @@
 
 Scripts para atualização do sistema operacional e pacotes de software instalados. Projetados para ambientes corporativos onde ferramentas externas como PSWindowsUpdate ou WinGet podem não estar disponíveis, utilizando apenas componentes nativos do Windows.
 
+Atalho oficial do MVP:
+
+```powershell
+.\scripts\atualizar-windows.ps1
+```
+
 ---
 
 ## Scripts

@@ -17,4 +17,5 @@ Exemplos:
 .\xtudo.ps1
 .\scripts\limpar-windows.ps1
 .\scripts\diagnosticar-memoria.ps1
+.\scripts\atualizar-windows.ps1
 ```
