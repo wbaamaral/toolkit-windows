@@ -10,15 +10,4 @@ $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
 try { chcp 65001 | Out-Null } catch { }
 
 $target = Join-Path $PSScriptRoot '../maintenance/limpeza-windows.ps1'
-
-# O atalho do Xtudo precisa ser seguro e previsivel no modo MVP.
-# Quando nao ha argumentos explicitos, usamos a trilha nao interativa
-# recomendada para automacao.
-$invokeArgs = if ($args.Count -gt 0) {
-    $args
-}
-else {
-    @('-ChkdskAction', 'Skip', '-EventLogCleanup', 'None', '-NoReboot')
-}
-
-& $target @invokeArgs
+& $target
