@@ -53,16 +53,8 @@ function New-XtudoCatalog {
             Label    = 'Limpar Windows'
             Category = 'Limpeza'
             Path     = 'scripts/limpar-windows.ps1'
-            Keywords = @('limpar', 'cleanup', 'temp', 'cache', 'windows')
+            Keywords = @('limpar', 'limpeza', 'cleanup', 'temp', 'cache', 'windows')
             Quick    = $true
-        }
-        [pscustomobject]@{
-            Id       = 'limpar-winsxs'
-            Label    = 'Limpar WinSxS'
-            Category = 'Limpeza'
-            Path     = 'scripts/limpar-winsxs.ps1'
-            Keywords = @('winsxs', 'component store', 'componentstore', 'limpar')
-            Quick    = $false
         }
         [pscustomobject]@{
             Id       = 'diagnosticar-disco-100'
@@ -89,27 +81,11 @@ function New-XtudoCatalog {
             Quick    = $true
         }
         [pscustomobject]@{
-            Id       = 'verificar-atualizacoes-hardware'
-            Label    = 'Verificar atualizações de hardware'
-            Category = 'Diagnóstico'
-            Path     = 'scripts/verificar-atualizacoes-hardware.ps1'
-            Keywords = @('atualizacao', 'hardware', 'driver', 'bios')
-            Quick    = $false
-        }
-        [pscustomobject]@{
-            Id       = 'testar-conectividade-internet'
-            Label    = 'Testar conectividade'
-            Category = 'Diagnóstico'
-            Path     = 'scripts/testar-conectividade-internet.ps1'
-            Keywords = @('rede', 'internet', 'dns', 'gateway', 'ping')
-            Quick    = $false
-        }
-        [pscustomobject]@{
             Id       = 'preparar-imagem-windows'
             Label    = 'Preparar imagem'
             Category = 'Imagem'
             Path     = 'scripts/preparar-imagem-windows.ps1'
-            Keywords = @('imagem', 'sysprep', 'preparar', 'default profile')
+            Keywords = @('imagem', 'preparar', 'sysprep', 'golden image', 'default profile')
             Quick    = $true
         }
     )
@@ -171,7 +147,7 @@ function Show-XtudoBanner {
     Write-Host '============================================================' -ForegroundColor Cyan
     Write-Host ' Xtudo - WBA Windows Toolkit' -ForegroundColor Cyan
     Write-Host '============================================================' -ForegroundColor Cyan
-    Write-Host 'Digite um numero, uma palavra-chave ou pressione Enter para listar tudo.' -ForegroundColor DarkGray
+    Write-Host 'Digite 1-5, uma palavra-chave ou pressione Enter para listar tudo.' -ForegroundColor DarkGray
     Write-Host ''
 }
 
@@ -186,7 +162,7 @@ function Show-XtudoQuickActions {
         Write-Host ("  {0}. {1}" -f $n, $quick[$i].Label)
     }
     Write-Host ''
-    Write-Host 'Busca sugerida: disco, memoria, grafico, limpeza, imagem, rede' -ForegroundColor DarkGray
+    Write-Host 'Busca sugerida: limpeza, disco, memoria, grafico, imagem' -ForegroundColor DarkGray
     Write-Host ''
 
     return $quick
