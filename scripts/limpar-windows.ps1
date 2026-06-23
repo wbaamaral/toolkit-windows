@@ -19,5 +19,5 @@ $PSDefaultParameterValues['Set-Content:Encoding'] = 'utf8'
 $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
 try { chcp 65001 | Out-Null } catch { }
 
-$target = Join-Path $PSScriptRoot '../maintenance/limpeza-windows.ps1'
+$target = Join-Path $PSScriptRoot '../experimental/maintenance/limpeza-windows.ps1'
 & $target

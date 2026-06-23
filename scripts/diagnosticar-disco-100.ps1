@@ -19,6 +19,6 @@ $PSDefaultParameterValues['Set-Content:Encoding'] = 'utf8'
 $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
 try { chcp 65001 | Out-Null } catch { }
 
-$target = Join-Path $PSScriptRoot '../maintenance/Diagnostico-Reparo-HD100.ps1'
+$target = Join-Path $PSScriptRoot '../experimental/maintenance/Diagnostico-Reparo-HD100.ps1'
 $forwardArgs = if ($args.Count -gt 0) { $args } else { @() }
 & $target @forwardArgs

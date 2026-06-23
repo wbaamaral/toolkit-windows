@@ -2,8 +2,8 @@
 
 Camada plana de entrada do `Xtudo`.
 
-Cada arquivo aqui usa um nome verbal curto e redireciona para o script legado
-correspondente enquanto a migração da árvore acontece por fases.
+Cada arquivo aqui usa um nome verbal curto e chama o fluxo operacional atual.
+Os scripts legados foram movidos para `experimental/`.
 
 Exemplos:
 

@@ -161,16 +161,9 @@ $ScriptDir  = $PSScriptRoot
 wba-windows-toolkit/
 ├── xtudo.ps1
 ├── scripts/
-├── maintenance/
-├── updates/
-├── diagnostics/
-├── optimization/
-├── inventory/
-├── networking/
-├── active-directory/
-├── printers/
-├── utilities/
 ├── modules/
+├── manuais/
+├── experimental/
 ├── tests/
 ├── docs/
 └── LICENSE
