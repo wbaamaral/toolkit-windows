@@ -5,6 +5,12 @@
 ### Adicionado
 - `updates/upgrade-windows.ps1`: reescrito com suporte a backend resolvido (Auto, WinGet, Chocolatey, All), ações UpgradeAll/ListOnly/Select, bloqueios `-NoWinGet`/`-NoChocolatey`/`-NoWindowsUpdate`, detecção de reboot pendente antes e após execução, resumo final consolidado e códigos de saída padronizados (BCK-018)
 - `tests/unit/upgrade-windows.Tests.ps1`: suite Pester com 62 testes cobrindo validação de parâmetros, resolução de backend, detecção de reboot, cálculo de código de saída e todos os fluxos de ação (BCK-018)
+- `tools/release-check.sh`: pré-voo de release anti-LFS para validar arquivos rastreados por Git LFS e bloquear ponteiros antes da tag/publicação
+- `xtudo.ps1`: launcher único do toolkit com atalhos rápidos e busca por palavra-chave para scripts operacionais
+
+### Alterado
+- `tools/publish-release.sh`: agora executa `tools/release-check.sh` antes de criar tags e publicar releases
+- `README.md`: rito de release documentado com o pré-voo anti-LFS
 
 ## [v1.3.0] — 2026-06-20
 

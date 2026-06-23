@@ -28,6 +28,34 @@ As especificações formais do projeto ficam em um repositório separado, sob o 
 - Estrutura padronizada
 - Comentários e documentação incorporados
 - Foco em operações conservadoras e seguras
+- Ponto único de entrada via `xtudo.ps1` para descoberta rápida de scripts
+
+## Release e publicação
+
+Antes de publicar uma versão, execute o pré-voo anti-LFS:
+
+```bash
+bash tools/release-check.sh
+```
+
+Esse rito falha se algum arquivo rastreado por Git LFS, como o PDF do manual,
+estiver como ponteiro em vez de binário real no working tree. A publicação da
+release usa:
+
+```bash
+bash tools/publish-release.sh
+```
+
+## Uso diário
+
+Para operar o toolkit sem memorizar pastas, use o launcher:
+
+```powershell
+.\xtudo.ps1
+```
+
+Ele apresenta atalhos rápidos, aceita busca por palavra-chave e executa os scripts
+operacionais mais usados sem exigir navegação pela árvore do repositório.
 
 ## Funcionalidades Disponíveis
 
@@ -131,6 +159,8 @@ $ScriptDir  = $PSScriptRoot
 
 ```text
 wba-windows-toolkit/
+├── xtudo.ps1
+├── scripts/
 ├── maintenance/
 ├── updates/
 ├── diagnostics/

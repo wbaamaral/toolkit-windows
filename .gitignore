@@ -26,6 +26,10 @@ pyvenv.cfg
 .venv
 pip-selfcheck.json
 
+# MVP Xtudo: camada plana de scripts operacionais
+!/scripts/
+!/scripts/**
+
 # ---> GNOMEShellExtension
 # Ignored files for GNOME extension git repository
 
@@ -455,4 +459,3 @@ tmtags
 # ---> TortoiseGit
 # Project-level settings
 /.tgitconfig
-

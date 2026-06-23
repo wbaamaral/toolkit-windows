@@ -109,6 +109,19 @@ validate_dirs() {
     fi
 }
 
+run_release_check() {
+    local release_check="${CODE_DIR}/tools/release-check.sh"
+
+    if [[ ! -f "${release_check}" ]]; then
+        echo "Erro: release-check não encontrado em ${release_check}" >&2
+        exit 1
+    fi
+
+    log "Executando pré-voo anti-LFS..."
+    bash "${release_check}"
+    echo ""
+}
+
 check_existing_tags() {
     local code_tag spec_tag
 
@@ -389,6 +402,7 @@ print_summary() {
 main() {
     validate_env
     validate_dirs
+    run_release_check
     check_existing_tags
     print_summary
 
