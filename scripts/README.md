@@ -24,3 +24,43 @@ Exemplos:
 .\scripts\atualizar-windows.ps1
 .\scripts\diagnosticar-ad-cliente.ps1
 ```
+
+## Inventário
+
+### `Inventario-Hardware-Software.ps1`
+
+**Função:** Gera inventário completo de hardware e software em relatório HTML com conversão opcional para PDF.
+
+**Dependência de módulo:** `WbaToolkit.Inventory` para o mapa de cobertura do escopo e evolução futura do inventário.
+
+**Cobertura atual:**
+
+- sistema operacional;
+- processador;
+- memória RAM;
+- placa-mãe e BIOS;
+- armazenamento;
+- placa de vídeo;
+- rede;
+- monitores;
+- software instalado;
+- atualizações / hotfixes;
+- serviços;
+- resumo de hardware e drivers em saída enxuta opcional.
+
+**Ainda não coberto como rotina separada:**
+
+- inventário de Active Directory do cliente;
+- inventário de impressoras e periféricos dedicados;
+- inventário de rede por topologia, VLAN ou switch;
+- inventário de usuários, perfis e sessões locais;
+- inventário patrimonial/CMDB.
+
+**Exemplos:**
+
+```powershell
+.\scripts\Inventario-Hardware-Software.ps1
+.\scripts\Inventario-Hardware-Software.ps1 -NaoPDF
+.\scripts\Inventario-Hardware-Software.ps1 -GerarResumoHardwareDrivers
+.\scripts\Inventario-Hardware-Software.ps1 -SomenteHardwareDrivers
+```

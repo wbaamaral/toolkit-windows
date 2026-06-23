@@ -14,6 +14,11 @@ modules/
     ├── WbaToolkit.Core.psm1
     ├── Public/
     └── Private/
+├── WbaToolkit.Inventory/
+    ├── WbaToolkit.Inventory.psd1
+    ├── WbaToolkit.Inventory.psm1
+    ├── Public/
+    └── Private/
 └── WbaToolkit.Networking/
     ├── WbaToolkit.Networking.psd1
     ├── WbaToolkit.Networking.psm1
@@ -79,6 +84,16 @@ Funções públicas principais:
 | `Show-ConnectivityReport` | Exibe relatório no console |
 | `Export-ConnectivityReport` | Exporta relatório HTML |
 | `Export-ConnectivityReportPdf` | Exporta PDF quando suportado |
+
+## `WbaToolkit.Inventory`
+
+Módulo de inventário técnico do toolkit.
+
+Funções públicas principais:
+
+| Função | Uso |
+|---|---|
+| `Get-InventoryCoverageMap` | Retorna a cobertura atual do inventário e suas lacunas conhecidas |
 
 ## Documentação HTML
 

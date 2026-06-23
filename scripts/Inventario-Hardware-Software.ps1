@@ -67,34 +67,34 @@
     Define o formato do resumo enxuto: Txt, Markdown, Json ou Todos.
 
 .EXAMPLE
-    .\Inventario-Hardware-Software.ps1
+    .\scripts\Inventario-Hardware-Software.ps1
 
     Execucao padrao. Gera HTML e PDF na pasta padronizada de relatorios com deteccao automatica
     de Chrome ou Edge para a conversao.
 
 .EXAMPLE
-    .\Inventario-Hardware-Software.ps1 -DiretorioSaida "D:\Relatorios"
+    .\scripts\Inventario-Hardware-Software.ps1 -DiretorioSaida "D:\Relatorios"
 
     Gera os arquivos na pasta D:\Relatorios (criada automaticamente
     se nao existir).
 
 .EXAMPLE
-    .\Inventario-Hardware-Software.ps1 -NaoPDF
+    .\scripts\Inventario-Hardware-Software.ps1 -NaoPDF
 
     Gera apenas o HTML na pasta padronizada de relatorios, sem tentativa de conversao para PDF.
 
 .EXAMPLE
-    .\Inventario-Hardware-Software.ps1 -SomenteHardwareDrivers
+    .\scripts\Inventario-Hardware-Software.ps1 -SomenteHardwareDrivers
 
     Gera somente o resumo enxuto de hardware e drivers ativos.
 
 .EXAMPLE
-    .\Inventario-Hardware-Software.ps1 -GerarResumoHardwareDrivers -NaoPDF
+    .\scripts\Inventario-Hardware-Software.ps1 -GerarResumoHardwareDrivers -NaoPDF
 
     Gera o inventario completo em HTML e tambem o resumo enxuto de hardware e drivers ativos.
 
 .EXAMPLE
-    .\Inventario-Hardware-Software.ps1 -DiretorioSaida "\\srv-files\TI\Inventarios" -NaoPDF
+    .\scripts\Inventario-Hardware-Software.ps1 -DiretorioSaida "\\srv-files\TI\Inventarios" -NaoPDF
 
     Salva o relatorio HTML diretamente em um compartilhamento de rede,
     sem gerar PDF.
@@ -149,7 +149,9 @@ $ScriptDir  = $PSScriptRoot
 
 $ToolkitRoot = Split-Path -Parent $PSScriptRoot
 $ToolkitModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
+$InventoryModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Inventory/WbaToolkit.Inventory.psd1'
 Import-Module $ToolkitModulePath -Force -ErrorAction Stop
+Import-Module $InventoryModulePath -Force -ErrorAction Stop
 
 # WBA-DOCS: Category=Inventory; Manual=Inventario de hardware software e drivers
 
@@ -875,6 +877,10 @@ $uptimeStr   = if ($uptime) { "{0}d {1}h {2}m" -f $uptime.Days, $uptime.Hours, $
 $cpu1        = if ($cpus.Count -gt 0) { $cpus[0] } else { $null }
 
 Write-Ok "Coleta concluida — Software: $($software.Count) | Hotfixes: $($hotfixes.Count) | Servicos: $($services.Count)"
+$coverageMap = @(Get-InventoryCoverageMap)
+Write-Info ('Cobertura do inventario : {0} blocos completos | {1} parcial' -f `
+    (@($coverageMap | Where-Object { $_.Status -eq 'Completo' }).Count),
+    (@($coverageMap | Where-Object { $_.Status -eq 'Parcial' }).Count))
 
 # ---------------------------------------------------------------------------
 # GERACAO DO HTML

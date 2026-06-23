@@ -11,7 +11,6 @@ experimental/
 ├── active-directory/
 ├── configuration/
 ├── diagnostics/
-├── inventory/
 ├── maintenance/
 ├── networking/
 ├── optimization/

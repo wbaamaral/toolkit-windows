@@ -91,6 +91,14 @@ function New-XtudoCatalog {
             Quick    = $false
         }
         [pscustomobject]@{
+            Id       = 'inventario-hardware-software'
+            Label    = 'Inventário hardware e software'
+            Category = 'Inventário'
+            Path     = 'scripts/Inventario-Hardware-Software.ps1'
+            Keywords = @('inventario', 'hardware', 'software', 'drivers', 'ativo', 'asset', 'monitores', 'bios')
+            Quick    = $false
+        }
+        [pscustomobject]@{
             Id       = 'preparar-imagem-windows'
             Label    = 'Preparar imagem'
             Category = 'Imagem'
@@ -213,9 +221,17 @@ function Invoke-XtudoScript {
     $invokeArgs = @()
     if ($Entry.PSObject.Properties.Name -contains 'Args' -and $null -ne $Entry.Args) {
         foreach ($arg in @($Entry.Args)) {
-            if ($null -ne $arg -and $arg -ne '') {
-                $invokeArgs += [string]$arg
+            if ($null -eq $arg -or $arg -eq '') {
+                continue
             }
+
+            $text = [string]$arg
+            if ($text -match '^\-\S+\s+\S+$' -and $text -notmatch '["'']') {
+                $invokeArgs += @($text -split '\s+', 2)
+                continue
+            }
+
+            $invokeArgs += $text
         }
     }
 

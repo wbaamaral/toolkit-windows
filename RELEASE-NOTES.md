@@ -42,7 +42,7 @@
 
 | Script | Descrição |
 |---|---|
-| `inventory\Inventario-Hardware-Software.ps1` | Hardware, software e drivers — HTML, TXT, Markdown e JSON |
+| `scripts\Inventario-Hardware-Software.ps1` | Hardware, software e drivers — HTML, TXT, Markdown e JSON |
 
 ### Active Directory
 

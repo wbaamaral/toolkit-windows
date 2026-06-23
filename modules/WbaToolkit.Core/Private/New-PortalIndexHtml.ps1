@@ -34,7 +34,7 @@
   <div class="card">
     <h3>Inventário</h3>
     <p>Hardware, software instalado, drivers. Exporta HTML, TXT, JSON e PDF.</p>
-    <code>.\inventory\Inventario-Hardware-Software.ps1</code>
+    <code>.\scripts\Inventario-Hardware-Software.ps1</code>
   </div>
   <div class="card">
     <h3>Limpeza Windows</h3>

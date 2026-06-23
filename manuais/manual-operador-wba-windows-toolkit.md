@@ -631,31 +631,31 @@ Use quando precisar:
 Inventário completo:
 
 ```powershell
-.\experimental\inventory\Inventario-Hardware-Software.ps1
+.\scripts\Inventario-Hardware-Software.ps1
 ```
 
 Inventário completo sem PDF:
 
 ```powershell
-.\experimental\inventory\Inventario-Hardware-Software.ps1 -NaoPDF
+.\scripts\Inventario-Hardware-Software.ps1 -NaoPDF
 ```
 
 Inventário completo e resumo de hardware/drivers:
 
 ```powershell
-.\experimental\inventory\Inventario-Hardware-Software.ps1 -GerarResumoHardwareDrivers
+.\scripts\Inventario-Hardware-Software.ps1 -GerarResumoHardwareDrivers
 ```
 
 Somente resumo rápido:
 
 ```powershell
-.\experimental\inventory\Inventario-Hardware-Software.ps1 -SomenteHardwareDrivers
+.\scripts\Inventario-Hardware-Software.ps1 -SomenteHardwareDrivers
 ```
 
 Somente Markdown:
 
 ```powershell
-.\experimental\inventory\Inventario-Hardware-Software.ps1 `
+.\scripts\Inventario-Hardware-Software.ps1 `
     -SomenteHardwareDrivers -FormatoResumoHardwareDrivers Markdown
 ```
 
@@ -677,6 +677,34 @@ Arquivos principais:
 | `resumo-hardware-drivers.md` | Resumo para chamado, issue ou documentação |
 | `resumo-hardware-drivers.json` | Dados estruturados para comparação automatizada |
 | `logs\inventario-*.log` | Log da execução |
+
+### 8.5. Cobertura do inventário
+
+O inventário atual cobre os seguintes blocos do equipamento:
+
+| Coberto | Status |
+|---|---|
+| Sistema operacional | Completo |
+| Processador | Completo |
+| Memória RAM | Completo |
+| Placa-mãe e BIOS | Completo |
+| Armazenamento | Completo |
+| Placa de vídeo | Completo |
+| Rede | Completo |
+| Monitores | Completo |
+| Software instalado | Completo |
+| Atualizações / hotfixes | Completo |
+| Serviços | Completo |
+| Resumo de hardware e drivers | Parcial, via saída enxuta opcional |
+
+Ainda não existe, nesta linha de projeto, um inventário separado para:
+
+- Active Directory do cliente;
+- impressoras e periféricos dedicados;
+- topologia de rede, VLAN ou switch;
+- usuários, perfis e sessões locais;
+- classificação de software por criticidade ou compliance;
+- patrimônio/CMDB com etiquetas, tombamento e status financeiro.
 
 ## 9. Script `Diagnostico-Driver-Grafico.ps1`
 
@@ -1439,7 +1467,7 @@ oficial em `scripts/`.
 4. Se for trocar driver, gerar também:
 
 ```powershell
-.\experimental\inventory\Inventario-Hardware-Software.ps1 -SomenteHardwareDrivers
+.\scripts\Inventario-Hardware-Software.ps1 -SomenteHardwareDrivers
 ```
 
 5. Depois da intervenção, executar o resumo novamente e comparar a versão do driver.

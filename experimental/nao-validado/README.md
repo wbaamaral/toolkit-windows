@@ -28,7 +28,7 @@ módulo, BOM (ADR 0007) ou testes Pester **não** contam como validação operac
 ## Já validados por execução real (não estão aqui)
 
 `upgrade-windows.ps1`, `Diagnostico-Memoria.ps1`, `Gerenciar-Inicializacao-Windows.ps1`,
-`Diagnostico-Reparo-HD100.ps1`, `Inventario-Hardware-Software.ps1`, `limpeza-windows.ps1`,
+`Diagnostico-Reparo-HD100.ps1`, `scripts/Inventario-Hardware-Software.ps1`, `limpeza-windows.ps1`,
 `Analise-Espaco-Disco.ps1`.
 
 ## Como um script sai desta lista

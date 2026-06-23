@@ -50,6 +50,7 @@
         [string[]]$ModulePath = @(
             (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'),
             (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'modules/WbaToolkit.Networking/WbaToolkit.Networking.psd1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'modules/WbaToolkit.Inventory/WbaToolkit.Inventory.psd1'),
             (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'modules/WbaToolkit.Startup/WbaToolkit.Startup.psd1'),
             (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'modules/WbaToolkit.Maintenance/WbaToolkit.Maintenance.psd1')
         ),
@@ -58,7 +59,7 @@
             (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/diagnostics/Diagnostico-Driver-Grafico.ps1'),
             (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'scripts/diagnosticar-ad-cliente.ps1'),
             (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/diagnostics/networking/Testar-Conectividade-Internet.ps1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/inventory/Inventario-Hardware-Software.ps1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'scripts/Inventario-Hardware-Software.ps1'),
             (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/maintenance/Diagnostico-Reparo-HD100.ps1'),
             (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/maintenance/Gerenciar-Inicializacao-Windows.ps1'),
             (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'scripts/limpeza-windows.ps1'),
