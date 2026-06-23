@@ -11,10 +11,14 @@
     da conta do computador no AD quando o modulo RSAT estiver disponivel.
 
     No modo Diagnostico, o script e somente leitura. No modo Assistido, quando o
-    canal seguro estiver comprometido, o operador pode confirmar o reparo guiado.
+    canal seguro ou a hora do cliente estiverem comprometidos, o operador pode
+    confirmar o reparo guiado.
 
 .PARAMETER Modo
     Diagnostico ou Assistido. Assistido permite reparo guiado do canal seguro.
+
+.PARAMETER Hora
+    Habilita o reparo guiado da sincronização de hora em modo Assistido.
 
 .PARAMETER DomainFQDN
     FQDN do dominio. Quando omitido, o script tenta inferir do ambiente.
@@ -36,12 +40,14 @@
     .\diagnosticar-ad-cliente.ps1
 
 .EXAMPLE
-    .\diagnosticar-ad-cliente.ps1 -Modo Assistido -DomainFQDN wba.test
+    .\diagnosticar-ad-cliente.ps1 -Modo Assistido -Hora -DomainFQDN wba.test
 #>
 [CmdletBinding()]
 param(
     [ValidateSet('Diagnostico', 'Assistido')]
     [string]$Modo = 'Diagnostico',
+
+    [switch]$Hora,
 
     [string]$DomainFQDN = '',
 
@@ -335,6 +341,85 @@ function Test-AdTimeSync {
     }
 }
 
+function Set-AdCheckResult {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)][string]$Category,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][ValidateSet('OK', 'AVISO', 'FALHA', 'PULADO')][string]$Status,
+        [Parameter(Mandatory = $true)][string]$Detail,
+        [Parameter(Mandatory = $false)][string]$Recommendation = '',
+        [Parameter(Mandatory = $false)][int]$Penalty = 0,
+        [switch]$Critical
+    )
+
+    foreach ($check in $script:Checks) {
+        if ($check.Categoria -eq $Category -and $check.Nome -eq $Name) {
+            $check.Status = $Status
+            $check.Detalhe = $Detail
+            $check.Recomendacao = $Recommendation
+            $check.Penalidade = $Penalty
+            $check.Critico = [bool]$Critical
+            return $true
+        }
+    }
+
+    return $false
+}
+
+function Repair-AdTimeSync {
+    [CmdletBinding()]
+    param()
+
+    Write-Section 'Tempo - reparo guiado'
+
+    if ($Modo -ne 'Assistido') {
+        Add-AdCheck -Category 'Tempo' -Name 'Reparo da hora' -Status 'PULADO' -Detail 'Correção de hora disponível apenas em modo Assistido.' -Recommendation 'Reexecute com -Modo Assistido -Hora.' -Penalty 0
+        return
+    }
+
+    if (-not (Read-YesNo -Question 'Deseja corrigir a sincronizacao de hora agora?' -DefaultYes $true)) {
+        Add-AdCheck -Category 'Tempo' -Name 'Reparo da hora' -Status 'PULADO' -Detail 'Correção de hora cancelada pelo operador.' -Penalty 0
+        return
+    }
+
+    try {
+        $steps = @(
+            @{ FilePath = 'w32tm'; ArgumentList = @('/config', '/syncfromflags:domhier', '/update'); Label = 'Aplicando politica de sincronizacao' },
+            @{ FilePath = 'net';    ArgumentList = @('stop', 'w32time'); Label = 'Parando W32Time' },
+            @{ FilePath = 'net';    ArgumentList = @('start', 'w32time'); Label = 'Iniciando W32Time' },
+            @{ FilePath = 'w32tm';  ArgumentList = @('/resync', '/force'); Label = 'Reforcando sincronizacao' }
+        )
+
+        foreach ($step in $steps) {
+            Write-Info $step.Label
+            $result = Invoke-ExternalCommand -FilePath $step.FilePath -ArgumentList $step.ArgumentList
+            if ($result.ExitCode -ne 0) {
+                throw "$($step.Label): $($result.Output)"
+            }
+        }
+
+        Start-Sleep -Seconds 2
+        $post = Invoke-ExternalCommand -FilePath 'w32tm' -ArgumentList @('/query', '/source')
+        $source = ($post.Output | Select-Object -First 1)
+        if ([string]::IsNullOrWhiteSpace($source)) {
+            $source = 'desconhecido'
+        }
+
+        if ($source -match 'Domain Hierarchy|^.*\bDC\b.*$') {
+            Set-AdCheckResult -Category 'Tempo' -Name 'Sincronização de hora' -Status 'OK' -Detail "Sincronização corrigida. Fonte de tempo: $source" -Penalty 0
+            Add-AdCheck -Category 'Tempo' -Name 'Reparo da hora' -Status 'OK' -Detail "Reparo concluído com sucesso. Fonte atual: $source" -Penalty 0
+        }
+        else {
+            Set-AdCheckResult -Category 'Tempo' -Name 'Sincronização de hora' -Status 'AVISO' -Detail "Sincronização executada, mas a fonte ainda não é do domínio: $source" -Recommendation 'Valide a fonte de tempo do cliente e do controlador de domínio.' -Penalty 5
+            Add-AdCheck -Category 'Tempo' -Name 'Reparo da hora' -Status 'AVISO' -Detail "Reparo executado, mas a fonte permanece fora do domínio: $source" -Penalty 5
+        }
+    }
+    catch {
+        Add-AdCheck -Category 'Tempo' -Name 'Reparo da hora' -Status 'FALHA' -Detail $_.Exception.Message -Recommendation 'Verifique conectividade com o DC e permissões de administrador.' -Penalty 10 -Critical
+    }
+}
+
 function Test-AdServices {
     [CmdletBinding()]
     param()
@@ -509,6 +594,9 @@ Test-AdConnectivity
 Test-AdShares
 Test-AdSecureChannel
 Test-AdTimeSync
+if ($Hora) {
+    Repair-AdTimeSync
+}
 Test-AdServices
 Test-AdMachineObject
 

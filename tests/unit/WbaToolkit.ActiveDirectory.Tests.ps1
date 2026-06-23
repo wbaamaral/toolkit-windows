@@ -11,6 +11,7 @@ Describe 'Xtudo diagnostico AD do cliente' {
     It 'Mantem o script oficial de AD em scripts/' {
         Test-Path -LiteralPath $script:adPath | Should -BeTrue
         $script:adContent | Should -Match "ValidateSet\('Diagnostico', 'Assistido'\)"
+        $script:adContent | Should -Match '\[switch\]\$Hora'
         $script:adContent | Should -Match 'WbaToolkit\.Core\.psd1'
         $script:adContent | Should -Match 'WbaToolkit\.Startup\.psd1'
     }
@@ -23,6 +24,8 @@ Describe 'Xtudo diagnostico AD do cliente' {
         $script:adContent | Should -Match 'NETLOGON'
         $script:adContent | Should -Match 'Get-ServiceStartupState'
         $script:adContent | Should -Match 'gpresult'
+        $script:adContent | Should -Match 'Repair-AdTimeSync'
+        $script:adContent | Should -Match 'w32tm'
     }
 
     It 'Nao referencia experimental no script oficial de AD' {
