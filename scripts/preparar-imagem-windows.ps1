@@ -20,5 +20,9 @@ $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
 try { chcp 65001 | Out-Null } catch { }
 
 $target = Join-Path $PSScriptRoot '../experimental/maintenance/Preparar-Imagem-Windows.ps1'
-$forwardArgs = if ($args.Count -gt 0) { $args } else { @() }
-& $target @forwardArgs
+if ($args.Count -gt 0) {
+    & $target @args
+}
+else {
+    & $target
+}

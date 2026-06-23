@@ -63,6 +63,7 @@ function New-XtudoCatalog {
             Path     = 'scripts/diagnosticar-disco-100.ps1'
             Keywords = @('disco', '100', 'hd100', 'io', 'lentidao')
             Quick    = $true
+            Args     = @('-Modo', 'Diagnostico')
         }
         [pscustomobject]@{
             Id       = 'diagnosticar-memoria'
@@ -79,6 +80,7 @@ function New-XtudoCatalog {
             Path     = 'scripts/diagnosticar-grafico.ps1'
             Keywords = @('grafico', 'video', 'gpu', 'tela preta', 'dwm')
             Quick    = $true
+            Args     = @('-Modo', 'Diagnostico')
         }
         [pscustomobject]@{
             Id       = 'preparar-imagem-windows'
@@ -192,6 +194,11 @@ function Invoke-XtudoScript {
     Write-Host ("Caminho:    {0}" -f $Entry.Path) -ForegroundColor DarkGray
     Write-Host ''
 
+    if ($Entry.PSObject.Properties.Name -contains 'Args' -and $Entry.Args -and $Entry.Args.Count -gt 0) {
+        & $target @($Entry.Args)
+        return
+    }
+
     & $target
 }
 
@@ -270,11 +277,11 @@ while ($true) {
     }
 
     if ($input -match '^[1-9][0-9]*$') {
-        $idx = [int]$input - 1
-        if ($idx -ge 0 -and $idx -lt $quick.Count) {
-            Invoke-XtudoScript -Entry $quick[$idx]
-            break
-        }
+            $idx = [int]$input - 1
+            if ($idx -ge 0 -and $idx -lt $quick.Count) {
+                Invoke-XtudoScript -Entry $quick[$idx]
+                break
+            }
     }
 
     $entry = Select-XtudoEntry -Entries $catalog -Tokens @($input)
