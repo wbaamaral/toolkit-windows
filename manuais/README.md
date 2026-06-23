@@ -18,9 +18,11 @@ manuais/
 Destinado a técnicos e suporte que executam scripts operacionais no campo.
 
 Entrada recomendada do MVP: [`../xtudo.ps1`](../xtudo.ps1)
+Entrada documental do operador: [`operador/README.md`](operador/README.md)
 
 | Documento | Finalidade |
 |---|---|
+| [`operador/README.md`](operador/README.md) | Porta de entrada do operador no MVP |
 | [`manual-operador-wba-windows-toolkit.md`](manual-operador-wba-windows-toolkit.md) | Manual completo do operador |
 | [`operador/guia-rapido.md`](operador/guia-rapido.md) | Referência rápida por função operacional |
 

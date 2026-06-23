@@ -28,7 +28,7 @@ As especificações formais do projeto ficam em um repositório separado, sob o 
 - Estrutura padronizada
 - Comentários e documentação incorporados
 - Foco em operações conservadoras e seguras
-- Ponto único de entrada via `xtudo.ps1` para descoberta rápida de scripts
+- Launcher único `xtudo.ps1` como ponto de entrada do operador
 
 ## Release e publicação
 
@@ -56,6 +56,16 @@ Para operar o toolkit sem memorizar pastas, use o launcher:
 
 Ele apresenta atalhos rápidos, aceita busca por palavra-chave e executa os scripts
 operacionais mais usados sem exigir navegação pela árvore do repositório.
+
+## Fluxo do operador
+
+O caminho recomendado para quem só quer executar tarefas é:
+
+1. abrir [`manuais/operador/README.md`](manuais/operador/README.md);
+2. iniciar por [`.\xtudo.ps1`](xtudo.ps1);
+3. usar os atalhos `1` a `5` quando a tarefa estiver no MVP;
+4. usar busca por palavra-chave quando não lembrar o nome exato;
+5. cancelar com `0`, `q` ou `sair` quando a opção não for a desejada.
 
 ## Funcionalidades Disponíveis
 
@@ -163,6 +173,7 @@ wba-windows-toolkit/
 ├── scripts/
 ├── modules/
 ├── manuais/
+│   └── operador/README.md
 ├── experimental/
 ├── tests/
 ├── docs/

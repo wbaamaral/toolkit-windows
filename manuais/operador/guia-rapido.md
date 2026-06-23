@@ -3,6 +3,7 @@
 Autor: **wbaamaral** — v1.2.0
 
 Manual completo: [`manual-operador-wba-windows-toolkit.md`](../manual-operador-wba-windows-toolkit.md)
+Portal do operador: [`README.md`](README.md)
 
 Entrada recomendada do MVP:
 

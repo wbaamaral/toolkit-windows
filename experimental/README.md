@@ -27,3 +27,4 @@ experimental/
 Os atalhos do `Xtudo` continuam em `scripts/`.
 Os módulos reutilizáveis continuam em `modules/`.
 Os manuais do operador ficam em `manuais/`.
+Se uma ferramenta ainda não for parte do fluxo oficial do operador, ela permanece aqui.

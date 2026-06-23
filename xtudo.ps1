@@ -145,7 +145,7 @@ function Get-XtudoEntry {
 function Show-XtudoBanner {
     Write-Host ''
     Write-Host 'Xtudo - WBA Windows Toolkit' -ForegroundColor Cyan
-    Write-Host '1-5 executa, 0 sai, Enter lista.' -ForegroundColor DarkGray
+    Write-Host '1-5 executa, 0/q/sair cancela, Enter lista.' -ForegroundColor DarkGray
     Write-Host ''
 }
 
@@ -223,7 +223,7 @@ function Select-XtudoEntry {
                 Write-Host ("  {0}. {1} [{2}] -> {3}" -f ($i + 1), $matches[$i].Label, $matches[$i].Category, $matches[$i].Path)
             }
             Write-Host ''
-            $choice = Read-Host 'Escolha um numero ou 0 para cancelar'
+            $choice = Read-Host 'Escolha um numero, 0 para cancelar ou q/sair'
             if ($choice -match '^(0|q|quit|sair)$') {
                 return $null
             }
