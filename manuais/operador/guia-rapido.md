@@ -1,8 +1,8 @@
-# Guia Rápido do Operador — WBA Windows Toolkit
+# Guia Rápido do Operador - WBA Windows Toolkit
 
 Autor: **wbaamaral** — v1.2.0
 
-Manual completo: [`manual-operador-wba-windows-toolkit.md`](../manual-operador-wba-windows-toolkit.md)
+Manual completo: [`../manual-operador-wba-windows-toolkit.md`](../manual-operador-wba-windows-toolkit.md)
 Portal do operador: [`README.md`](README.md)
 
 Entrada recomendada do MVP:
@@ -37,285 +37,90 @@ Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1 -Force
 
 ---
 
-## Scripts operacionais
+## Scripts do MVP
 
 ### Diagnóstico de rede
 
 ```powershell
-# Diagnóstico padrão:
 .\scripts\testar-conectividade-internet.ps1
-
-# Com detalhes adicionais no console:
 .\scripts\testar-conectividade-internet.ps1 -Detalhado
 ```
 
 ### Diagnóstico de disco (HD100)
 
 ```powershell
-# Diagnóstico padrão:
 .\scripts\diagnosticar-disco-100.ps1
-
-# Com relatório HTML:
 .\scripts\diagnosticar-disco-100.ps1 -GerarHtml
-
-# Modo assistido (oferece ações de reparo):
 .\scripts\diagnosticar-disco-100.ps1 -Modo Assistido -GerarHtml
-
-# Simulação sem executar comandos externos:
 .\scripts\diagnosticar-disco-100.ps1 -DryRun
 ```
 
 ### Diagnóstico de driver gráfico
 
 ```powershell
-# Diagnóstico padrão:
 .\scripts\diagnosticar-grafico.ps1
-
-# Com relatório HTML:
 .\scripts\diagnosticar-grafico.ps1 -GerarHtml
-
-# Coleta completa (HTML + DXDiag + exportação de log de eventos):
 .\scripts\diagnosticar-grafico.ps1 -GerarHtml -ColetarDxDiag -ExportarEvtx
 ```
 
 ### Diagnóstico de memória
 
 ```powershell
-# Top 10 consumidores de RAM (padrão):
 .\scripts\diagnosticar-memoria.ps1
-
-# Top 20 processos:
 .\scripts\diagnosticar-memoria.ps1 -Top 20
-
-# Listar todos os processos:
 .\scripts\diagnosticar-memoria.ps1 -Todos
-
-# Com relatório HTML:
 .\scripts\diagnosticar-memoria.ps1 -GerarHtml
 ```
 
 ### Verificar atualizações de hardware
 
 ```powershell
-# Diagnóstico completo (BIOS + drivers + Windows Update):
 .\scripts\verificar-atualizacoes-hardware.ps1
-
-# Com relatório HTML:
 .\scripts\verificar-atualizacoes-hardware.ps1 -GerarHtml
-
-# Somente BIOS:
 .\scripts\verificar-atualizacoes-hardware.ps1 -SkipDrivers
-
-# Somente drivers:
 .\scripts\verificar-atualizacoes-hardware.ps1 -SkipBios
-```
-
-### Inventário de hardware/software
-
-```powershell
-# Inventário completo (HTML + PDF quando Chrome ou Edge disponível):
-.\experimental\inventory\Inventario-Hardware-Software.ps1
-
-# Sem PDF (somente HTML):
-.\experimental\inventory\Inventario-Hardware-Software.ps1 -NaoPDF
-
-# Somente resumo de hardware e drivers:
-.\experimental\inventory\Inventario-Hardware-Software.ps1 -SomenteHardwareDrivers
-
-# Inventário completo + resumo de hardware/drivers:
-.\experimental\inventory\Inventario-Hardware-Software.ps1 -GerarResumoHardwareDrivers
-```
-
-### Gerenciar inicialização
-
-```powershell
-# Somente visualização (padrão):
-.\experimental\maintenance\Gerenciar-Inicializacao-Windows.ps1
-
-# Com relatório HTML:
-.\experimental\maintenance\Gerenciar-Inicializacao-Windows.ps1 -GerarHtml
-
-# Modo assistido (permite desabilitar/habilitar entradas):
-.\experimental\maintenance\Gerenciar-Inicializacao-Windows.ps1 -Modo Assistido
-
-# Simulação sem alterar o sistema:
-.\experimental\maintenance\Gerenciar-Inicializacao-Windows.ps1 -Modo Assistido -DryRun
 ```
 
 ### Limpeza do Windows
 
 ```powershell
-# Limpeza conservadora sem reiniciar (recomendado):
 .\scripts\limpar-windows.ps1 -NoReboot
-
-# Somente reparar sistema (SFC + DISM):
 .\scripts\limpar-windows.ps1 -RepararSistema -NoReboot
-
-# Limpeza sem SFC/DISM:
 .\scripts\limpar-windows.ps1 -NoSfc -NoReboot
-
-# Liberar espaço do hiberfil.sys (desativa hibernação):
 .\scripts\limpar-windows.ps1 -DisableHibernation -NoReboot
 ```
 
-### Limpeza do WinSxS (Component Store)
+### Limpeza do WinSxS
 
 ```powershell
-# Diagnóstico somente leitura (padrão):
 .\scripts\limpar-winsxs.ps1
-
-# Relatório em JSON:
 .\scripts\limpar-winsxs.ps1 -Modo Relatorio
-
-# Relatório em JSON e HTML:
 .\scripts\limpar-winsxs.ps1 -Modo Relatorio -GerarHtml
-
-# Limpeza assistida (solicita confirmação):
 .\scripts\limpar-winsxs.ps1 -Modo Limpeza
-
-# Simulação da limpeza sem alterar nada:
 .\scripts\limpar-winsxs.ps1 -Modo Limpeza -DryRun
 ```
 
-### Backup e restauração de drivers
+### Preparar imagem corporativa
 
 ```powershell
-# Backup interativo (padrão):
-.\experimental\maintenance\Backup-Restaurar-Drivers.ps1
-
-# Simulação de backup:
-.\experimental\maintenance\Backup-Restaurar-Drivers.ps1 -DryRun
-
-# Restauração interativa com relatório HTML:
-.\experimental\maintenance\Backup-Restaurar-Drivers.ps1 -Modo Restore -GerarHtml
-
-# Path de relatório/backup customizado:
-.\experimental\maintenance\Backup-Restaurar-Drivers.ps1 -Path "D:\Backup\Drivers"
-```
-
-### Preparar imagem corporativa (sysprep)
-
-```powershell
-# Simulação obrigatória antes de qualquer execução:
 .\scripts\preparar-imagem-windows.ps1 -ApenasDryRun
-
-# Aplicar tweaks sem iniciar sysprep:
 .\scripts\preparar-imagem-windows.ps1 -SemSysprep
-
-# Execução completa (tweaks de perfil Default + sysprep):
 .\scripts\preparar-imagem-windows.ps1
-```
-
-### Configurar idioma e região
-
-```powershell
-# Configuração padrão (pt-BR, UTC-4):
-.\experimental\configuration\Configurar-Idioma-Regional.ps1
-
-# Modo silencioso sem reboot (automação, GPO, SCCM):
-.\experimental\configuration\Configurar-Idioma-Regional.ps1 -Silent -NoReboot
-
-# Fuso de Brasília (UTC-3):
-.\experimental\configuration\Configurar-Idioma-Regional.ps1 -TimeZone "E. South America Standard Time"
-
-# Listar fusos disponíveis do Brasil:
-.\experimental\configuration\Configurar-Idioma-Regional.ps1 -ListTimeZones
-```
-
-### Análise de espaço em disco
-
-```powershell
-# Varrer todos os volumes locais:
-.\experimental\utilities\Analise-Espaco-Disco.ps1
-
-# Varrer somente C::
-.\experimental\utilities\Analise-Espaco-Disco.ps1 -Drive C
-
-# Sem conversão para PDF:
-.\experimental\utilities\Analise-Espaco-Disco.ps1 -NaoPDF
-```
-
-### Remover perfis inativos
-
-```powershell
-# Simulação — lista o que seria removido sem alterar nada:
-.\experimental\utilities\Remover-Perfis-Inativos.ps1 -DryRun
-
-# Modo interativo (padrão):
-.\experimental\utilities\Remover-Perfis-Inativos.ps1
-
-# Automático (remove órfãos e inativos sem confirmação):
-.\experimental\utilities\Remover-Perfis-Inativos.ps1 -Silent
 ```
 
 ### Atualizar Windows
 
 ```powershell
-# Atualização completa (Windows Update + Chocolatey):
-.\scripts\atualizar-windows.ps1 -PauseAtEnd
-
-# Somente Windows Update:
-.\scripts\atualizar-windows.ps1 -NoChocolatey -PauseAtEnd
-
-# Somente Chocolatey:
-.\scripts\atualizar-windows.ps1 -NoWindowsUpdate -PauseAtEnd
-```
-
-### Diagnóstico de GPO
-
-```powershell
-# Detecção automática de domínio e DC:
-.\experimental\active-directory\Diagnostico-GPO-Client.ps1
-
-# Somente leitura com DC específico:
-.\experimental\active-directory\Diagnostico-GPO-Client.ps1 -DCName DC01 -SkipReparo
-
-# Com FQDN do domínio informado:
-.\experimental\active-directory\Diagnostico-GPO-Client.ps1 -DomainFQDN contoso.local
-```
-
-### Reparo de conta de máquina no domínio
-
-```powershell
-# Detecção automática de domínio e DC:
-.\experimental\active-directory\Testa-Repara-ContaMaquinaAD.ps1
-
-# Com domínio e DC específicos:
-.\experimental\active-directory\Testa-Repara-ContaMaquinaAD.ps1 `
-    -DomainFqdn contoso.local -PreferredDc DC01
-
-# Com DNS específico:
-.\experimental\active-directory\Testa-Repara-ContaMaquinaAD.ps1 `
-    -DomainFqdn contoso.local -DnsServers 192.168.1.7
+.\scripts\atualizar-windows.ps1
+.\scripts\atualizar-windows.ps1 -Backend WinGet
+.\scripts\atualizar-windows.ps1 -Backend WinGet -Action ListOnly
+.\scripts\atualizar-windows.ps1 -Backend Chocolatey -NoWindowsUpdate
+.\scripts\atualizar-windows.ps1 -NoWindowsUpdate
 ```
 
 ---
 
-## Pasta de relatórios
+## Navegação
 
-Caminho padrão: `C:\WBA\Relatorios\<Script>\<timestamp>\`
-
-```powershell
-Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1 -Force
-
-# Definir pasta padrão permanente:
-Set-ToolkitReportsRoot -Path "D:\Relatorios"
-
-# Consultar pasta atual:
-Get-ToolkitReportsRoot
-```
-
----
-
-## Gerar portal de documentação HTML
-
-```powershell
-Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1 -Force
-
-# Portal completo (portal operacional + referência técnica):
-Export-ToolkitDocumentation -Mode All -Force
-# Resultado em: .\docs\portal\index.html
-
-# Somente portal operacional:
-Export-ToolkitDocumentation -Mode Portal -Force
-```
+- Catálogo de manuais: [`../README.md`](../README.md)
+- Manual completo do operador: [`../manual-operador-wba-windows-toolkit.md`](../manual-operador-wba-windows-toolkit.md)

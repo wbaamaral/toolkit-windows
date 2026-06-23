@@ -36,59 +36,26 @@ Destinada a desenvolvedores que estendem ou mantêm os módulos.
 | Gerado por `Export-ToolkitDocumentation` | Portal HTML offline completo: portal operacional + referência técnica (executar no Windows) |
 | Gerado por `Export-ToolkitFunctionDocs` | Apenas referência HTML das funções com CBH (usado internamente pelo comando acima) |
 
-## Scripts por função operacional
+## Scripts do MVP
 
-### Diagnóstico
-
-| Script | Caminho | Descrição |
-|---|---|---|
-| Diagnóstico de conectividade | `scripts/testar-conectividade-internet.ps1` | Testa gateway, DNS, ICMP, TCP; relatório HTML |
-| Diagnóstico de driver gráfico | `scripts/diagnosticar-grafico.ps1` | GPU, DWM, TDR, WHEA, eventos gráficos, DXDiag |
-| Diagnóstico de memória | `scripts/diagnosticar-memoria.ps1` | Top-N consumidores de RAM; métricas de memória paginada e física |
-| Verificar atualizações de hardware | `scripts/verificar-atualizacoes-hardware.ps1` | BIOS, drivers e atualizações de hardware pendentes via Windows Update |
-
-### Manutenção
+Os itens abaixo são os atalhos oficiais que o operador deve usar hoje.
 
 | Script | Caminho | Descrição |
 |---|---|---|
 | Limpeza do Windows | `scripts/limpar-windows.ps1` | Limpeza conservadora e manutenção |
 | Limpeza WinSxS | `scripts/limpar-winsxs.ps1` | Component Store: diagnóstico, limpeza assistida e relatório |
-| Backup e restauração de drivers | `experimental/maintenance/Backup-Restaurar-Drivers.ps1` | Backup e restauração de drivers não-Windows via DISM/pnputil |
 | Diagnóstico HD100 | `scripts/diagnosticar-disco-100.ps1` | Uso de disco 100%, SMART, startup |
-| Gerenciar inicialização | `experimental/maintenance/Gerenciar-Inicializacao-Windows.ps1` | Habilitar/desabilitar itens de startup |
+| Diagnóstico de memória | `scripts/diagnosticar-memoria.ps1` | Top-N consumidores de RAM; métricas de memória paginada e física |
+| Diagnóstico de driver gráfico | `scripts/diagnosticar-grafico.ps1` | GPU, DWM, TDR, WHEA, eventos gráficos, DXDiag |
+| Diagnóstico de conectividade | `scripts/testar-conectividade-internet.ps1` | Testa gateway, DNS, ICMP, TCP; relatório HTML |
+| Verificar atualizações de hardware | `scripts/verificar-atualizacoes-hardware.ps1` | BIOS, drivers e atualizações de hardware pendentes via Windows Update |
 | Preparar imagem corporativa | `scripts/preparar-imagem-windows.ps1` | Tweaks de perfil Default + sysprep |
-
-### Inventário
-
-| Script | Caminho | Descrição |
-|---|---|---|
-| Inventário hardware/software | `experimental/inventory/Inventario-Hardware-Software.ps1` | Coleta completa; HTML/PDF opcional |
-
-### Active Directory
-
-| Script | Caminho | Descrição |
-|---|---|---|
-| Diagnóstico de GPO | `experimental/active-directory/Diagnostico-GPO-Client.ps1` | Diagnóstico de aplicação de políticas |
-| Reparo de conta de máquina | `experimental/active-directory/Testa-Repara-ContaMaquinaAD.ps1` | Teste e reparo de conta no domínio |
-
-### Configuração
-
-| Script | Caminho | Descrição |
-|---|---|---|
-| Idioma e região | `experimental/configuration/Configurar-Idioma-Regional.ps1` | Padronização de idioma e fuso |
-
-### Utilitários
-
-| Script | Caminho | Descrição |
-|---|---|---|
-| Análise de espaço em disco | `experimental/utilities/Analise-Espaco-Disco.ps1` | Análise por pasta e disco |
-| Remover perfis inativos | `experimental/utilities/Remover-Perfis-Inativos.ps1` | Remove perfis de usuários inativos |
-
-### Atualizações
-
-| Script | Caminho | Descrição |
-|---|---|---|
 | Atualizar Windows | `scripts/atualizar-windows.ps1` | Windows Update e Chocolatey quando disponível |
+
+## Fora do MVP
+
+Ferramentas ainda não promovidas ficam fora deste catálogo operacional e seguem em
+`experimental/` até passarem para a superfície oficial.
 
 ## Módulos PowerShell
 
