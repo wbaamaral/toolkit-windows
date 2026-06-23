@@ -20,6 +20,9 @@
 .PARAMETER Hora
     Habilita o reparo guiado da sincronização de hora em modo Assistido.
 
+.PARAMETER Canal
+    Habilita o reparo guiado do canal seguro em modo Assistido.
+
 .PARAMETER DomainFQDN
     FQDN do dominio. Quando omitido, o script tenta inferir do ambiente.
 
@@ -40,7 +43,7 @@
     .\diagnosticar-ad-cliente.ps1
 
 .EXAMPLE
-    .\diagnosticar-ad-cliente.ps1 -Modo Assistido -Hora -DomainFQDN wba.test
+    .\diagnosticar-ad-cliente.ps1 -Modo Assistido -Hora -Canal -DomainFQDN wba.test
 #>
 [CmdletBinding()]
 param(
@@ -48,6 +51,8 @@ param(
     [string]$Modo = 'Diagnostico',
 
     [switch]$Hora,
+
+    [switch]$Canal,
 
     [string]$DomainFQDN = '',
 
@@ -284,7 +289,7 @@ function Test-AdSecureChannel {
         }
         else {
             Add-AdCheck -Category 'Domínio' -Name 'Canal seguro' -Status 'FALHA' -Detail 'Secure channel quebrado.' -Recommendation 'Em modo assistido, use o reparo guiado.' -Penalty 30 -Critical
-            if ($Modo -eq 'Assistido' -and (Read-YesNo -Question 'Deseja reparar o canal seguro agora?' -DefaultYes $true)) {
+            if ($Modo -eq 'Assistido' -and $Canal -and (Read-YesNo -Question 'Deseja reparar o canal seguro agora?' -DefaultYes $true)) {
                 $cred = Get-Credential -Message 'Credencial de domínio para reparar o canal seguro'
                 try {
                     if ([string]::IsNullOrWhiteSpace($script:TargetDc)) {
@@ -625,7 +630,7 @@ Write-Host ''
 
 Write-AdReport -Summary $summary
 
-if ($Modo -eq 'Assistido') {
+if ($Modo -eq 'Assistido' -and $Canal) {
     $secureFail = @($script:Checks | Where-Object { $_.Nome -eq 'Canal seguro' -and $_.Status -eq 'FALHA' })
     if ($secureFail.Count -gt 0) {
         Write-Host ''

@@ -12,6 +12,7 @@ Describe 'Xtudo diagnostico AD do cliente' {
         Test-Path -LiteralPath $script:adPath | Should -BeTrue
         $script:adContent | Should -Match "ValidateSet\('Diagnostico', 'Assistido'\)"
         $script:adContent | Should -Match '\[switch\]\$Hora'
+        $script:adContent | Should -Match '\[switch\]\$Canal'
         $script:adContent | Should -Match 'WbaToolkit\.Core\.psd1'
         $script:adContent | Should -Match 'WbaToolkit\.Startup\.psd1'
     }
@@ -25,6 +26,7 @@ Describe 'Xtudo diagnostico AD do cliente' {
         $script:adContent | Should -Match 'Get-ServiceStartupState'
         $script:adContent | Should -Match 'gpresult'
         $script:adContent | Should -Match 'Repair-AdTimeSync'
+        $script:adContent | Should -Match 'Deseja reparar o canal seguro agora\?'
         $script:adContent | Should -Match 'w32tm'
     }
 
