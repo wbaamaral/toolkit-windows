@@ -10,6 +10,15 @@ date: "2026-06-14"
 Este documento foi escrito para equipes de suporte e operadores que precisam executar rotinas do WBA Windows
 Toolkit com segurança.
 
+No estado atual do projeto, a entrada recomendada para o operador é `.\xtudo.ps1`.
+O MVP expõe cinco ações principais:
+
+- Limpar Windows
+- Diagnosticar disco 100%
+- Diagnosticar memória
+- Diagnosticar gráfico
+- Preparar imagem
+
 O objetivo é explicar:
 
 - como abrir o PowerShell no local correto;
@@ -32,15 +41,12 @@ Ele é organizado em pastas:
 
 | Pasta | Finalidade |
 |---|---|
-| `maintenance` | Scripts de manutenção, limpeza e diagnóstico de disco |
-| `updates` | Scripts de atualização do Windows e pacotes |
-| `diagnostics` | Scripts de diagnóstico de rede, vídeo e outros componentes |
-| `inventory` | Inventário de hardware, software e drivers |
-| `active-directory` | Diagnósticos e reparos relacionados a domínio Active Directory |
-| `configuration` | Padronização de configurações do Windows |
-| `utilities` | Ferramentas auxiliares |
+| `scripts` | Atalhos oficiais do MVP chamados pelo `xtudo.ps1` |
 | `modules` | Funções reutilizáveis usadas pelos scripts |
-| `docs` | Documentação do projeto |
+| `manuais` | Documentação do operador e referência rápida |
+| `experimental` | Legado e ferramentas fora do fluxo principal |
+| `tests` | Testes e cenários de validação |
+| `docs` | Artefatos de documentação e suporte |
 
 ### 1.2. O que é um script
 
@@ -49,9 +55,9 @@ Um script PowerShell é um arquivo com extensão `.ps1`. Ele executa uma tarefa 
 Exemplos:
 
 ```powershell
-.\maintenance\Diagnostico-Reparo-HD100.ps1
-.\maintenance\limpeza-windows.ps1
-.\updates\upgrade-windows.ps1
+.\experimental\maintenance\Diagnostico-Reparo-HD100.ps1
+.\experimental\maintenance\limpeza-windows.ps1
+.\experimental\updates\upgrade-windows.ps1
 ```
 
 ### 1.3. O que é um módulo
@@ -311,7 +317,7 @@ C:\ProgramData\WBA\WindowsToolkit\config.json
 Quando quiser alterar apenas uma execução, use o parâmetro do próprio script:
 
 ```powershell
-.\maintenance\Diagnostico-Reparo-HD100.ps1 `
+.\experimental\maintenance\Diagnostico-Reparo-HD100.ps1 `
     -DiretorioSaida "D:\Atendimentos\Cliente01" -GerarHtml
 ```
 
@@ -323,7 +329,7 @@ Essa escolha não altera a configuração permanente.
 
 A função `Export-ToolkitDocumentation` gera um portal HTML local completo com:
 
-- portal operacional com cards de ação e catálogo de scripts;
+- portal do operador com acesso rápido ao MVP;
 - guia do operador em HTML;
 - referência técnica com CBH de todas as funções públicas;
 - links entre funções relacionadas;
@@ -452,7 +458,7 @@ Set-Location C:\ti\wba-windows-toolkit
 Execute em modo diagnóstico com HTML:
 
 ```powershell
-.\maintenance\Diagnostico-Reparo-HD100.ps1 -GerarHtml
+.\experimental\maintenance\Diagnostico-Reparo-HD100.ps1 -GerarHtml
 ```
 
 Esse modo é o mais seguro para começar. Ele gera relatório e não aplica correções permanentes.
@@ -471,31 +477,31 @@ Esse modo é o mais seguro para começar. Ele gera relatório e não aplica corr
 Diagnóstico seguro:
 
 ```powershell
-.\maintenance\Diagnostico-Reparo-HD100.ps1
+.\experimental\maintenance\Diagnostico-Reparo-HD100.ps1
 ```
 
 Diagnóstico com HTML:
 
 ```powershell
-.\maintenance\Diagnostico-Reparo-HD100.ps1 -GerarHtml
+.\experimental\maintenance\Diagnostico-Reparo-HD100.ps1 -GerarHtml
 ```
 
 Simulação sem executar comandos externos:
 
 ```powershell
-.\maintenance\Diagnostico-Reparo-HD100.ps1 -DryRun -GerarHtml
+.\experimental\maintenance\Diagnostico-Reparo-HD100.ps1 -DryRun -GerarHtml
 ```
 
 Modo assistido:
 
 ```powershell
-.\maintenance\Diagnostico-Reparo-HD100.ps1 -Modo Assistido -GerarHtml
+.\experimental\maintenance\Diagnostico-Reparo-HD100.ps1 -Modo Assistido -GerarHtml
 ```
 
 Rollback de inicialização:
 
 ```powershell
-.\maintenance\Diagnostico-Reparo-HD100.ps1 -Modo Rollback
+.\experimental\maintenance\Diagnostico-Reparo-HD100.ps1 -Modo Rollback
 ```
 
 ### 7.7. O que ele coleta
@@ -624,31 +630,31 @@ Use quando precisar:
 Inventário completo:
 
 ```powershell
-.\inventory\Inventario-Hardware-Software.ps1
+.\experimental\inventory\Inventario-Hardware-Software.ps1
 ```
 
 Inventário completo sem PDF:
 
 ```powershell
-.\inventory\Inventario-Hardware-Software.ps1 -NaoPDF
+.\experimental\inventory\Inventario-Hardware-Software.ps1 -NaoPDF
 ```
 
 Inventário completo e resumo de hardware/drivers:
 
 ```powershell
-.\inventory\Inventario-Hardware-Software.ps1 -GerarResumoHardwareDrivers
+.\experimental\inventory\Inventario-Hardware-Software.ps1 -GerarResumoHardwareDrivers
 ```
 
 Somente resumo rápido:
 
 ```powershell
-.\inventory\Inventario-Hardware-Software.ps1 -SomenteHardwareDrivers
+.\experimental\inventory\Inventario-Hardware-Software.ps1 -SomenteHardwareDrivers
 ```
 
 Somente Markdown:
 
 ```powershell
-.\inventory\Inventario-Hardware-Software.ps1 `
+.\experimental\inventory\Inventario-Hardware-Software.ps1 `
     -SomenteHardwareDrivers -FormatoResumoHardwareDrivers Markdown
 ```
 
@@ -693,19 +699,19 @@ Use quando o computador apresentar:
 Diagnóstico seguro:
 
 ```powershell
-.\diagnostics\Diagnostico-Driver-Grafico.ps1
+.\experimental\diagnostics\Diagnostico-Driver-Grafico.ps1
 ```
 
 Diagnóstico com HTML:
 
 ```powershell
-.\diagnostics\Diagnostico-Driver-Grafico.ps1 -GerarHtml
+.\experimental\diagnostics\Diagnostico-Driver-Grafico.ps1 -GerarHtml
 ```
 
 Coleta assistida com HTML, DXDiag e EVTX:
 
 ```powershell
-.\diagnostics\Diagnostico-Driver-Grafico.ps1 -Modo Assistido
+.\experimental\diagnostics\Diagnostico-Driver-Grafico.ps1 -Modo Assistido
 ```
 
 ### 9.4. Relatórios gerados
@@ -766,31 +772,31 @@ Use quando:
 Diagnóstico somente leitura:
 
 ```powershell
-.\maintenance\Gerenciar-Inicializacao-Windows.ps1
+.\experimental\maintenance\Gerenciar-Inicializacao-Windows.ps1
 ```
 
 Diagnóstico com relatório HTML:
 
 ```powershell
-.\maintenance\Gerenciar-Inicializacao-Windows.ps1 -GerarHtml
+.\experimental\maintenance\Gerenciar-Inicializacao-Windows.ps1 -GerarHtml
 ```
 
 Modo assistido para modificações:
 
 ```powershell
-.\maintenance\Gerenciar-Inicializacao-Windows.ps1 -Modo Assistido
+.\experimental\maintenance\Gerenciar-Inicializacao-Windows.ps1 -Modo Assistido
 ```
 
 Simulação sem alterar o sistema:
 
 ```powershell
-.\maintenance\Gerenciar-Inicializacao-Windows.ps1 -Modo Assistido -DryRun
+.\experimental\maintenance\Gerenciar-Inicializacao-Windows.ps1 -Modo Assistido -DryRun
 ```
 
 Em pasta de saída específica:
 
 ```powershell
-.\maintenance\Gerenciar-Inicializacao-Windows.ps1 -Modo Assistido -DiretorioSaida "D:\Atendimentos\Cliente01"
+.\experimental\maintenance\Gerenciar-Inicializacao-Windows.ps1 -Modo Assistido -DiretorioSaida "D:\Atendimentos\Cliente01"
 ```
 
 ### 10.5. O que ele coleta e exibe
@@ -869,13 +875,13 @@ Use quando houver:
 ### 11.3. Diagnóstico geral de internet
 
 ```powershell
-.\diagnostics\networking\Testar-Conectividade-Internet.ps1
+.\experimental\diagnostics\networking\Testar-Conectividade-Internet.ps1
 ```
 
 Com detalhes:
 
 ```powershell
-.\diagnostics\networking\Testar-Conectividade-Internet.ps1 -Detalhado
+.\experimental\diagnostics\networking\Testar-Conectividade-Internet.ps1 -Detalhado
 ```
 
 ### 11.4. Teste direcionado por alvo
@@ -931,7 +937,7 @@ O script não remove:
 
 ```powershell
 Set-Location C:\ti\wba-windows-toolkit
-.\maintenance\limpeza-windows.ps1 -NoReboot
+.\experimental\maintenance\limpeza-windows.ps1 -NoReboot
 ```
 
 O parâmetro `-NoReboot` evita reinicialização automática.
@@ -960,25 +966,25 @@ O parâmetro `-NoReboot` evita reinicialização automática.
 Limpeza sem reiniciar:
 
 ```powershell
-.\maintenance\limpeza-windows.ps1 -NoReboot
+.\experimental\maintenance\limpeza-windows.ps1 -NoReboot
 ```
 
 Somente reparar sistema:
 
 ```powershell
-.\maintenance\limpeza-windows.ps1 -RepararSistema -NoReboot
+.\experimental\maintenance\limpeza-windows.ps1 -RepararSistema -NoReboot
 ```
 
 Limpeza sem SFC/DISM:
 
 ```powershell
-.\maintenance\limpeza-windows.ps1 -NoSfc -NoReboot
+.\experimental\maintenance\limpeza-windows.ps1 -NoSfc -NoReboot
 ```
 
 Automação conservadora:
 
 ```powershell
-.\maintenance\limpeza-windows.ps1 -ChkdskAction Skip -EventLogCleanup None -NoReboot
+.\experimental\maintenance\limpeza-windows.ps1 -ChkdskAction Skip -EventLogCleanup None -NoReboot
 ```
 
 ### 12.7. Onde fica o log
@@ -1029,7 +1035,7 @@ Use quando:
 
 ```powershell
 Set-Location C:\ti\wba-windows-toolkit
-.\updates\upgrade-windows.ps1 -PauseAtEnd
+.\experimental\updates\upgrade-windows.ps1 -PauseAtEnd
 ```
 
 O parâmetro `-PauseAtEnd` mantém a janela aberta no final, útil para copiar mensagens e conferir o resultado.
@@ -1050,25 +1056,25 @@ O parâmetro `-PauseAtEnd` mantém a janela aberta no final, útil para copiar m
 Executar atualização completa:
 
 ```powershell
-.\updates\upgrade-windows.ps1
+.\experimental\updates\upgrade-windows.ps1
 ```
 
 Somente Chocolatey:
 
 ```powershell
-.\updates\upgrade-windows.ps1 -NoWindowsUpdate
+.\experimental\updates\upgrade-windows.ps1 -NoWindowsUpdate
 ```
 
 Somente Windows Update:
 
 ```powershell
-.\updates\upgrade-windows.ps1 -NoChocolatey
+.\experimental\updates\upgrade-windows.ps1 -NoChocolatey
 ```
 
 Manter janela aberta:
 
 ```powershell
-.\updates\upgrade-windows.ps1 -PauseAtEnd
+.\experimental\updates\upgrade-windows.ps1 -PauseAtEnd
 ```
 
 ### 13.6. Onde fica o log
@@ -1136,19 +1142,19 @@ Use quando precisar:
 Simulação obrigatória antes da primeira execução:
 
 ```powershell
-.\maintenance\Preparar-Imagem-Windows.ps1 -ApenasDryRun
+.\experimental\maintenance\Preparar-Imagem-Windows.ps1 -ApenasDryRun
 ```
 
 Apenas aplicar tweaks, sem sysprep:
 
 ```powershell
-.\maintenance\Preparar-Imagem-Windows.ps1 -SemSysprep
+.\experimental\maintenance\Preparar-Imagem-Windows.ps1 -SemSysprep
 ```
 
 Execução completa (tweaks + sysprep):
 
 ```powershell
-.\maintenance\Preparar-Imagem-Windows.ps1
+.\experimental\maintenance\Preparar-Imagem-Windows.ps1
 ```
 
 ---
@@ -1406,7 +1412,7 @@ Com DNS específico:
 3. Executar:
 
 ```powershell
-.\maintenance\Diagnostico-Reparo-HD100.ps1 -GerarHtml
+.\experimental\maintenance\Diagnostico-Reparo-HD100.ps1 -GerarHtml
 ```
 
 4. Abrir o HTML gerado.
@@ -1425,7 +1431,7 @@ Com DNS específico:
 1. Executar:
 
 ```powershell
-.\maintenance\limpeza-windows.ps1 -NoReboot
+.\experimental\maintenance\limpeza-windows.ps1 -NoReboot
 ```
 
 2. Verificar o log em `C:\WBA\Relatorios\Maintenance\<timestamp>\logs`.
@@ -1436,7 +1442,7 @@ Com DNS específico:
 1. Executar:
 
 ```powershell
-.\updates\upgrade-windows.ps1 -PauseAtEnd
+.\experimental\updates\upgrade-windows.ps1 -PauseAtEnd
 ```
 
 2. Conferir Windows Update nas Configurações.
@@ -1447,7 +1453,7 @@ Com DNS específico:
 1. Executar:
 
 ```powershell
-.\diagnostics\Diagnostico-Driver-Grafico.ps1 -Modo Assistido
+.\experimental\diagnostics\Diagnostico-Driver-Grafico.ps1 -Modo Assistido
 ```
 
 2. Abrir o HTML gerado.
@@ -1460,7 +1466,7 @@ Com DNS específico:
 4. Se for trocar driver, gerar também:
 
 ```powershell
-.\inventory\Inventario-Hardware-Software.ps1 -SomenteHardwareDrivers
+.\experimental\inventory\Inventario-Hardware-Software.ps1 -SomenteHardwareDrivers
 ```
 
 5. Depois da intervenção, executar o resumo novamente e comparar a versão do driver.
