@@ -17,12 +17,12 @@ manuais/
 
 Destinado a técnicos e suporte que executam scripts operacionais no campo.
 
-Entrada recomendada do MVP: [`../xtudo.ps1`](../xtudo.ps1)
+Entrada principal: [`../xtudo.ps1`](../xtudo.ps1)
 Entrada documental do operador: [`operador/README.md`](operador/README.md)
 
 | Documento | Finalidade |
 |---|---|
-| [`operador/README.md`](operador/README.md) | Porta de entrada do operador no MVP |
+| [`operador/README.md`](operador/README.md) | Porta de entrada do operador |
 | [`manual-operador-wba-windows-toolkit.md`](manual-operador-wba-windows-toolkit.md) | Manual completo do operador |
 | [`operador/guia-rapido.md`](operador/guia-rapido.md) | Referência rápida por função operacional |
 
@@ -36,9 +36,9 @@ Destinada a desenvolvedores que estendem ou mantêm os módulos.
 | Gerado por `Export-ToolkitDocumentation` | Portal HTML offline completo: portal operacional + referência técnica (executar no Windows) |
 | Gerado por `Export-ToolkitFunctionDocs` | Apenas referência HTML das funções com CBH (usado internamente pelo comando acima) |
 
-## Scripts do MVP
+## Scripts oficiais
 
-Os itens abaixo são os atalhos oficiais que o operador deve usar hoje.
+Os itens abaixo são as rotas oficiais que o operador deve usar hoje.
 
 | Script | Caminho | Descrição |
 |---|---|---|
@@ -53,7 +53,7 @@ Os itens abaixo são os atalhos oficiais que o operador deve usar hoje.
 | Preparar imagem corporativa | `scripts/preparar-imagem-windows.ps1` | Tweaks de perfil Default + sysprep |
 | Atualizar Windows | `scripts/atualizar-windows.ps1` | Windows Update e Chocolatey quando disponível |
 
-## Fora do MVP
+## Fora da superfície oficial
 
 Ferramentas ainda não promovidas ficam fora deste catálogo operacional e seguem em
 `experimental/` até passarem para a superfície oficial.

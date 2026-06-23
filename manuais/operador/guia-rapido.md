@@ -5,7 +5,7 @@ Autor: **wbaamaral** — v1.2.0
 Manual completo: [`../manual-operador-wba-windows-toolkit.md`](../manual-operador-wba-windows-toolkit.md)
 Portal do operador: [`README.md`](README.md)
 
-Entrada recomendada do MVP:
+Entrada principal do operador:
 
 ```powershell
 .\xtudo.ps1
@@ -37,7 +37,7 @@ Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1 -Force
 
 ---
 
-## Scripts do MVP
+## Scripts oficiais
 
 ### Diagnóstico de rede
 

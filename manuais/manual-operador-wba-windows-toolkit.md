@@ -11,7 +11,7 @@ Este documento foi escrito para equipes de suporte e operadores que precisam exe
 Toolkit com segurança.
 
 No estado atual do projeto, a entrada recomendada para o operador é `.\xtudo.ps1`.
-O MVP expõe seis ações principais:
+O Xtudo expõe seis ações principais:
 
 - Limpar Windows
 - Diagnosticar disco 100%
@@ -42,7 +42,7 @@ Ele é organizado em pastas:
 
 | Pasta | Finalidade |
 |---|---|
-| `scripts` | Atalhos oficiais do MVP chamados pelo `xtudo.ps1` |
+| `scripts` | Atalhos oficiais chamados pelo `xtudo.ps1` |
 | `modules` | Funções reutilizáveis usadas pelos scripts |
 | `manuais` | Documentação do operador e referência rápida |
 | `experimental` | Legado e ferramentas fora do fluxo principal |
@@ -330,7 +330,7 @@ Essa escolha não altera a configuração permanente.
 
 A função `Export-ToolkitDocumentation` gera um portal HTML local completo com:
 
-- portal do operador com acesso rápido ao MVP;
+- portal do operador com acesso rápido às ações principais;
 - guia do operador em HTML;
 - referência técnica com CBH de todas as funções públicas;
 - links entre funções relacionadas;
@@ -1313,7 +1313,7 @@ Excluindo perfis específicos:
 
 ### 18.1. Finalidade
 
-O script `diagnosticar-ad-cliente.ps1` e a ferramenta oficial do MVP para diagnosticar a saude do cliente Windows
+O script `diagnosticar-ad-cliente.ps1` e a ferramenta oficial para diagnosticar a saude do cliente Windows
 em relacao ao Active Directory. Ele verifica ingresso no dominio, canal seguro, DNS, resolucao de SRV, acesso a
 SYSVOL e NETLOGON, sincronismo de hora, conectividade com o controlador de dominio e servicos essenciais.
 
@@ -1367,7 +1367,7 @@ Diagnóstico com relatório HTML:
 ### 19.1. Finalidade
 
 As ferramentas antigas de Active Directory continuam na árvore `experimental/active-directory/` apenas para
-consulta histórica e comparação. O fluxo oficial do MVP já e o script `.\scripts\diagnosticar-ad-cliente.ps1`.
+consulta histórica e comparação. O fluxo oficial já e o script `.\scripts\diagnosticar-ad-cliente.ps1`.
 
 ### 19.2. Regra prática
 

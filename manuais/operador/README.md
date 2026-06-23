@@ -1,6 +1,6 @@
 # Portal do Operador
 
-Entrada oficial do MVP do `Xtudo`.
+Entrada principal do `Xtudo` para o operador.
 
 ## Caminho de uso
 
@@ -10,7 +10,7 @@ Entrada oficial do MVP do `Xtudo`.
 4. Use uma palavra-chave para buscar uma ação.
 5. Use `0`, `q` ou `sair` para cancelar.
 
-## Ações principais do MVP
+## Ações principais
 
 - `Limpar Windows`
 - `Diagnosticar disco 100%`
