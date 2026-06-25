@@ -1,29 +1,25 @@
 # Experimental
 
-Área de suporte para o que ainda não faz parte da linha principal do MVP.
+Área de suporte para material que ainda não faz parte da linha principal do MVP.
 
-Conteúdo movido para cá permanece versionado, mas não é o ponto de entrada do operador.
+Conteúdo colocado aqui permanece versionado, mas **não é** o ponto de entrada do operador.
+
+Atualmente esta pasta está praticamente vazia: todos os scripts operacionais já foram promovidos
+para `scripts/` (ADR 0022). Resta apenas o registro de scripts ainda não validados operacionalmente.
 
 ## Estrutura
 
 ```text
 experimental/
-├── active-directory/
-├── configuration/
-├── diagnostics/
-├── maintenance/
-├── networking/
-├── optimization/
-├── printers/
-├── regfiles/
-├── updates/
-├── utilities/
 └── nao-validado/
 ```
 
-## Uso
+## Onde fica cada coisa
 
-Os atalhos do `Xtudo` continuam em `scripts/`.
-Os módulos reutilizáveis continuam em `modules/`.
-Os manuais do operador ficam em `manuais/`.
-Se uma ferramenta ainda não for parte do fluxo oficial do operador, ela permanece aqui.
+- Atalhos/scripts do operador: `scripts/` (via launcher `Xtudo`).
+- Módulos reutilizáveis: `modules/`.
+- Manuais do operador: `manuais/`.
+- Arquivos `.reg` de sysprep: `regfiles/sysprep/` (na raiz do repositório).
+
+Se uma ferramenta nova ainda não fizer parte do fluxo oficial do operador, ela pode ser
+desenvolvida aqui até ser promovida para `scripts/`.
