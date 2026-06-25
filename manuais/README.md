@@ -52,6 +52,7 @@ Os itens abaixo são as rotas oficiais que o operador deve usar hoje.
 | Verificar atualizações de hardware | `scripts/verificar-atualizacoes-hardware.ps1` | BIOS, drivers e atualizações de hardware pendentes via Windows Update |
 | Preparar imagem corporativa | `scripts/preparar-imagem-windows.ps1` | Tweaks de perfil Default + sysprep |
 | Atualizar Windows | `scripts/atualizar-windows.ps1` | Windows Update e Chocolatey quando disponível |
+| Login automático | `scripts/gerenciar-login-automatico.ps1` | Autologon: diagnóstico, habilitar, desabilitar e editar; senha protegida por segredo LSA |
 
 ## Fora da superfície oficial
 
@@ -66,6 +67,7 @@ Ferramentas ainda não promovidas ficam fora deste catálogo operacional e segue
 | `WbaToolkit.Networking` | 16 | Diagnóstico de conectividade e relatórios de rede |
 | `WbaToolkit.Startup` | 7 | Gerenciamento de itens de inicialização do Windows |
 | `WbaToolkit.Maintenance` | 13 | Manutenção avançada: limpeza, WinSxS, sistema de arquivos e preparação de imagem |
+| `WbaToolkit.Identity` | 5 | Identidade e acesso local: gerenciamento do logon automático (autologon) com senha em segredo LSA |
 
 ## Geração de documentação HTML local
 

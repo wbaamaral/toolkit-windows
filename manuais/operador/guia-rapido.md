@@ -90,6 +90,15 @@ Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1 -Force
 .\scripts\diagnosticar-ad-cliente.ps1 -GerarHtml
 ```
 
+### Inventário de hardware e software
+
+```powershell
+.\scripts\Inventario-Hardware-Software.ps1
+.\scripts\Inventario-Hardware-Software.ps1 -NaoPDF
+.\scripts\Inventario-Hardware-Software.ps1 -GerarResumoHardwareDrivers
+.\scripts\Inventario-Hardware-Software.ps1 -SomenteHardwareDrivers
+```
+
 ### Limpeza do Windows
 
 ```powershell
@@ -126,6 +135,24 @@ Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1 -Force
 .\scripts\atualizar-windows.ps1 -Backend Chocolatey -NoWindowsUpdate
 .\scripts\atualizar-windows.ps1 -NoWindowsUpdate
 ```
+
+### Login automático (autologon)
+
+```powershell
+# Ver estado atual (somente leitura)
+.\scripts\gerenciar-login-automatico.ps1
+
+# Gerenciador interativo (habilitar/desabilitar/editar)
+.\scripts\gerenciar-login-automatico.ps1 -Modo Assistido
+
+# Habilitar para uma conta (a senha é solicitada de forma segura)
+.\scripts\gerenciar-login-automatico.ps1 -Acao Habilitar -UserName kiosk -AutoLogonCount 1
+
+# Desabilitar
+.\scripts\gerenciar-login-automatico.ps1 -Acao Desabilitar
+```
+
+A senha é guardada como segredo LSA, nunca em texto claro no registro.
 
 ---
 

@@ -139,3 +139,20 @@ Localização: `modules/WbaToolkit.Maintenance/WbaToolkit.Maintenance.psm1`
 |---|---|
 | `Get-ComponentStoreInfo` | Analisa Component Store via DISM AnalyzeComponentStore |
 | `Invoke-ComponentStoreCleanup` | Executa limpeza do WinSxS via DISM com suporte a DryRun e ResetBase |
+
+## WbaToolkit.Identity
+
+Identidade e acesso local do Windows. Primeira frente: gerenciamento do logon automático (autologon)
+com a senha protegida por segredo LSA (ADR 0023), nunca em texto claro no registro (ADR 0005).
+
+Localização: `modules/WbaToolkit.Identity/WbaToolkit.Identity.psm1`
+
+### Autologon
+
+| Função | Descrição |
+|---|---|
+| `Get-AutologonStatus` | Lê o estado do autologon (somente leitura); reporta presença da senha na LSA sem revelá-la |
+| `Enable-Autologon` | Habilita o autologon; grava a senha como segredo LSA; backup, AutoLogonCount, -DryRun/-WhatIf |
+| `Disable-Autologon` | Desabilita o autologon e limpa o segredo LSA |
+| `Set-Autologon` | Edita usuário/domínio/senha/AutoLogonCount sem alternar o estado |
+| `Invoke-AutologonManager` | Gerenciador interativo (habilitar/desabilitar/editar) |
