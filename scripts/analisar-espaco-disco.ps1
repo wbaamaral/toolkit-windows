@@ -14,7 +14,7 @@
 
     NENHUMA acao destrutiva e realizada. O script e estritamente de leitura.
 
-.FUNCIONALIDADES
+    Funcionalidades:
     - Varre todos os volumes locais fixos (ou drive especificado com -Drive).
     - Ignora pontos de reparse (juncoes, links simbolicos) para evitar loops.
     - Marca pastas e arquivos ocultos no relatorio.
@@ -25,23 +25,68 @@
     - Relatorio HTML salvo na pasta padronizada do toolkit com conversao opcional para PDF.
     - Log completo da execucao em logs da sessao.
 
-.USO
-    Varrer todos os volumes locais:
-        .\Analise-Espaco-Disco.ps1
+.PARAMETER Drive
+    Volume(s) a varrer (ex: C). Quando omitido, varre todos os volumes locais fixos.
 
-    Varrer apenas o volume C::
-        .\Analise-Espaco-Disco.ps1 -Drive C
+.PARAMETER Path
+    Raiz de relatorios escolhida pelo usuario (alias: -DiretorioSaida). Quando omitido,
+    usa ReportsRoot persistente do toolkit ou C:\WBA\Relatorios. O script cria
+    automaticamente Utilities\<timestamp>.
 
-    Salvar relatorio em outro diretorio:
-        .\Analise-Espaco-Disco.ps1 -DiretorioSaida "D:\Relatorios"
+.PARAMETER NaoPDF
+    Gera apenas o relatorio HTML, sem tentar converter para PDF.
 
-    Gerar apenas HTML (sem PDF):
-        .\Analise-Espaco-Disco.ps1 -NaoPDF
+.PARAMETER Silent
+    Suprime a barra de progresso da varredura no console.
 
-.NOTAS
+.PARAMETER Help
+    Exibe a ajuda resumida do script.
+
+.PARAMETER Version
+    Exibe a versao do script.
+
+.PARAMETER MaxDepth
+    Limita a profundidade da varredura (0 = ilimitado, padrao). Use um valor pequeno
+    (ex.: 2 ou 3) para um panorama rapido das maiores pastas de alto nivel; nesse caso
+    a varredura e parcial (subpastas alem do limite nao sao somadas).
+
+.EXAMPLE
+    .\analisar-espaco-disco.ps1
+
+    Varre todos os volumes locais fixos e gera HTML + PDF na pasta padronizada de relatorios.
+
+.EXAMPLE
+    .\analisar-espaco-disco.ps1 -Drive C -MaxDepth 3
+
+    Panorama rapido (parcial) ate 3 niveis de profundidade no volume C:.
+
+.EXAMPLE
+    .\analisar-espaco-disco.ps1 -Drive C
+
+    Varre apenas o volume C:.
+
+.EXAMPLE
+    .\analisar-espaco-disco.ps1 -DiretorioSaida "D:\Relatorios"
+
+    Salva os relatorios em D:\Relatorios (criada automaticamente se nao existir).
+
+.EXAMPLE
+    .\analisar-espaco-disco.ps1 -NaoPDF
+
+    Gera apenas o HTML, sem conversao para PDF.
+
+.EXAMPLE
+    .\analisar-espaco-disco.ps1 -Drive C,D -DiretorioSaida D:\Relatorios -NaoPDF
+
+    Varre C: e D:, grava em D:\Relatorios e nao gera PDF.
+
+.NOTES
     Requer privilegios de Administrador para acessar pastas protegidas do sistema.
     O tempo de varredura varia com o tamanho do disco (tipicamente 1-5 min para C:).
-    Testado no Windows 10 Pro (21H2+) e Windows 11 Pro.
+    Testado conceitualmente para Windows 10 Pro (21H2+) e Windows 11 Pro.
+
+.LINK
+    https://codeberg.org/wbaamaral/wba-windows-toolkit
 #>
 param (
     [switch]$Help,
@@ -50,31 +95,35 @@ param (
     [Alias('DiretorioSaida')]
     [string]$Path,
     [switch]$NaoPDF,
-    [switch]$Silent
+    [switch]$Silent,
+    [int]$MaxDepth = 0
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::InputEncoding  = [System.Text.Encoding]::UTF8
 $OutputEncoding           = [System.Text.Encoding]::UTF8
+
 $PSDefaultParameterValues['Out-File:Encoding']    = 'utf8'
 $PSDefaultParameterValues['Set-Content:Encoding'] = 'utf8'
 $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
-chcp 65001 | Out-Null
 
-$ToolkitRoot = Split-Path -Parent $PSScriptRoot
-$ToolkitModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
-Import-Module $ToolkitModulePath -Force -ErrorAction Stop
+try { chcp 65001 | Out-Null } catch { }
 
-# WBA-DOCS: Category=Utilities; Manual=Analise de uso de espaco em disco
 
-$ScriptVersion = "v1.0"
+$ToolkitRoot       = Split-Path -Parent $PSScriptRoot
+$CoreModulePath    = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
+Import-Module $CoreModulePath -Force -ErrorAction Stop
+
+# WBA-DOCS: Category=Utilities; Manual=Analise de uso de espaco em disco com Top pastas/arquivos e estimativa de limpeza (somente leitura)
+
+$ScriptVersion = 'v1.0'
 $ScriptName    = $MyInvocation.MyCommand.Name
 $ReportSession = $null
 $LogDir        = $null
 $LogFile       = $null
 
 # ---------------------------------------------------------------------------
-# Utilitários
+# Utilitarios
 # ---------------------------------------------------------------------------
 
 function Show-Help {
@@ -83,19 +132,20 @@ function Show-Help {
     Write-Host ""
     Write-Host "Analise de Espaco em Disco — $script:ScriptVersion" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "Uso:  .\$ScriptName [opcoes]"
+    Write-Host "Uso:  .\$script:ScriptName [opcoes]"
     Write-Host ""
     Write-Host "  -Drive '<letra>'   Volume a varrer (ex: C). Padrao: todos os locais fixos."
     Write-Host "  -DiretorioSaida '<dir>' Raiz de relatorios. Padrao: ReportsRoot persistente ou C:\WBA\Relatorios"
     Write-Host "  -NaoPDF            Gera apenas HTML sem converter para PDF."
+    Write-Host "  -MaxDepth <n>      Limita a profundidade (0=ilimitado). Ex: 3 = panorama rapido parcial."
     Write-Host "  -Silent            Sem saida de progresso no console."
     Write-Host "  -Help              Esta ajuda."
     Write-Host "  -Version           Versao do script."
     Write-Host ""
     Write-Host "Exemplos:"
-    Write-Host "  .\$ScriptName"
-    Write-Host "  .\$ScriptName -Drive C"
-    Write-Host "  .\$ScriptName -Drive C,D -DiretorioSaida D:\Relatorios -NaoPDF"
+    Write-Host "  .\$script:ScriptName"
+    Write-Host "  .\$script:ScriptName -Drive C"
+    Write-Host "  .\$script:ScriptName -Drive C,D -DiretorioSaida D:\Relatorios -NaoPDF"
     Write-Host ""
 }
 
@@ -121,7 +171,7 @@ function Get-BarColor {
 
 function Invoke-DiskScan {
     [CmdletBinding()]
-    param([string]$RootPath, [switch]$Quiet)
+    param([string]$RootPath, [switch]$Quiet, [int]$MaxDepth = 0)
 
     $folderLocalSizes = [System.Collections.Generic.Dictionary[string,long]]::new(
         [System.StringComparer]::OrdinalIgnoreCase)
@@ -129,9 +179,12 @@ function Invoke-DiskScan {
         [System.StringComparer]::OrdinalIgnoreCase)
     $topFiles = New-Object 'System.Collections.Generic.List[PSCustomObject]'
     $topFilesMax = 200
+    $topFilesMin = [long]::MaxValue   # menor tamanho atual no Top-N (mantido incrementalmente)
 
-    $stack   = New-Object 'System.Collections.Generic.Stack[string]'
+    $stack      = New-Object 'System.Collections.Generic.Stack[string]'
+    $depthStack = New-Object 'System.Collections.Generic.Stack[int]'
     $stack.Push($RootPath)
+    $depthStack.Push(0)
     $scannedDirs  = [long]0
     $scannedFiles = [long]0
     $scannedBytes = [long]0
@@ -139,53 +192,69 @@ function Invoke-DiskScan {
 
     while ($stack.Count -gt 0) {
         $dir = $stack.Pop()
+        $depth = $depthStack.Pop()
         $localSize = [long]0
         $attrib = 0
+        $di = $null
 
         try {
-            $di = New-Object System.IO.DirectoryInfo($dir)
+            $di = [System.IO.DirectoryInfo]::new($dir)
             $attrib = [int]$di.Attributes
-            # Skip reparse points (junctions, symlinks) to avoid loops/double-counting
+            # Ignora reparse points (juncoes, symlinks) para evitar loops/dupla contagem
             if ($di.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
                 $folderLocalSizes[$dir] = [long]0
                 $folderAttribs[$dir] = $attrib
                 continue
             }
-        } catch {}
+        } catch { $di = $null }
 
-        try {
-            foreach ($file in [System.IO.Directory]::GetFiles($dir)) {
-                try {
-                    $fi = New-Object System.IO.FileInfo($file)
-                    $sz = $fi.Length
-                    $localSize  += $sz
-                    $scannedFiles++
+        if ($null -ne $di) {
+            # EnumerateFiles devolve FileInfo ja preenchido pela enumeracao do diretorio
+            # (sem New-Object e sem stat extra por arquivo) — bem mais rapido que GetFiles + FileInfo.
+            try {
+                foreach ($fi in $di.EnumerateFiles()) {
+                    try {
+                        $sz = $fi.Length
+                        $localSize += $sz
+                        $scannedFiles++
 
-                    if ($topFiles.Count -lt $topFilesMax -or $sz -gt ($topFiles | Measure-Object -Property Size -Minimum).Minimum) {
-                        $topFiles.Add([PSCustomObject]@{
-                            Path      = $file
-                            Name      = $fi.Name
-                            Dir       = $dir
-                            Ext       = $fi.Extension.ToLower()
-                            Size      = $sz
-                            IsHidden  = ($fi.Attributes -band [System.IO.FileAttributes]::Hidden) -ne 0
-                            IsSystem  = ($fi.Attributes -band [System.IO.FileAttributes]::System) -ne 0
-                        })
-                        if ($topFiles.Count -gt $topFilesMax * 2) {
-                            $sorted = $topFiles | Sort-Object Size -Descending | Select-Object -First $topFilesMax
-                            $topFiles = New-Object 'System.Collections.Generic.List[PSCustomObject]'
-                            $sorted | ForEach-Object { $topFiles.Add($_) }
+                        # Top-N por tamanho com minimo incremental (sem Measure-Object por arquivo).
+                        if ($topFiles.Count -lt $topFilesMax) {
+                            $topFiles.Add([PSCustomObject]@{
+                                Path = $fi.FullName; Name = $fi.Name; Dir = $dir
+                                Ext = $fi.Extension.ToLower(); Size = $sz
+                                IsHidden = ($fi.Attributes -band [System.IO.FileAttributes]::Hidden) -ne 0
+                                IsSystem = ($fi.Attributes -band [System.IO.FileAttributes]::System) -ne 0
+                            })
+                            if ($sz -lt $topFilesMin) { $topFilesMin = $sz }
                         }
-                    }
-                } catch {}
-            }
-        } catch {}
+                        elseif ($sz -gt $topFilesMin) {
+                            $topFiles.Add([PSCustomObject]@{
+                                Path = $fi.FullName; Name = $fi.Name; Dir = $dir
+                                Ext = $fi.Extension.ToLower(); Size = $sz
+                                IsHidden = ($fi.Attributes -band [System.IO.FileAttributes]::Hidden) -ne 0
+                                IsSystem = ($fi.Attributes -band [System.IO.FileAttributes]::System) -ne 0
+                            })
+                            if ($topFiles.Count -gt $topFilesMax * 2) {
+                                $sorted = $topFiles | Sort-Object Size -Descending | Select-Object -First $topFilesMax
+                                $topFiles = New-Object 'System.Collections.Generic.List[PSCustomObject]'
+                                foreach ($s in $sorted) { $topFiles.Add($s) }
+                                $topFilesMin = $topFiles[$topFiles.Count - 1].Size
+                            }
+                        }
+                    } catch {}
+                }
+            } catch {}
 
-        try {
-            foreach ($sub in [System.IO.Directory]::GetDirectories($dir)) {
-                $stack.Push($sub)
-            }
-        } catch {}
+            try {
+                foreach ($sub in $di.EnumerateDirectories()) {
+                    if ($MaxDepth -le 0 -or $depth -lt $MaxDepth) {
+                        $stack.Push($sub.FullName)
+                        $depthStack.Push($depth + 1)
+                    }
+                }
+            } catch {}
+        }
 
         $folderLocalSizes[$dir] = $localSize
         $folderAttribs[$dir]    = $attrib
@@ -427,7 +496,7 @@ tr:hover td{background:#faf9f8}
 .path{font-family:'Consolas',monospace;font-size:12px;word-break:break-all}
 .note{font-size:11px;color:var(--muted)}
 footer{text-align:center;padding:20px;font-size:11px;color:var(--muted)}
-@media print{header{background:var(--primary)!important;print-color-adjust:exact}th{background:#f7f7f7!important;print-color-adjust:exact}.mini-bar{print-color-adjust:exact}}
+@media print{header{background:var(--primary)!important;print-color-adjust:exact}th{background:#f7f7f7!important;print-color-adjust:exact}.mini-bar{print-color-adjust:exact}thead{display:table-header-group}}
 '@
 
     $driveRows = ""
@@ -532,10 +601,11 @@ $driveRows
 </body></html>
 "@
 
-    $html | Set-Content -Path $OutputPath -Encoding UTF8
+    Write-TextFileUtf8 -Path $OutputPath -Content $html
 }
 
 function Convert-ToPdf {
+    [CmdletBinding()]
     param([string]$HtmlPath, [string]$PdfPath)
     $browsers = @(
         "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
@@ -546,14 +616,14 @@ function Convert-ToPdf {
     )
     $exe = $browsers | Where-Object { Test-Path $_ } | Select-Object -First 1
     if (-not $exe) {
-        Write-Host "  Chrome/Edge nao encontrado. Abra o HTML e use Ctrl+P para exportar PDF." -ForegroundColor Yellow
+        Write-Warn "Chrome/Edge nao encontrado. Abra o HTML e use Ctrl+P para exportar PDF."
         return
     }
     $fileUrl = "file:///" + $HtmlPath.Replace('\','/')
-    $args = @("--headless","--disable-gpu","--no-pdf-header-footer","--print-to-pdf=`"$PdfPath`"","`"$fileUrl`"")
-    $proc = Start-Process -FilePath $exe -ArgumentList $args -Wait -PassThru -WindowStyle Hidden -ErrorAction SilentlyContinue
+    $browserArgs = @("--headless","--disable-gpu","--no-pdf-header-footer","--print-to-pdf=`"$PdfPath`"","`"$fileUrl`"")
+    $proc = Start-Process -FilePath $exe -ArgumentList $browserArgs -Wait -PassThru -WindowStyle Hidden -ErrorAction SilentlyContinue
     if (Test-Path $PdfPath) {
-        Write-Host "  PDF gerado: $PdfPath ($([int]((Get-Item $PdfPath).Length/1KB)) KB)" -ForegroundColor Green
+        Write-Ok "PDF gerado: $PdfPath ($([int]((Get-Item $PdfPath).Length/1KB)) KB)"
     }
 }
 
@@ -562,9 +632,10 @@ function Convert-ToPdf {
 # ---------------------------------------------------------------------------
 
 if ($Help)    { Show-Help; exit 0 }
-if ($Version) { Write-Host "Versao: $ScriptVersion" -ForegroundColor Green; exit 0 }
+if ($Version) { Write-Info "Versao: $ScriptVersion"; exit 0 }
 
 if (-not (Test-IsAdministrator)) {
+    Write-Warn "Privilegio de Administrador recomendado para acessar pastas protegidas. Solicitando elevacao..."
     $relaunchArgs = foreach ($kv in $PSBoundParameters.GetEnumerator()) {
         if ($kv.Value -is [switch]) { if ($kv.Value.IsPresent) { "-$($kv.Key)" } }
         else { "-$($kv.Key)"; "$($kv.Value)" }
@@ -581,18 +652,17 @@ $LogFile       = Join-Path $LogDir "$((Get-Date).ToString('yyyy-MM-dd_HHmmss'))-
 
 if (!(Test-Path $Path)) { New-Item -ItemType Directory -Path $Path -Force | Out-Null }
 
+$EventLogFile = $LogFile -replace '\.log$', '-eventos.log'
 $transcriptActive = $false
 try {
-    Start-Transcript -Path $LogFile -Encoding UTF8 -ErrorAction Stop
+    Start-Transcript -Path $LogFile -ErrorAction Stop
     $transcriptActive = $true
 } catch {
-    Write-Warning "Nao foi possivel iniciar log: $($_.Exception.Message)"
+    Write-Warn "Nao foi possivel iniciar log: $($_.Exception.Message)"
 }
 
-Write-Host ""
-Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host " Analise de Espaco em Disco — $ScriptVersion" -ForegroundColor Cyan
-Write-Host "============================================================" -ForegroundColor Cyan
+Write-Title "Analise de Espaco em Disco — $ScriptVersion"
+Write-ScriptLog -Message "Inicio da analise de espaco em disco." -LogPath $EventLogFile
 
 # Selecionar drives
 if ($Drive -and $Drive.Count -gt 0) {
@@ -607,28 +677,28 @@ if ($Drive -and $Drive.Count -gt 0) {
 }
 
 if (-not $targetDrives) {
-    Write-Host "Nenhum volume encontrado para varredura." -ForegroundColor Red
+    Write-Fail "Nenhum volume encontrado para varredura."
+    Write-ScriptLog -Message "Nenhum volume encontrado para varredura." -Level ERROR -LogPath $EventLogFile
     if ($transcriptActive) { Stop-Transcript }
     exit 1
 }
 
-Write-Host "Volumes: $($targetDrives.Name -join ', ')" -ForegroundColor Yellow
-Write-Host ""
+Write-Info "Volumes: $($targetDrives.Name -join ', ')"
 
 # Varrer cada drive
 $allScans = New-Object 'System.Collections.Generic.List[PSCustomObject]'
 foreach ($di in $targetDrives) {
-    Write-Host "Varrendo $($di.Name) ($($di.VolumeLabel)) — $(Format-FileSize $di.TotalSize) total..." -ForegroundColor Yellow
+    Write-Info "Varrendo $($di.Name) ($($di.VolumeLabel)) — $(Format-FileSize $di.TotalSize) total... (pode demorar varios minutos)"
     $t0     = [DateTime]::Now
-    $result = Invoke-DiskScan -RootPath $di.RootDirectory.FullName -Quiet:$Silent
+    $result = Invoke-DiskScan -RootPath $di.RootDirectory.FullName -Quiet:$Silent -MaxDepth $MaxDepth
     $elapsed = [int]([DateTime]::Now - $t0).TotalSeconds
-    Write-Host "  Concluido em $($elapsed)s: $($result.TotalDirs) pastas, $($result.TotalFiles) arquivos, $(Format-FileSize $result.TotalBytes)" -ForegroundColor Green
+    Write-Ok "Concluido em $($elapsed)s: $($result.TotalDirs) pastas, $($result.TotalFiles) arquivos, $(Format-FileSize $result.TotalBytes)"
+    Write-ScriptLog -Message "Varredura de $($di.Name) concluida em $($elapsed)s: $($result.TotalDirs) pastas, $($result.TotalFiles) arquivos, $(Format-FileSize $result.TotalBytes)." -LogPath $EventLogFile
     $allScans.Add([PSCustomObject]@{ DriveInfo = $di; Result = $result })
 }
 
 # Estimativa de espaco desperdicado
-Write-Host ""
-Write-Host "Calculando estimativas de espaco desperdicado..." -ForegroundColor Yellow
+Write-Info "Calculando estimativas de espaco desperdicado..."
 $waste = Get-WasteEstimates
 
 # Relatorio console
@@ -642,25 +712,26 @@ $htmlFile = Join-Path $Path "$ts-relatorio-analise-espaco-disco.html"
 $pdfFile  = $htmlFile -replace '\.html$','.pdf'
 $dateStr  = (Get-Date).ToString('dd/MM/yyyy HH:mm')
 
-Write-Host "Gerando relatorio HTML..." -ForegroundColor Yellow
+Write-Info "Gerando relatorio HTML..."
 New-HtmlReport -AllScans $allScans -AllWaste $waste `
     -ComputerName $env:COMPUTERNAME -ReportDate $dateStr -OutputPath $htmlFile
-Write-Host "  HTML: $htmlFile" -ForegroundColor Green
+Write-Ok "HTML: $htmlFile"
+Write-ScriptLog -Message "Relatorio HTML gerado: $htmlFile" -LogPath $EventLogFile
 
 if (-not $NaoPDF) {
-    Write-Host "Convertendo para PDF..." -ForegroundColor Yellow
+    Write-Info "Convertendo para PDF..."
     Convert-ToPdf -HtmlPath $htmlFile -PdfPath $pdfFile
+    if (Test-Path $pdfFile) { Write-ScriptLog -Message "Relatorio PDF gerado: $pdfFile" -LogPath $EventLogFile }
 }
 
-Write-Host ""
-Write-Host "============================================================" -ForegroundColor Green
-Write-Host " Analise concluida." -ForegroundColor Green
-Write-Host " HTML  : $htmlFile" -ForegroundColor Green
+Write-Section "Analise concluida"
+Write-Ok "HTML  : $htmlFile"
 if (-not $NaoPDF -and (Test-Path $pdfFile)) {
-    Write-Host " PDF   : $pdfFile" -ForegroundColor Green
+    Write-Ok "PDF   : $pdfFile"
 }
-Write-Host " Log   : $LogFile" -ForegroundColor Green
-Write-Host "============================================================" -ForegroundColor Green
-Write-Host ""
+Write-Ok "Log   : $LogFile"
+Write-Info "Somente leitura — nenhuma alteracao foi realizada no sistema."
+
+Write-ScriptLog -Message "Analise de espaco em disco finalizada." -LogPath $EventLogFile
 
 if ($transcriptActive) { Stop-Transcript }

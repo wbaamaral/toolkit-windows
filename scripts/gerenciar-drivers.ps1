@@ -1,9 +1,4 @@
-﻿# =============================================================================
-# [NAO VALIDADO] Script sem execucao real documentada em Windows.
-# Nao recomendado para uso em producao ate validacao operacional.
-# Registro: nao-validado/README.md
-# =============================================================================
-#requires -version 5.1
+﻿#requires -version 5.1
 <#
 .SYNOPSIS
     Backup e restauracao de drivers de terceiros instalados no Windows.
@@ -29,16 +24,16 @@
     Raiz de relatorios/backup. Quando omitido, usa configuracao do toolkit ou C:\WBA\Relatorios.
 
 .EXAMPLE
-    .\Backup-Restaurar-Drivers.ps1
+    .\gerenciar-drivers.ps1
 
 .EXAMPLE
-    .\Backup-Restaurar-Drivers.ps1 -DryRun
+    .\gerenciar-drivers.ps1 -DryRun
 
 .EXAMPLE
-    .\Backup-Restaurar-Drivers.ps1 -Modo Restore -GerarHtml
+    .\gerenciar-drivers.ps1 -Modo Restore -GerarHtml
 
 .EXAMPLE
-    .\Backup-Restaurar-Drivers.ps1 -Path "D:\Backup\Drivers"
+    .\gerenciar-drivers.ps1 -Path "D:\Backup\Drivers"
 
 .NOTES
     Requer PowerShell 5.1 e execucao como Administrador.
@@ -83,9 +78,8 @@ $ToolkitRoot   = Split-Path -Parent $PSScriptRoot
 $coreModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
 Import-Module $coreModulePath -Force -ErrorAction Stop
 
-# WBA-DOCS: Category=Maintenance; Related=Gerenciar-Inicializacao-Windows.ps1; Manual=Backup e restauracao de drivers OEM
+# WBA-DOCS: Category=Maintenance; Manual=Backup e restauracao de drivers OEM via pnputil
 
-Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Continue'
 
 $script:Session        = $null
@@ -107,8 +101,7 @@ function Write-DrvLog {
 function Write-DrvSection {
     [CmdletBinding()]
     param([Parameter(Mandatory = $true)][string]$Title)
-    Write-Host ''
-    Write-Host ('--- ' + $Title + ' ---') -ForegroundColor DarkCyan
+    Write-Section $Title
     Write-DrvLog -Message $Title
 }
 
@@ -248,7 +241,7 @@ function Find-BackupFolder {
     Write-Host ''
 
     while ($true) {
-        $rawInput = (Read-Host 'Selecione a sessao de backup [1]').Trim()
+        $rawInput = ([string](Read-Host 'Selecione a sessao de backup [1]')).Trim()
         if ($rawInput -eq '') { return $candidates[0].FullName }
 
         $num = 0
@@ -359,7 +352,7 @@ function Read-DriverSelection {
     Write-Host ''
 
     while ($true) {
-        $rawInput = (Read-Host 'Selecao').Trim()
+        $rawInput = ([string](Read-Host 'Selecao')).Trim()
         if ($rawInput -eq '') { continue }
         if ($rawInput -ieq 'N') { return @() }
         if ($rawInput -ieq 'T') { return $Drivers }

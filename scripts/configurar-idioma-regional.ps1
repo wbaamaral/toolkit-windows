@@ -1,9 +1,4 @@
-﻿# =============================================================================
-# [NAO VALIDADO] Script sem execucao real documentada em Windows.
-# Nao recomendado para uso em producao ate validacao operacional.
-# Registro: nao-validado/README.md
-# =============================================================================
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Padroniza idioma, locale regional e fuso horario de instalacoes Windows 10/11 Pro+ para pt-BR.
@@ -19,7 +14,7 @@
     Requer acesso a internet para download do pacote de idioma quando nao instalado.
     Requer reinicializacao para aplicar completamente o idioma de exibicao.
 
-.FUNCIONALIDADES
+    Funcionalidades:
     - Instala pacote de idioma pt-BR (se ausente, via LanguagePackManagement ou DISM).
     - Define pt-BR como idioma de exibicao do sistema.
     - Configura locale regional pt-BR: data, hora, moeda, separadores numericos.
@@ -30,26 +25,54 @@
     - Suporte a modo silencioso para automacao via GPO, SCCM ou scripts de implantacao.
     - Salva log completo na pasta padronizada de relatorios do toolkit.
 
-.USO
-    Execucao padrao (interativa, UTC-4):
-        .\Configurar-Idioma-Regional.ps1
+.PARAMETER Help
+    Mostra a ajuda do script e encerra.
 
-    Modo silencioso sem reboot (automacao, GPO, SCCM):
-        .\Configurar-Idioma-Regional.ps1 -Silent -NoReboot
+.PARAMETER Version
+    Mostra a versao do script e encerra.
 
-    Fuso horario de Brasilia (UTC-3):
-        .\Configurar-Idioma-Regional.ps1 -TimeZone "E. South America Standard Time"
+.PARAMETER ListTimeZones
+    Lista os fusos horarios do Brasil aceitos pelo parametro -TimeZone e encerra.
 
-    Fuso horario do Acre (UTC-5):
-        .\Configurar-Idioma-Regional.ps1 -TimeZone "SA Pacific Standard Time"
+.PARAMETER NoReboot
+    Nao reinicia o sistema ao final da configuracao.
 
-    Listar fusos horarios do Brasil:
-        .\Configurar-Idioma-Regional.ps1 -ListTimeZones
+.PARAMETER Silent
+    Modo silencioso, sem prompts de confirmacao. Util para automacao via GPO ou SCCM.
 
-    Se a politica de execucao bloquear:
-        Set-ExecutionPolicy Bypass -Scope Process -Force
+.PARAMETER TimeZone
+    ID do fuso horario Windows a aplicar. Padrao: 'SA Western Standard Time' (UTC-4).
 
-.NOTAS
+.PARAMETER Path
+    Raiz de relatorios da sessao. Quando omitido, usa a configuracao persistente
+    do toolkit ou C:\WBA\Relatorios.
+
+.EXAMPLE
+    .\configurar-idioma-regional.ps1
+    Execucao padrao (interativa, fuso UTC-4).
+
+.EXAMPLE
+    .\configurar-idioma-regional.ps1 -Silent -NoReboot
+    Modo silencioso sem reboot (automacao, GPO, SCCM).
+
+.EXAMPLE
+    .\configurar-idioma-regional.ps1 -TimeZone "E. South America Standard Time"
+    Configura para o fuso horario de Brasilia (UTC-3).
+
+.EXAMPLE
+    .\configurar-idioma-regional.ps1 -TimeZone "SA Pacific Standard Time"
+    Configura para o fuso horario do Acre (UTC-5).
+
+.EXAMPLE
+    .\configurar-idioma-regional.ps1 -ListTimeZones
+    Lista os fusos horarios do Brasil.
+
+.EXAMPLE
+    Set-ExecutionPolicy Bypass -Scope Process -Force
+    .\configurar-idioma-regional.ps1
+    Caso a politica de execucao bloqueie.
+
+.NOTES
     Requer privilegios de Administrador.
     Testado no Windows 10 Pro (21H2+) e Windows 11 Pro/Enterprise.
     Recomenda-se reiniciar apos a execucao para aplicar o idioma de exibicao.
@@ -77,13 +100,14 @@ $PSDefaultParameterValues['Out-File:Encoding']    = 'utf8'
 $PSDefaultParameterValues['Set-Content:Encoding'] = 'utf8'
 $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
 
-chcp 65001 | Out-Null
+try { chcp 65001 | Out-Null } catch { }
 
 $ToolkitRoot = Split-Path -Parent $PSScriptRoot
 $ToolkitModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
 Import-Module $ToolkitModulePath -Force -ErrorAction Stop
 
 # WBA-DOCS: Category=Configuration; Manual=Configuracao de idioma e regiao do Windows
+
 
 $ScriptVersion = "v1.0"
 $ScriptName    = $MyInvocation.MyCommand.Name
@@ -181,15 +205,15 @@ function Write-Step {
 # ---------------------------------------------------------------------------
 
 function Install-PtBRLanguage {
-    Write-Host "Verificando pacote de idioma pt-BR..." -ForegroundColor Yellow
+    Write-Info "Verificando pacote de idioma pt-BR..."
 
     # Verifica se pt-BR ja esta na lista de idiomas do usuario
     $currentList = Get-WinUserLanguageList -ErrorAction SilentlyContinue
     if ($currentList | Where-Object { $_.LanguageTag -eq 'pt-BR' }) {
-        Write-Host "Idioma pt-BR ja presente na lista de idiomas do usuario." -ForegroundColor Green
+        Write-Ok "Idioma pt-BR ja presente na lista de idiomas do usuario."
     }
     else {
-        Write-Host "pt-BR nao encontrado. Instalando pacote de idioma..." -ForegroundColor Yellow
+        Write-Info "pt-BR nao encontrado. Instalando pacote de idioma..."
 
         # Tentativa 1: modulo LanguagePackManagement (Win11 / Win10 20H1+)
         $lpModule = Get-Module -Name LanguagePackManagement -ListAvailable -ErrorAction SilentlyContinue
@@ -197,10 +221,10 @@ function Install-PtBRLanguage {
             try {
                 Import-Module LanguagePackManagement -ErrorAction Stop
                 Install-Language -Language pt-BR -ErrorAction Stop
-                Write-Host "Pacote pt-BR instalado via Install-Language." -ForegroundColor Green
+                Write-Ok "Pacote pt-BR instalado via Install-Language."
             }
             catch {
-                Write-Warning "Install-Language falhou: $($_.Exception.Message). Usando Add-WindowsCapability..."
+                Write-Warn "Install-Language falhou: $($_.Exception.Message). Usando Add-WindowsCapability..."
                 Add-WindowsCapability -Online -Name "Language.Basic~~~pt-BR~0.0.1.0" -ErrorAction SilentlyContinue | Out-Null
             }
         }
@@ -210,22 +234,22 @@ function Install-PtBRLanguage {
             if ($cap -and $cap.State -ne 'Installed') {
                 try {
                     Add-WindowsCapability -Online -Name "Language.Basic~~~pt-BR~0.0.1.0" -ErrorAction Stop | Out-Null
-                    Write-Host "Capacidade de idioma pt-BR instalada." -ForegroundColor Green
+                    Write-Ok "Capacidade de idioma pt-BR instalada."
                 }
                 catch {
-                    Write-Warning "Nao foi possivel instalar via Add-WindowsCapability: $($_.Exception.Message)"
-                    Write-Warning "Instale o pacote manualmente ou via DISM com o .cab do idioma pt-BR."
+                    Write-Warn "Nao foi possivel instalar via Add-WindowsCapability: $($_.Exception.Message)"
+                    Write-Warn "Instale o pacote manualmente ou via DISM com o .cab do idioma pt-BR."
                 }
             }
             else {
-                Write-Host "Capacidade de idioma pt-BR ja instalada (via WindowsCapability)." -ForegroundColor Green
+                Write-Ok "Capacidade de idioma pt-BR ja instalada (via WindowsCapability)."
             }
         }
     }
 }
 
 function Set-PtBRUserSettings {
-    Write-Host "Configurando idioma e locale para o usuario atual..." -ForegroundColor Yellow
+    Write-Info "Configurando idioma e locale para o usuario atual..."
 
     # Lista de idiomas: pt-BR com teclado ABNT2 como principal
     try {
@@ -233,43 +257,43 @@ function Set-PtBRUserSettings {
         $langList[0].InputMethodTips.Clear()
         $langList[0].InputMethodTips.Add('0416:00010416')   # ABNT2
         Set-WinUserLanguageList $langList -Force -ErrorAction Stop
-        Write-Host "Lista de idiomas definida: pt-BR (ABNT2)." -ForegroundColor Green
+        Write-Ok "Lista de idiomas definida: pt-BR (ABNT2)."
     }
-    catch { Write-Warning "Set-WinUserLanguageList: $($_.Exception.Message)" }
+    catch { Write-Warn "Set-WinUserLanguageList: $($_.Exception.Message)" }
 
     # Idioma de exibicao para o usuario atual
     try {
         Set-WinUILanguageOverride -Language 'pt-BR' -ErrorAction Stop
-        Write-Host "Idioma de exibicao (override): pt-BR." -ForegroundColor Green
+        Write-Ok "Idioma de exibicao (override): pt-BR."
     }
-    catch { Write-Warning "Set-WinUILanguageOverride: $($_.Exception.Message)" }
+    catch { Write-Warn "Set-WinUILanguageOverride: $($_.Exception.Message)" }
 
     # Cultura/locale do usuario (datas, moeda, numeros)
     try {
         Set-Culture -CultureInfo 'pt-BR' -ErrorAction Stop
-        Write-Host "Cultura do usuario: pt-BR." -ForegroundColor Green
+        Write-Ok "Cultura do usuario: pt-BR."
     }
-    catch { Write-Warning "Set-Culture: $($_.Exception.Message)" }
+    catch { Write-Warn "Set-Culture: $($_.Exception.Message)" }
 
     # Locale do sistema (afeta programas nao-Unicode)
     try {
         Set-WinSystemLocale -SystemLocale 'pt-BR' -ErrorAction Stop
-        Write-Host "Locale do sistema: pt-BR." -ForegroundColor Green
+        Write-Ok "Locale do sistema: pt-BR."
     }
-    catch { Write-Warning "Set-WinSystemLocale: $($_.Exception.Message)" }
+    catch { Write-Warn "Set-WinSystemLocale: $($_.Exception.Message)" }
 
     # Localizacao geografica: Brasil (GeoID 32)
     try {
         Set-WinHomeLocation -GeoId 32 -ErrorAction Stop
-        Write-Host "Localizacao geografica: Brasil (GeoID 32)." -ForegroundColor Green
+        Write-Ok "Localizacao geografica: Brasil (GeoID 32)."
     }
-    catch { Write-Warning "Set-WinHomeLocation: $($_.Exception.Message)" }
+    catch { Write-Warn "Set-WinHomeLocation: $($_.Exception.Message)" }
 }
 
 function Invoke-IntlPropagation {
     # Aplica configuracoes pt-BR para conta do sistema e perfil padrao de novos usuarios
     # usando a abordagem documentada pela Microsoft via intl.cpl com arquivo XML.
-    Write-Host "Propagando configuracoes para conta do sistema e perfil padrao..." -ForegroundColor Yellow
+    Write-Info "Propagando configuracoes para conta do sistema e perfil padrao..."
 
     $xmlPath = "$env:TEMP\ptbr-intl-$(Get-Date -Format 'yyyyMMddHHmmss').xml"
 
@@ -305,14 +329,14 @@ function Invoke-IntlPropagation {
             -Wait -PassThru -NoNewWindow -ErrorAction Stop
 
         if ($proc.ExitCode -eq 0) {
-            Write-Host "Propagacao via intl.cpl concluida (ExitCode 0)." -ForegroundColor Green
+            Write-Ok "Propagacao via intl.cpl concluida (ExitCode 0)."
         }
         else {
-            Write-Warning "intl.cpl retornou ExitCode $($proc.ExitCode). Verifique o log."
+            Write-Warn "intl.cpl retornou ExitCode $($proc.ExitCode). Verifique o log."
         }
     }
     catch {
-        Write-Warning "Falha na propagacao via intl.cpl: $($_.Exception.Message)"
+        Write-Warn "Falha na propagacao via intl.cpl: $($_.Exception.Message)"
     }
     finally {
         Remove-Item $xmlPath -Force -ErrorAction SilentlyContinue
@@ -327,25 +351,22 @@ function Set-BrazilTimeZone {
         Where-Object { $_.Id -eq $Id }
 
     if (-not $validTz) {
-        Write-Warning "Fuso horario '$Id' nao reconhecido pelo sistema. Use -ListTimeZones para ver opcoes validas."
+        Write-Warn "Fuso horario '$Id' nao reconhecido pelo sistema. Use -ListTimeZones para ver opcoes validas."
         return
     }
 
     try {
         Set-TimeZone -Id $Id -ErrorAction Stop
         $tz = Get-TimeZone
-        Write-Host "Fuso horario definido: $($tz.DisplayName)" -ForegroundColor Green
+        Write-Ok "Fuso horario definido: $($tz.DisplayName)"
     }
     catch {
-        Write-Warning "Nao foi possivel definir o fuso horario: $($_.Exception.Message)"
+        Write-Warn "Nao foi possivel definir o fuso horario: $($_.Exception.Message)"
     }
 }
 
 function Show-Summary {
-    Write-Host ""
-    Write-Host "============================================================" -ForegroundColor Cyan
-    Write-Host " Resumo das configuracoes aplicadas" -ForegroundColor Cyan
-    Write-Host "============================================================" -ForegroundColor Cyan
+    Write-Section "Resumo das configuracoes aplicadas"
 
     $culture  = Get-Culture -ErrorAction SilentlyContinue
     $uiLang   = Get-WinUILanguageOverride -ErrorAction SilentlyContinue
@@ -354,14 +375,13 @@ function Show-Summary {
     $geoId    = (Get-WinHomeLocation -ErrorAction SilentlyContinue).GeoId
     $langList = Get-WinUserLanguageList -ErrorAction SilentlyContinue
 
-    Write-Host "Cultura do usuario    : $($culture.Name) — $($culture.DisplayName)"
-    Write-Host "Idioma de exibicao    : $uiLang"
-    Write-Host "Locale do sistema     : $($sysLoc.Name)"
-    Write-Host "Fuso horario          : $($tz.Id) ($($tz.DisplayName))"
-    Write-Host "Localizacao (GeoID)   : $geoId"
-    Write-Host "Lista de idiomas      : $($langList.LanguageTag -join ', ')"
-    Write-Host "Log salvo em          : $script:LogFile"
-    Write-Host ""
+    Write-Info "Cultura do usuario    : $($culture.Name) — $($culture.DisplayName)"
+    Write-Info "Idioma de exibicao    : $uiLang"
+    Write-Info "Locale do sistema     : $($sysLoc.Name)"
+    Write-Info "Fuso horario          : $($tz.Id) ($($tz.DisplayName))"
+    Write-Info "Localizacao (GeoID)   : $geoId"
+    Write-Info "Lista de idiomas      : $($langList.LanguageTag -join ', ')"
+    Write-Info "Log salvo em          : $script:LogFile"
 }
 
 # ---------------------------------------------------------------------------
@@ -371,7 +391,7 @@ function Show-Summary {
 if ($Help) { Show-Help; exit 0 }
 
 if ($Version) {
-    Write-Host "Versao: $ScriptVersion" -ForegroundColor Green
+    Write-Ok "Versao: $ScriptVersion"
     exit 0
 }
 
@@ -382,8 +402,8 @@ if (-not ($BrazilTimeZones.Keys -contains $TimeZone)) {
     $validOnSystem = Get-TimeZone -ListAvailable -ErrorAction SilentlyContinue |
         Where-Object { $_.Id -eq $TimeZone }
     if (-not $validOnSystem) {
-        Write-Host "ERRO: Fuso horario '$TimeZone' nao reconhecido." -ForegroundColor Red
-        Write-Host "Use -ListTimeZones para ver os fusos validos do Brasil." -ForegroundColor Yellow
+        Write-Fail "Fuso horario '$TimeZone' nao reconhecido."
+        Write-Warn "Use -ListTimeZones para ver os fusos validos do Brasil."
         exit 1
     }
 }
@@ -412,18 +432,15 @@ if (!(Test-Path $LogDir)) {
 
 $transcriptActive = $false
 try {
-    Start-Transcript -Path $LogFile -Encoding UTF8 -ErrorAction Stop
+    Start-Transcript -Path $LogFile -ErrorAction Stop
     $transcriptActive = $true
 }
 catch {
-    Write-Warning "Nao foi possivel iniciar o log de transcricao: $($_.Exception.Message)"
+    Write-Warn "Nao foi possivel iniciar o log de transcricao: $($_.Exception.Message)"
 }
 
-Write-Host ""
-Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host " Configuracao de Idioma e Regiao pt-BR — $ScriptVersion" -ForegroundColor Cyan
-Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host "Log: $LogFile" -ForegroundColor Yellow
+Write-Title "Configuracao de Idioma e Regiao pt-BR — $ScriptVersion"
+Write-Info "Log: $LogFile"
 
 # Modo silencioso ou interativo
 if (-not $Silent) {
@@ -431,18 +448,17 @@ if (-not $Silent) {
         "$TimeZone ($($BrazilTimeZones[$TimeZone].UTC))"
     } else { $TimeZone }
 
+    Write-Section "Configuracoes que serao aplicadas"
+    Write-Info "  Idioma de exibicao : pt-BR (Portugues do Brasil)"
+    Write-Info "  Locale regional    : pt-BR (data, hora, moeda, teclado ABNT2)"
+    Write-Info "  Localizacao        : Brasil (GeoID 32)"
+    Write-Info "  Fuso horario       : $tzInfo"
+    Write-Info "  Propagacao         : usuario atual + conta sistema + novos usuarios"
     Write-Host ""
-    Write-Host "As seguintes configuracoes serao aplicadas:" -ForegroundColor Yellow
-    Write-Host "  Idioma de exibicao : pt-BR (Portugues do Brasil)"
-    Write-Host "  Locale regional    : pt-BR (data, hora, moeda, teclado ABNT2)"
-    Write-Host "  Localizacao        : Brasil (GeoID 32)"
-    Write-Host "  Fuso horario       : $tzInfo"
-    Write-Host "  Propagacao         : usuario atual + conta sistema + novos usuarios"
-    Write-Host ""
-    do { $confirm = Read-Host "Confirmar e aplicar? [S/N]" } while ($confirm -notmatch '^[SsNn]$')
 
-    if ($confirm -notmatch '^[Ss]$') {
-        Write-Host "Operacao cancelada pelo usuario." -ForegroundColor Yellow
+    $confirmado = Read-YesNo -Question "Confirmar e aplicar?" -DefaultYes $false
+    if (-not $confirmado) {
+        Write-Info "Operacao cancelada pelo usuario."
         if ($transcriptActive) { Stop-Transcript }
         exit 0
     }
@@ -453,12 +469,12 @@ Write-Step "Verificando compatibilidade do sistema operacional" 5
 
 $osOk = Test-SupportedWindows
 if (-not $osOk) {
-    Write-Host "AVISO: Sistema operacional nao identificado como Windows 10/11 Pro ou superior." -ForegroundColor Yellow
-    Write-Host "O script continuara, mas alguns comandos podem nao estar disponiveis." -ForegroundColor Yellow
+    Write-Warn "Sistema operacional nao identificado como Windows 10/11 Pro ou superior."
+    Write-Warn "O script continuara, mas alguns comandos podem nao estar disponiveis."
 }
 else {
     $osInfo = Get-CimInstance Win32_OperatingSystem
-    Write-Host "Sistema: $($osInfo.Caption) (Build $($osInfo.BuildNumber))" -ForegroundColor Green
+    Write-Ok "Sistema: $($osInfo.Caption) (Build $($osInfo.BuildNumber))"
 }
 
 # --- Instalar pacote de idioma ---
@@ -489,23 +505,23 @@ if ($transcriptActive) { Stop-Transcript }
 if (-not $NoReboot) {
     Write-Host ""
     if (-not $Silent) {
-        Write-Host "Reinicializacao necessaria para aplicar o idioma de exibicao." -ForegroundColor Yellow
-        do { $rb = Read-Host "Reiniciar agora? [S/N]" } while ($rb -notmatch '^[SsNn]$')
-        if ($rb -match '^[Ss]$') {
+        Write-Warn "Reinicializacao necessaria para aplicar o idioma de exibicao."
+        $reiniciar = Read-YesNo -Question "Reiniciar agora?" -DefaultYes $false
+        if ($reiniciar) {
             shutdown /r /t 30 /c "Reinicio apos configuracao de idioma e regiao pt-BR."
         }
         else {
-            Write-Host "Reinicializacao pendente. Execute manualmente para aplicar todas as mudancas." -ForegroundColor Yellow
+            Write-Warn "Reinicializacao pendente. Execute manualmente para aplicar todas as mudancas."
         }
     }
     else {
-        Write-Host "Modo silencioso: reiniciando em 60 segundos." -ForegroundColor Yellow
+        Write-Warn "Modo silencioso: reiniciando em 60 segundos."
         shutdown /r /t 60 /c "Reinicio apos configuracao de idioma e regiao pt-BR."
     }
 }
 else {
     Write-Host ""
-    Write-Host "Configuracao concluida sem reinicializacao." -ForegroundColor Green
-    Write-Host "PENDENTE: reinicie o sistema para aplicar o idioma de exibicao por completo." -ForegroundColor Yellow
-    Write-Host "Log salvo em: $LogFile" -ForegroundColor Green
+    Write-Ok "Configuracao concluida sem reinicializacao."
+    Write-Warn "PENDENTE: reinicie o sistema para aplicar o idioma de exibicao por completo."
+    Write-Ok "Log salvo em: $LogFile"
 }

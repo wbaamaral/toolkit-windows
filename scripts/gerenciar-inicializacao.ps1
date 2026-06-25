@@ -1,7 +1,7 @@
 ﻿#requires -version 5.1
 <#
 .SYNOPSIS
-    Gerenciamento exclusivo de itens de inicializacao e servicos do Windows.
+    Gerenciamento de itens de inicializacao e servicos do Windows.
 
 .DESCRIPTION
     Ferramenta dedicada ao gerenciamento da inicializacao do Windows. Coleta, exibe
@@ -11,14 +11,23 @@
       - Pasta de inicializacao (usuario e sistema)
       - Tarefas agendadas com gatilho de logon ou boot
 
-    Adicionalmente, exibe o estado e tipo de inicializacao dos servicos relevantes.
+    Adicionalmente, exibe o estado e o tipo de inicializacao dos servicos relevantes.
 
     No modo Diagnostico (padrao), apenas coleta e exibe informacoes sem alterar nada.
     No modo Assistido, permite ao operador desabilitar, reativar ou remover entradas.
 
+    A coleta, exibicao e modificacao sao delegadas ao modulo WbaToolkit.Startup; o
+    script orquestra o fluxo, registra a sessao e exporta relatorios.
+
     Todas as operacoes de desativacao sao reversiveis: o item original e registrado
     no repositorio WBA (HKLM:\SOFTWARE\WBA\WindowsToolkit\Startup\Disabled) antes
     de qualquer alteracao.
+
+    Os relatorios seguem o padrao global de saida do toolkit. Quando -DiretorioSaida
+    nao e informado, o caminho e resolvido pela configuracao persistente (ReportsRoot)
+    ou, na ausencia desta, por C:\WBA\Relatorios. Os artefatos sao gravados em
+    <Raiz>\WbaToolkit.Startup\<yyyy-MM-dd_HHmmss>\ (relatorio TXT, JSON, alteracoes
+    e a pasta logs\).
 
 .PARAMETER Modo
     Define o modo de execucao:
@@ -29,29 +38,41 @@
     Simula todas as operacoes sem efetuar alteracoes no sistema.
 
 .PARAMETER GerarHtml
-    Gera relatorio HTML alem do TXT e JSON.
+    Reservado para geracao de relatorio HTML alem do TXT e JSON.
 
 .PARAMETER Path
     Raiz de relatorios escolhida pelo usuario. Quando omitido, usa a configuracao
-    persistente do toolkit ou C:\WBA\Relatorios.
+    persistente do toolkit ou C:\WBA\Relatorios. Aceita o alias -DiretorioSaida.
 
-.USO
-    Diagnostico somente leitura:
-        .\Gerenciar-Inicializacao-Windows.ps1
+.EXAMPLE
+    .\gerenciar-inicializacao.ps1
 
-    Diagnostico com relatorio HTML:
-        .\Gerenciar-Inicializacao-Windows.ps1 -GerarHtml
+    Diagnostico somente leitura (nenhuma alteracao no sistema).
 
-    Modo assistido para modificacoes:
-        .\Gerenciar-Inicializacao-Windows.ps1 -Modo Assistido
+.EXAMPLE
+    .\gerenciar-inicializacao.ps1 -GerarHtml
 
-    Simulacao sem alterar o sistema:
-        .\Gerenciar-Inicializacao-Windows.ps1 -Modo Assistido -DryRun
+    Diagnostico com relatorio adicional em HTML.
 
-.NOTAS
+.EXAMPLE
+    .\gerenciar-inicializacao.ps1 -Modo Assistido
+
+    Modo assistido para desabilitar, reativar ou remover entradas.
+
+.EXAMPLE
+    .\gerenciar-inicializacao.ps1 -Modo Assistido -DryRun
+
+    Simula as modificacoes do modo assistido sem alterar o sistema.
+
+.EXAMPLE
+    .\gerenciar-inicializacao.ps1 -DiretorioSaida D:\Relatorios\Cliente01
+
+    Grava os relatorios na raiz informada.
+
+.NOTES
     Requer PowerShell 5.1 ou superior.
     Modificacoes em itens de nivel Machine exigem execucao como Administrador.
-    Modulo WbaToolkit.Startup e WbaToolkit.Core sao carregados automaticamente.
+    Modulos WbaToolkit.Startup e WbaToolkit.Core sao carregados automaticamente.
 #>
 param(
     [ValidateSet('Diagnostico', 'Assistido')]
@@ -94,13 +115,31 @@ $startupModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Startup/WbaToolk
 Import-Module $coreModulePath    -Force -ErrorAction Stop
 Import-Module $startupModulePath -Force -ErrorAction Stop
 
-# WBA-DOCS: Category=Maintenance; Related=Diagnostico-Reparo-HD100.ps1; Manual=Gerenciamento de inicializacao do Windows
+# WBA-DOCS: Category=Startup; Manual=Gerenciamento de inicializacao e servicos do Windows
 
-Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Continue'
 
 $script:Session  = $null
 $script:Changes  = [System.Collections.ArrayList]::new()
+
+# ─── elevacao para o modo assistido (operacoes de nivel Machine) ───────────────
+
+if ($Modo -eq 'Assistido' -and -not (Test-IsAdministrator)) {
+    Write-Warn 'Modo Assistido requer privilegios de Administrador para modificar itens de nivel Machine.'
+    Write-Info 'Tentando relancar o script de forma elevada...'
+
+    $relaunchArgs = foreach ($kv in $PSBoundParameters.GetEnumerator()) {
+        if ($kv.Value -is [switch]) {
+            if ($kv.Value.IsPresent) { "-$($kv.Key)" }
+        }
+        else {
+            "-$($kv.Key)"; "$($kv.Value)"
+        }
+    }
+    $allArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"") + $relaunchArgs
+    Start-Process powershell.exe -ArgumentList $allArgs -Verb RunAs
+    exit
+}
 
 # ─── helpers locais ──────────────────────────────────────────────────────────
 
@@ -134,15 +173,6 @@ function Add-WinStartupChange {
         EstadoNovo     = $NewState
         Reversivel     = $Reversible
     })
-}
-
-function Write-WinStartupSection {
-    [CmdletBinding()]
-    param([Parameter(Mandatory = $true)][string]$Title)
-
-    Write-Host ''
-    Write-Host ('--- ' + $Title + ' ---') -ForegroundColor DarkCyan
-    Write-WinStartupLog -Message $Title
 }
 
 # ─── exportacao de relatorio ─────────────────────────────────────────────────
@@ -201,18 +231,13 @@ $changeRows
 ================================================================================
 "@
 
-    [System.IO.File]::WriteAllText(
-        $OutPath,
-        $content,
-        [System.Text.UTF8Encoding]::new($true)
-    )
-
+    Write-TextFileUtf8 -Path $OutPath -Content $content
     return $OutPath
 }
 
 # ─── execucao principal ───────────────────────────────────────────────────────
 
-Write-Title "WBA Windows Toolkit - Gerenciamento de Inicializacao v$ScriptVersion"
+Write-Title "WBA Windows Toolkit - Gerenciamento de Inicializacao $ScriptVersion"
 
 if ($DryRun) { Write-Warn 'MODO DRY-RUN: nenhuma alteracao sera feita no sistema.' }
 
@@ -223,32 +248,32 @@ Write-Info "Relatorios em: $($script:Session.Path)"
 
 # ─── coleta de dados ──────────────────────────────────────────────────────────
 
-Write-WinStartupSection 'Coletando itens de inicializacao'
+Write-Section 'Coletando itens de inicializacao'
 $startupItems = @(Get-StartupItem)
 Write-Info "$(@($startupItems).Count) itens encontrados."
 
-Write-WinStartupSection 'Coletando estado dos servicos'
+Write-Section 'Coletando estado dos servicos'
 $services = @(Get-ServiceStartupState)
+Write-Info "$(@($services).Count) servicos consultados."
 
 # ─── exibicao ────────────────────────────────────────────────────────────────
 
 Show-StartupItem -Items $startupItems
 
-Write-Host 'Servicos relevantes:' -ForegroundColor Cyan
+Write-Section 'Servicos relevantes'
 foreach ($svc in $services) {
-    $color = switch ($svc.Status) {
-        'Running' { 'Green' }
-        'Stopped' { 'DarkGray' }
-        default   { 'Yellow' }
+    $line = "{0,-20} {1,-10} {2}" -f $svc.Name, $svc.Status, $svc.StartType
+    switch ($svc.Status) {
+        'Running' { Write-Ok   $line }
+        'Stopped' { Write-Info $line }
+        default   { Write-Warn $line }
     }
-    Write-Host ("  {0,-20} {1,-10} {2}" -f $svc.Name, $svc.Status, $svc.StartType) -ForegroundColor $color
 }
-Write-Host ''
 
 # ─── modo assistido ───────────────────────────────────────────────────────────
 
 if ($Modo -eq 'Assistido') {
-    Write-WinStartupSection 'Modo Assistido: gerenciamento interativo'
+    Write-Section 'Modo Assistido: gerenciamento interativo'
 
     $sessionResults = @(Invoke-StartupManager -DryRun:$DryRun)
 
@@ -276,8 +301,8 @@ if ($Modo -eq 'Assistido') {
                     -Reversible $reversible
             }
         }
-        Write-WinStartupLog -Level (if ($r.Success) { 'INFO' } else { 'WARN' }) `
-            -Message "$($r.Action) '$($r.Name)': $($r.Message)"
+        $logLevel = if ($r.Success) { 'INFO' } else { 'WARN' }
+        Write-WinStartupLog -Level $logLevel -Message "$($r.Action) '$($r.Name)': $($r.Message)"
     }
 
     $startupItems = @(Get-StartupItem)
@@ -285,7 +310,7 @@ if ($Modo -eq 'Assistido') {
 
 # ─── exportacao ───────────────────────────────────────────────────────────────
 
-Write-WinStartupSection 'Exportando relatorio'
+Write-Section 'Exportando relatorio'
 
 $snapshot = [pscustomobject]@{
     StartedAt    = $script:Session.ExecutionName
@@ -302,17 +327,17 @@ $txtPath  = Join-Path $script:Session.Path 'relatorio-inicializacao.txt'
 $jsonPath = Join-Path $script:Session.Path 'relatorio-inicializacao.json'
 
 Export-WinStartupReportText -Snapshot $snapshot -OutPath $txtPath | Out-Null
-$snapshot | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $jsonPath
+Write-TextFileUtf8 -Path $jsonPath -Content ($snapshot | ConvertTo-Json -Depth 8)
 
 if ($script:Changes.Count -gt 0) {
     $changesPath = Join-Path $script:Session.Path 'alteracoes.json'
-    @($script:Changes) | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $changesPath
+    Write-TextFileUtf8 -Path $changesPath -Content (@($script:Changes) | ConvertTo-Json -Depth 6)
     Write-Info "Registro de alteracoes: $changesPath"
 }
 
 Write-WinStartupLog -Message 'Relatorio exportado.'
 Write-Ok "Relatorio TXT: $txtPath"
 Write-Ok "Relatorio JSON: $jsonPath"
+Write-Info "Logs: $($script:Session.LogsPath)"
 
-Write-Host ''
 Write-Title "Sessao concluida: $($script:Session.Path)"

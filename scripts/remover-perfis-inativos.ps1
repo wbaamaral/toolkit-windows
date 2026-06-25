@@ -1,9 +1,4 @@
-﻿# =============================================================================
-# [NAO VALIDADO] Script sem execucao real documentada em Windows.
-# Nao recomendado para uso em producao ate validacao operacional.
-# Registro: nao-validado/README.md
-# =============================================================================
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Lista perfis de usuario locais com espaco em disco e permite remocao interativa
@@ -28,23 +23,43 @@
     - Flag -DryRun para simular remocao sem alterar o sistema.
     - Log completo na pasta padronizada de relatorios do toolkit.
 
-.USO
-    Modo interativo (padrao):
-        .\Remover-Perfis-Inativos.ps1
+.PARAMETER DryRun
+    Simula a remocao sem alterar o sistema. Nenhum perfil e removido.
 
-    Simular sem remover nada:
-        .\Remover-Perfis-Inativos.ps1 -DryRun
+.PARAMETER Silent
+    Modo automatico: remove orfaos e inativos (alem de -InactiveDays) sem prompts.
+    Recomenda-se -DryRun antes de usar -Silent em producao.
 
-    Remocao automatica de orfaos + inativos ha mais de 90 dias:
-        .\Remover-Perfis-Inativos.ps1 -Silent
+.PARAMETER NoLog
+    Nao cria arquivo de log/transcricao da sessao.
 
-    Alterar limiar de inatividade para 180 dias:
-        .\Remover-Perfis-Inativos.ps1 -InactiveDays 180
+.PARAMETER InactiveDays
+    Limiar de inatividade em dias para classificar um perfil como Inativo. Padrao: 90.
 
-    Excluir perfis especificos da listagem:
-        .\Remover-Perfis-Inativos.ps1 -ExcludeProfile "svc.backup","adm.temp"
+.PARAMETER ExcludeProfile
+    Nomes de perfis a ignorar na listagem (correspondencia parcial por nome/caminho).
 
-.NOTAS
+.PARAMETER Path
+    Diretorio raiz de relatorios. Padrao: configuracao global ou C:\WBA\Relatorios.
+    A sessao grava em <ReportsRoot>\Utilities\<yyyy-MM-dd_HHmmss>\logs.
+
+.EXAMPLE
+    .\remover-perfis-inativos.ps1
+    Modo interativo (padrao).
+
+.EXAMPLE
+    .\remover-perfis-inativos.ps1 -DryRun
+    Simula a remocao sem alterar o sistema.
+
+.EXAMPLE
+    .\remover-perfis-inativos.ps1 -Silent -InactiveDays 180
+    Remocao automatica de orfaos + inativos ha mais de 180 dias.
+
+.EXAMPLE
+    .\remover-perfis-inativos.ps1 -ExcludeProfile "svc.backup","adm.temp"
+    Exclui perfis especificos da listagem.
+
+.NOTES
     Requer privilegios de Administrador.
     A remocao via Win32_UserProfile exclui a pasta do perfil E a chave de registro.
     Perfis ativamente carregados nao podem ser removidos sem logoff do usuario.
@@ -74,19 +89,28 @@ $PSDefaultParameterValues['Out-File:Encoding']    = 'utf8'
 $PSDefaultParameterValues['Set-Content:Encoding'] = 'utf8'
 $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
 
-chcp 65001 | Out-Null
+try { chcp 65001 | Out-Null } catch { }
 
-$ToolkitRoot = Split-Path -Parent $PSScriptRoot
-$ToolkitModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
-Import-Module $ToolkitModulePath -Force -ErrorAction Stop
+$ScriptName = if ($MyInvocation.MyCommand.Name) {
+    $MyInvocation.MyCommand.Name
+}
+else {
+    Split-Path -Leaf $PSCommandPath
+}
+
+$ScriptPath = $PSCommandPath
+$ScriptDir  = $PSScriptRoot
+
+$ScriptVersion = 'v1.0'
+$ToolkitRoot   = Split-Path -Parent $PSScriptRoot
+$CoreModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
+Import-Module $CoreModulePath -Force -ErrorAction Stop
 
 # WBA-DOCS: Category=Utilities; Manual=Remocao de perfis de usuario inativos
 
-$ScriptVersion = "v1.0"
-$ScriptName    = $MyInvocation.MyCommand.Name
-$ReportSession = $null
-$LogDir        = $null
-$LogFile       = $null
+$ErrorActionPreference = 'Continue'
+
+$script:Session = $null
 
 $SystemFolders = @(
     'systemprofile', 'LocalService', 'NetworkService',
@@ -94,12 +118,22 @@ $SystemFolders = @(
 )
 
 # ---------------------------------------------------------------------------
-# Funcoes utilitarias
+# Helpers locais
 # ---------------------------------------------------------------------------
+
+function Write-ProfileLog {
+    [CmdletBinding()]
+    param(
+        [string]$Level = 'INFO',
+        [Parameter(Mandatory = $true)][string]$Message
+    )
+    $logPath = if ($script:Session) { Join-Path $script:Session.LogsPath 'remover-perfis-inativos.log' } else { $null }
+    Write-ScriptLog -Message $Message -Level $Level -LogPath $logPath
+}
 
 function Show-Help {
     Write-Host ""
-    Write-Host "Remocao de Perfis de Usuario Inativos — $script:ScriptVersion" -ForegroundColor Cyan
+    Write-Host "Remocao de Perfis de Usuario Inativos — $ScriptVersion" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "Uso:"
     Write-Host "  .\$ScriptName [opcoes]"
@@ -152,8 +186,7 @@ function Get-FolderSize {
 function Get-LocalProfiles {
     $currentSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 
-    Write-Host ""
-    Write-Host "Coletando perfis de usuario..." -ForegroundColor Yellow
+    Write-Info "Coletando perfis de usuario..."
 
     $wmiProfiles = Get-CimInstance -ClassName Win32_UserProfile -ErrorAction Stop |
         Where-Object { -not $_.Special }
@@ -251,7 +284,7 @@ function Get-LocalProfiles {
         $index++
     }
 
-    Write-Host "  $($profiles.Count) perfil(s) encontrado(s)." -ForegroundColor Yellow
+    Write-Info "$($profiles.Count) perfil(s) encontrado(s)."
     return $profiles
 }
 
@@ -373,6 +406,7 @@ function Remove-Profiles {
 
         if ($script:DryRun) {
             Write-Host " [SIMULACAO — nao removido]" -ForegroundColor Cyan
+            Write-ProfileLog -Message "SIMULACAO: perfil '$($p.UserName)' (SID $($p.SID)) nao removido (DryRun)."
             $results.Add([PSCustomObject]@{ Profile = $p; Success = $true; Error = $null })
             $freedBytes += $p.SizeBytes
             continue
@@ -382,12 +416,13 @@ function Remove-Profiles {
             $wmiObj = Get-CimInstance -ClassName Win32_UserProfile -Filter "SID='$($p.SID)'" -ErrorAction Stop
             Remove-CimInstance -InputObject $wmiObj -ErrorAction Stop
             Write-Host " [OK]" -ForegroundColor Green
+            Write-ProfileLog -Message "Perfil removido: '$($p.UserName)' (SID $($p.SID), $($p.SizeDisplay))."
             $results.Add([PSCustomObject]@{ Profile = $p; Success = $true; Error = $null })
             $freedBytes += $p.SizeBytes
         }
         catch {
             Write-Host " [FALHOU: $($_.Exception.Message)]" -ForegroundColor Red
-            Write-Warning "ERRO ao remover '$($p.UserName)': $($_.Exception.Message)"
+            Write-ProfileLog -Level 'ERROR' -Message "ERRO ao remover '$($p.UserName)' (SID $($p.SID)): $($_.Exception.Message)"
             $results.Add([PSCustomObject]@{ Profile = $p; Success = $false; Error = $_.Exception.Message })
         }
     }
@@ -409,7 +444,7 @@ function Invoke-InteractiveMenu {
         Show-ProfileTable -Profiles $Profiles -Message $msg
         $msg = ""
 
-        $cmd = (Read-Host "Comando").Trim().ToLower()
+        $cmd = (Read-UserInput -Question "Comando").Trim().ToLower()
 
         if ($cmd -eq 'q') {
             $running = $false
@@ -452,9 +487,9 @@ function Invoke-InteractiveMenu {
             }
             Write-Host ""
 
-            do { $confirm = Read-Host "  Confirmar remocao? [S/N]" } while ($confirm -notmatch '^[SsNn]$')
+            $confirmado = Read-YesNo -Question "  Confirmar remocao?" -DefaultYes $false
 
-            if ($confirm -match '^[Ss]$') {
+            if ($confirmado) {
                 Write-Host ""
                 $list = New-Object 'System.Collections.Generic.List[PSCustomObject]'
                 foreach ($p in $selected) { $list.Add($p) }
@@ -473,9 +508,11 @@ function Invoke-InteractiveMenu {
 
                 $dryNote = if ($script:DryRun) { " (simulado)" } else { "" }
                 $msg = "$ok perfil(s) removido(s)$dryNote, $fail falha(s). Liberado: $(Format-FileSize $result.FreedBytes)"
+                Write-ProfileLog -Message "Remocao interativa concluida${dryNote}: $ok removido(s), $fail falha(s). Liberado: $(Format-FileSize $result.FreedBytes)."
             }
             else {
                 $msg = "Remocao cancelada pelo usuario."
+                Write-ProfileLog -Message "Remocao cancelada pelo operador na etapa de confirmacao."
             }
         }
         elseif ($cmd -match '^i\s+(\d+)$') {
@@ -483,7 +520,7 @@ function Invoke-InteractiveMenu {
             $p = $Profiles | Where-Object { $_.Index -eq $n -and -not $_.Deleted }
             if ($p) {
                 Show-ProfileDetail -Profile $p
-                Read-Host "  Pressione Enter para voltar" | Out-Null
+                Read-UserInput -Question "  Pressione Enter para voltar" | Out-Null
             } else {
                 $msg = "Perfil #$n nao encontrado."
             }
@@ -510,8 +547,7 @@ function Invoke-InteractiveMenu {
     }
 
     try { [Console]::Clear() } catch {}
-    Write-Host ""
-    Write-Host "Sessao encerrada." -ForegroundColor Cyan
+    Write-Section "Sessao encerrada."
 }
 
 # ---------------------------------------------------------------------------
@@ -519,7 +555,7 @@ function Invoke-InteractiveMenu {
 # ---------------------------------------------------------------------------
 
 if ($Help)    { Show-Help; exit 0 }
-if ($Version) { Write-Host "Versao: $ScriptVersion" -ForegroundColor Green; exit 0 }
+if ($Version) { Write-Info "Versao: $ScriptVersion"; exit 0 }
 
 if (-not (Test-IsAdministrator)) {
     $relaunchArgs = foreach ($kv in $PSBoundParameters.GetEnumerator()) {
@@ -536,31 +572,32 @@ if (-not (Test-IsAdministrator)) {
 
 $transcriptActive = $false
 if (-not $NoLog) {
-    $ReportSession = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'Utilities'
-    $LogDir        = $ReportSession.LogsPath
-    $LogFile       = Join-Path $LogDir "$((Get-Date).ToString('yyyy-MM-dd_HHmmss'))-$([System.IO.Path]::GetFileNameWithoutExtension($ScriptName)).log"
+    $script:Session = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'Utilities'
+    $LogDir         = $script:Session.LogsPath
+    $LogFile        = Join-Path $LogDir "$((Get-Date).ToString('yyyy-MM-dd_HHmmss'))-$([System.IO.Path]::GetFileNameWithoutExtension($ScriptName)).log"
 
     if (!(Test-Path $LogDir)) { New-Item -ItemType Directory -Path $LogDir -Force | Out-Null }
     try {
-        Start-Transcript -Path $LogFile -Encoding UTF8 -ErrorAction Stop
+        Start-Transcript -Path $LogFile -ErrorAction Stop
         $transcriptActive = $true
     }
     catch {
-        Write-Warning "Nao foi possivel iniciar o log de transcricao: $($_.Exception.Message)"
+        Write-Warn "Nao foi possivel iniciar o log de transcricao: $($_.Exception.Message)"
     }
 }
 
-Write-Host ""
-Write-Host "============================================================" -ForegroundColor Cyan
 $dryBanner = if ($DryRun) { " [MODO SIMULACAO — nenhuma alteracao sera feita]" } else { "" }
-Write-Host " Remocao de Perfis Inativos — $ScriptVersion$dryBanner" -ForegroundColor Cyan
-Write-Host "============================================================" -ForegroundColor Cyan
+Write-Title "Remocao de Perfis Inativos — $ScriptVersion$dryBanner"
+if ($script:Session) {
+    Write-Info "Relatorios em: $($script:Session.Path)"
+}
+Write-ProfileLog -Message "Sessao iniciada. DryRun: $DryRun. Silent: $Silent. InactiveDays: $InactiveDays."
 
 $profiles = Get-LocalProfiles
 
 if ($profiles.Count -eq 0) {
-    Write-Host ""
-    Write-Host "Nenhum perfil de usuario encontrado para gerenciar." -ForegroundColor Yellow
+    Write-Warn "Nenhum perfil de usuario encontrado para gerenciar."
+    Write-ProfileLog -Message "Nenhum perfil de usuario encontrado. Encerrando."
     if ($transcriptActive) { Stop-Transcript }
     exit 0
 }
@@ -571,18 +608,17 @@ if ($Silent) {
         $_.CanDelete -and (-not $_.AccountExists -or $_.DaysInactive -ge $InactiveDays)
     })
 
-    Write-Host ""
     if ($toDelete.Count -eq 0) {
-        Write-Host "Nenhum perfil elegivel para remocao automatica (orfaos ou inativos >$InactiveDays dias)." -ForegroundColor Yellow
+        Write-Warn "Nenhum perfil elegivel para remocao automatica (orfaos ou inativos >$InactiveDays dias)."
+        Write-ProfileLog -Message "Modo silencioso: nenhum perfil elegivel para remocao automatica."
     }
     else {
-        Write-Host "Perfis selecionados automaticamente:" -ForegroundColor Yellow
+        Write-Info "Perfis selecionados automaticamente:"
         foreach ($p in $toDelete) {
             Write-Host ("  - {0,-28} {1,-10} {2,-8}inat.  {3}" -f $p.UserName, $p.SizeDisplay, "$($p.DaysInactive)d", $p.Status) -ForegroundColor $p.StatusColor
         }
         $totalSel = ($toDelete | Measure-Object -Property SizeBytes -Sum).Sum
-        Write-Host "  Total: $($toDelete.Count) perfil(s) | $(Format-FileSize $totalSel)" -ForegroundColor Yellow
-        Write-Host ""
+        Write-Info "Total: $($toDelete.Count) perfil(s) | $(Format-FileSize $totalSel)"
 
         $list = New-Object 'System.Collections.Generic.List[PSCustomObject]'
         foreach ($p in $toDelete) { $list.Add($p) }
@@ -592,8 +628,8 @@ if ($Silent) {
         $fail   = @($result.Results | Where-Object { -not $_.Success }).Count
         $dryNote = if ($DryRun) { " (simulado)" } else { "" }
 
-        Write-Host ""
-        Write-Host "Remocao concluida${dryNote}: $ok removido(s), $fail falha(s). Liberado: $(Format-FileSize $result.FreedBytes)" -ForegroundColor Green
+        Write-Ok "Remocao concluida${dryNote}: $ok removido(s), $fail falha(s). Liberado: $(Format-FileSize $result.FreedBytes)"
+        Write-ProfileLog -Message "Modo silencioso concluido${dryNote}: $ok removido(s), $fail falha(s). Liberado: $(Format-FileSize $result.FreedBytes)."
     }
 }
 else {
@@ -603,4 +639,5 @@ else {
     Invoke-InteractiveMenu -Profiles $list
 }
 
+Write-ProfileLog -Message "Sessao encerrada."
 if ($transcriptActive) { Stop-Transcript }
