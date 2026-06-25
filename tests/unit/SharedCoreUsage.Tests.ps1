@@ -40,7 +40,7 @@ Describe 'Xtudo estrutura do toolkit' {
         $script:operatorGuideContent | Should -Match 'scripts\\limpar-windows\.ps1'
         $script:operatorGuideContent | Should -Match 'scripts\\atualizar-windows\.ps1'
         $script:operatorGuideContent | Should -Match 'scripts\\diagnosticar-ad-cliente\.ps1'
-        $script:operatorGuideContent | Should -Match 'scripts\\Inventario-Hardware-Software\.ps1'
+        $script:operatorGuideContent | Should -Match 'scripts\\inventario-hardware-software\.ps1'
         $script:operatorManualContent | Should -Match 'diagnosticar-ad-cliente\.ps1'
         $script:operatorManualContent | Should -Match 'Legado experimental de AD'
     }

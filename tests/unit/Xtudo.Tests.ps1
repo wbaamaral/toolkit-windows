@@ -28,7 +28,7 @@ Describe 'Xtudo launcher' {
         $script:launcherContent | Should -Match "Path\s+=\s+'scripts/preparar-imagem-windows\.ps1'"
         $script:launcherContent | Should -Match "Path\s+=\s+'scripts/atualizar-windows\.ps1'"
         $script:launcherContent | Should -Match "Path\s+=\s+'scripts/diagnosticar-ad-cliente\.ps1'"
-        $script:launcherContent | Should -Match "Path\s+=\s+'scripts/Inventario-Hardware-Software\.ps1'"
+        $script:launcherContent | Should -Match "Path\s+=\s+'scripts/inventario-hardware-software\.ps1'"
         $script:launcherContent | Should -Match "Label\s+=\s+'Inventário hardware e software'"
         $script:launcherContent | Should -Match "Category\s+=\s+'Inventário'"
         ($script:launcherContent -match 'Quick\s+=\s+\$true') | Should -BeTrue

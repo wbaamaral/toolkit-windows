@@ -41,16 +41,16 @@
     toolkit ou C:\WBA\Relatorios.
 
 .EXAMPLE
-    .\Diagnostico-Memoria.ps1
+    .\diagnosticar-memoria.ps1
 
 .EXAMPLE
-    .\Diagnostico-Memoria.ps1 -Top 20 -Metrica PrivateBytes -GerarHtml -AbrirRelatorio
+    .\diagnosticar-memoria.ps1 -Top 20 -Metrica PrivateBytes -GerarHtml -AbrirRelatorio
 
 .EXAMPLE
-    .\Diagnostico-Memoria.ps1 -Todos -GerarHtml -AbrirRelatorio
+    .\diagnosticar-memoria.ps1 -Todos -GerarHtml -AbrirRelatorio
 
 .EXAMPLE
-    .\Diagnostico-Memoria.ps1 -GerarHtml -Path "D:\Relatorios\Teste"
+    .\diagnosticar-memoria.ps1 -GerarHtml -Path "D:\Relatorios\Teste"
 
 .NOTES
     Autor  : WBA Windows Toolkit
@@ -109,7 +109,7 @@ Import-Module $ToolkitModulePath -Force -ErrorAction Stop
 $ScriptVersion     = 'v0.1'
 $script:MemSession = $null
 
-# WBA-DOCS: Category=Diagnostics; Related=Diagnostico-Driver-Grafico.ps1,Diagnostico-Reparo-HD100.ps1; Manual=Diagnostico de consumo de memoria
+# WBA-DOCS: Category=Diagnostics; Related=diagnosticar-grafico.ps1,diagnosticar-disco-100.ps1; Manual=Diagnostico de consumo de memoria
 
 # ---------------------------------------------------------------------------
 # Funcoes privadas

@@ -59,16 +59,16 @@
     C:\WBA\Relatorios.
 
 .EXAMPLE
-    .\Diagnostico-Driver-Grafico.ps1
+    .\diagnosticar-grafico.ps1
 
 .EXAMPLE
-    .\Diagnostico-Driver-Grafico.ps1 -GerarHtml
+    .\diagnosticar-grafico.ps1 -GerarHtml
 
 .EXAMPLE
-    .\Diagnostico-Driver-Grafico.ps1 -Modo Assistido
+    .\diagnosticar-grafico.ps1 -Modo Assistido
 
 .EXAMPLE
-    .\Diagnostico-Driver-Grafico.ps1 -Dias 14 -ExportarEvtx -ColetarDxDiag -GerarHtml
+    .\diagnosticar-grafico.ps1 -Dias 14 -ExportarEvtx -ColetarDxDiag -GerarHtml
 
 .NOTES
     Autor  : WBA Windows Toolkit
@@ -134,7 +134,7 @@ Import-Module $ToolkitModulePath -Force -ErrorAction Stop
 $ScriptVersion = 'v0.1'
 $script:GfxSession = $null
 
-# WBA-DOCS: Category=Diagnostics; Related=Diagnostico-Reparo-HD100.ps1,Inventario-Hardware-Software.ps1; Manual=Diagnostico de driver grafico e tela preta
+# WBA-DOCS: Category=Diagnostics; Related=diagnosticar-disco-100.ps1,inventario-hardware-software.ps1; Manual=Diagnostico de driver grafico e tela preta
 
 if ($Modo -eq 'Assistido') {
     $GerarHtml = $true

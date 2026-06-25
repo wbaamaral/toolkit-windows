@@ -47,19 +47,19 @@
 
 .USO
     Execucao diagnostica padrao:
-        .\Diagnostico-Reparo-HD100.ps1
+        .\diagnosticar-disco-100.ps1
 
     Execucao diagnostica com HTML:
-        .\Diagnostico-Reparo-HD100.ps1 -GerarHtml
+        .\diagnosticar-disco-100.ps1 -GerarHtml
 
     Modo assistido para reparos seguros:
-        .\Diagnostico-Reparo-HD100.ps1 -Modo Assistido -GerarHtml
+        .\diagnosticar-disco-100.ps1 -Modo Assistido -GerarHtml
 
     Simulacao sem executar comandos externos:
-        .\Diagnostico-Reparo-HD100.ps1 -DryRun
+        .\diagnosticar-disco-100.ps1 -DryRun
 
     Gerar relatorio a partir da execucao mais recente:
-        .\Diagnostico-Reparo-HD100.ps1 -Modo Relatorio -GerarHtml
+        .\diagnosticar-disco-100.ps1 -Modo Relatorio -GerarHtml
 
 .NOTAS
     Requer PowerShell 5.1 ou superior e Administrador local.
@@ -112,7 +112,7 @@ $ScriptVersion = 'v0.1'
 $script:HD100Session = $null
 $script:HD100Changes = [System.Collections.ArrayList]::new()
 
-# WBA-DOCS: Category=Maintenance; Related=limpeza-windows.ps1; Manual=Diagnostico assistido de Disco 100%
+# WBA-DOCS: Category=Maintenance; Related=limpar-windows.ps1; Manual=Diagnostico assistido de Disco 100%
 
 function Test-HD100Windows {
     return ($env:OS -eq 'Windows_NT')

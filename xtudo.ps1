@@ -94,7 +94,7 @@ function New-XtudoCatalog {
             Id       = 'inventario-hardware-software'
             Label    = 'Inventário hardware e software'
             Category = 'Inventário'
-            Path     = 'scripts/Inventario-Hardware-Software.ps1'
+            Path     = 'scripts/inventario-hardware-software.ps1'
             Keywords = @('inventario', 'hardware', 'software', 'drivers', 'ativo', 'asset', 'monitores', 'bios')
             Quick    = $false
         }

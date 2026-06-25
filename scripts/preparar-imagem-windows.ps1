@@ -34,13 +34,13 @@
 
 .USO
     Simular sem alterar o sistema:
-        .\Preparar-Imagem-Windows.ps1 -ApenasDryRun
+        .\preparar-imagem-windows.ps1 -ApenasDryRun
 
     Aplicar tweaks sem executar sysprep.exe:
-        .\Preparar-Imagem-Windows.ps1 -SemSysprep
+        .\preparar-imagem-windows.ps1 -SemSysprep
 
     Fluxo completo (tweaks + oferta de sysprep.exe):
-        .\Preparar-Imagem-Windows.ps1
+        .\preparar-imagem-windows.ps1
 
 .NOTAS
     Requer execucao como Administrador.

@@ -18,8 +18,8 @@ Describe 'Xtudo fluxo do operador' {
         $script:launcherContent | Should -Match 'Nenhum resultado exato\.'
     }
 
-    It 'Nao expõe startup legado no MVP' {
-        $script:launcherContent | Should -Not -Match 'startup'
-        $script:launcherContent | Should -Not -Match 'inicializa'
+    It 'Expõe a rota oficial de gerenciamento de inicialização' {
+        $script:launcherContent | Should -Match "Path\s+=\s+'scripts/gerenciar-inicializacao\.ps1'"
+        $script:launcherContent | Should -Match "Category\s+=\s+'Inicialização'"
     }
 }

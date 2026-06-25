@@ -30,13 +30,13 @@
     Diretorio raiz de relatorios. Padrao: configuracao global ou C:\WBA\Relatorios.
 
 .EXAMPLE
-    .\Verificar-Atualizacoes-Hardware.ps1
+    .\verificar-atualizacoes-hardware.ps1
 
 .EXAMPLE
-    .\Verificar-Atualizacoes-Hardware.ps1 -GerarHtml -AbrirRelatorio
+    .\verificar-atualizacoes-hardware.ps1 -GerarHtml -AbrirRelatorio
 
 .EXAMPLE
-    .\Verificar-Atualizacoes-Hardware.ps1 -GerarHtml -Path D:\Relatorios
+    .\verificar-atualizacoes-hardware.ps1 -GerarHtml -Path D:\Relatorios
 
 .NOTES
     Autor  : WBA Windows Toolkit
@@ -83,7 +83,7 @@ Import-Module (Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.p
 $ScriptVersion   = 'v1.0'
 $script:HwSession = $null
 
-# WBA-DOCS: Category=Diagnostics; Related=Inventario-Hardware-Software.ps1,Backup-Restaurar-Drivers.ps1; Manual=Diagnostico de atualizacoes de BIOS e drivers
+# WBA-DOCS: Category=Diagnostics; Related=inventario-hardware-software.ps1,gerenciar-drivers.ps1; Manual=Diagnostico de atualizacoes de BIOS e drivers
 
 function Write-HwLog {
     [CmdletBinding()]

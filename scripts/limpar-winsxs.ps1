@@ -38,20 +38,20 @@
     Diretorio raiz de relatorios. Padrao: configuracao global ou C:\WBA\Relatorios.
 
 .EXAMPLE
-    .\Limpeza-WinSxS.ps1
+    .\limpar-winsxs.ps1
 
 .EXAMPLE
-    .\Limpeza-WinSxS.ps1 -Modo Relatorio -GerarHtml
+    .\limpar-winsxs.ps1 -Modo Relatorio -GerarHtml
 
 .EXAMPLE
-    .\Limpeza-WinSxS.ps1 -Modo Limpeza -DryRun
+    .\limpar-winsxs.ps1 -Modo Limpeza -DryRun
 
 .EXAMPLE
-    .\Limpeza-WinSxS.ps1 -Modo Limpeza -ResetBase
+    .\limpar-winsxs.ps1 -Modo Limpeza -ResetBase
 
 .EXAMPLE
     Set-ExecutionPolicy Bypass -Scope Process -Force
-    .\Limpeza-WinSxS.ps1 -Modo Limpeza
+    .\limpar-winsxs.ps1 -Modo Limpeza
 
 .NOTES
     Recomendado executar como Administrador.
@@ -85,7 +85,7 @@ $MaintenanceModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Maintenance/
 Import-Module $CoreModulePath        -Force -ErrorAction Stop
 Import-Module $MaintenanceModulePath -Force -ErrorAction Stop
 
-# WBA-DOCS: Category=Maintenance; Related=limpeza-windows.ps1; Manual=Limpeza assistida do Component Store WinSxS
+# WBA-DOCS: Category=Maintenance; Related=limpar-windows.ps1; Manual=Limpeza assistida do Component Store WinSxS
 
 $ScriptVersion = 'v1.0'
 $ScriptName    = $MyInvocation.MyCommand.Name

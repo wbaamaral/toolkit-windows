@@ -1,4 +1,4 @@
-function Get-InventoryCoverageMap {
+﻿function Get-InventoryCoverageMap {
     <#
     .SYNOPSIS
         Retorna o mapa de cobertura do inventario do Xtudo.
@@ -21,7 +21,7 @@ function Get-InventoryCoverageMap {
         [switch]$IncludeGaps
     )
 
-    # WBA-DOCS: Category=Inventory; Related=Inventario-Hardware-Software; Manual=Mapa do escopo coberto e lacunas do inventario
+    # WBA-DOCS: Category=Inventory; Related=inventario-hardware-software; Manual=Mapa do escopo coberto e lacunas do inventario
 
     $covered = @(
         [pscustomobject]@{ Name = 'Sistema operacional'; Status = 'Completo' }

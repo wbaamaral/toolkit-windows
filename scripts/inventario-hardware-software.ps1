@@ -67,34 +67,34 @@
     Define o formato do resumo enxuto: Txt, Markdown, Json ou Todos.
 
 .EXAMPLE
-    .\scripts\Inventario-Hardware-Software.ps1
+    .\scripts\inventario-hardware-software.ps1
 
     Execucao padrao. Gera HTML e PDF na pasta padronizada de relatorios com deteccao automatica
     de Chrome ou Edge para a conversao.
 
 .EXAMPLE
-    .\scripts\Inventario-Hardware-Software.ps1 -DiretorioSaida "D:\Relatorios"
+    .\scripts\inventario-hardware-software.ps1 -DiretorioSaida "D:\Relatorios"
 
     Gera os arquivos na pasta D:\Relatorios (criada automaticamente
     se nao existir).
 
 .EXAMPLE
-    .\scripts\Inventario-Hardware-Software.ps1 -NaoPDF
+    .\scripts\inventario-hardware-software.ps1 -NaoPDF
 
     Gera apenas o HTML na pasta padronizada de relatorios, sem tentativa de conversao para PDF.
 
 .EXAMPLE
-    .\scripts\Inventario-Hardware-Software.ps1 -SomenteHardwareDrivers
+    .\scripts\inventario-hardware-software.ps1 -SomenteHardwareDrivers
 
     Gera somente o resumo enxuto de hardware e drivers ativos.
 
 .EXAMPLE
-    .\scripts\Inventario-Hardware-Software.ps1 -GerarResumoHardwareDrivers -NaoPDF
+    .\scripts\inventario-hardware-software.ps1 -GerarResumoHardwareDrivers -NaoPDF
 
     Gera o inventario completo em HTML e tambem o resumo enxuto de hardware e drivers ativos.
 
 .EXAMPLE
-    .\scripts\Inventario-Hardware-Software.ps1 -DiretorioSaida "\\srv-files\TI\Inventarios" -NaoPDF
+    .\scripts\inventario-hardware-software.ps1 -DiretorioSaida "\\srv-files\TI\Inventarios" -NaoPDF
 
     Salva o relatorio HTML diretamente em um compartilhamento de rede,
     sem gerar PDF.

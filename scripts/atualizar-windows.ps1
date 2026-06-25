@@ -67,12 +67,12 @@ Import-Module $ToolkitModulePath -Force -ErrorAction Stop
 .FORMA DE USO
     Set-ExecutionPolicy Bypass -Scope Process -Force
 
-    .\upgrade-windows.ps1
-    .\upgrade-windows.ps1 -Backend WinGet
-    .\upgrade-windows.ps1 -Backend WinGet -Action ListOnly
-    .\upgrade-windows.ps1 -Backend Chocolatey -NoWindowsUpdate
-    .\upgrade-windows.ps1 -Backend All -Action UpgradeAll
-    .\upgrade-windows.ps1 -NoWindowsUpdate
+    .\atualizar-windows.ps1
+    .\atualizar-windows.ps1 -Backend WinGet
+    .\atualizar-windows.ps1 -Backend WinGet -Action ListOnly
+    .\atualizar-windows.ps1 -Backend Chocolatey -NoWindowsUpdate
+    .\atualizar-windows.ps1 -Backend All -Action UpgradeAll
+    .\atualizar-windows.ps1 -NoWindowsUpdate
 
 .OBSERVAÇÃO
     Salve este arquivo como UTF-8 BOM para uso com o Windows PowerShell 5.1.

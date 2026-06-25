@@ -21,7 +21,7 @@
         Padrao: LimpezaWindows.
 
     .EXAMPLE
-        Invoke-FilesystemCheck -Action Ask -CallerScript 'limpeza-windows.ps1'
+        Invoke-FilesystemCheck -Action Ask -CallerScript 'limpar-windows.ps1'
 
     .EXAMPLE
         Invoke-FilesystemCheck -Action Schedule

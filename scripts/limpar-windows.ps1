@@ -57,46 +57,46 @@
 
 .USO
     Execução padrão:
-        .\limpeza-windows.ps1
+        .\limpar-windows.ps1
 
     Execução sem reiniciar:
-        .\limpeza-windows.ps1 -NoReboot
+        .\limpar-windows.ps1 -NoReboot
 
     Executar SOMENTE SFC + DISM (nenhuma limpeza):
-        .\limpeza-windows.ps1 -RepararSistema
+        .\limpar-windows.ps1 -RepararSistema
 
     Execução sem SFC/DISM:
-        .\limpeza-windows.ps1 -NoSfc
+        .\limpar-windows.ps1 -NoSfc
 
     Execução sem limpar cache do Windows Update:
-        .\limpeza-windows.ps1 -NoUpdateCache
+        .\limpar-windows.ps1 -NoUpdateCache
 
     Execução sem esvaziar lixeira:
-        .\limpeza-windows.ps1 -NoRecycleBin
+        .\limpar-windows.ps1 -NoRecycleBin
 
     Execução desativando hibernação:
-        .\limpeza-windows.ps1 -DisableHibernation
+        .\limpar-windows.ps1 -DisableHibernation
 
     Execução configurando arquivo de paginação para 4 GB:
-        .\limpeza-windows.ps1 -SetPageFile -PageFileGB 4
+        .\limpar-windows.ps1 -SetPageFile -PageFileGB 4
 
     Execução ativando CompactOS:
-        .\limpeza-windows.ps1 -EnableCompactOS
+        .\limpar-windows.ps1 -EnableCompactOS
 
     Execução completa, sem reboot:
-        .\limpeza-windows.ps1 -DisableHibernation -SetPageFile -PageFileGB 4 -EnableCompactOS -NoReboot
+        .\limpar-windows.ps1 -DisableHibernation -SetPageFile -PageFileGB 4 -EnableCompactOS -NoReboot
 
     Verificação automática de integridade do disco se houver falhas:
-        .\limpeza-windows.ps1 -ChkdskAction Schedule
+        .\limpar-windows.ps1 -ChkdskAction Schedule
 
     Limpeza completa silenciosa (sem prompts, não destrutiva — ideal para automação):
-        .\limpeza-windows.ps1 -ChkdskAction Skip -EventLogCleanup None -NoReboot
+        .\limpar-windows.ps1 -ChkdskAction Skip -EventLogCleanup None -NoReboot
 
     Limpar todos os eventos do Visualizador:
-        .\limpeza-windows.ps1 -EventLogCleanup All
+        .\limpar-windows.ps1 -EventLogCleanup All
 
     Limpar apenas logs com eventos de falha/erro (backup automático dos erros):
-        .\limpeza-windows.ps1 -EventLogCleanup ErrorOnly
+        .\limpar-windows.ps1 -EventLogCleanup ErrorOnly
 
     Caso a política de execução bloqueie o script, execute antes:
         Set-ExecutionPolicy Bypass -Scope Process -Force
@@ -150,7 +150,7 @@ $MaintenanceModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Maintenance/
 Import-Module $CoreModulePath        -Force -ErrorAction Stop
 Import-Module $MaintenanceModulePath -Force -ErrorAction Stop
 
-# WBA-DOCS: Category=Maintenance; Related=Limpeza-WinSxS.ps1; Manual=Limpeza de arquivos temporarios e logs do Windows
+# WBA-DOCS: Category=Maintenance; Related=limpar-winsxs.ps1; Manual=Limpeza de arquivos temporarios e logs do Windows
 
 $ScriptVersion = "v1.0"
 $ScriptName    = $MyInvocation.MyCommand.Name

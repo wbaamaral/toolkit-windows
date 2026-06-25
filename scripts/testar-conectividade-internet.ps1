@@ -16,10 +16,10 @@
     Exibe informações adicionais no relatório em tela.
 
 .EXAMPLE
-    .\Testar-Conectividade-Internet.ps1
+    .\testar-conectividade-internet.ps1
 
 .EXAMPLE
-    .\Testar-Conectividade-Internet.ps1 -Detalhado
+    .\testar-conectividade-internet.ps1 -Detalhado
 #>
 
 [CmdletBinding()]
@@ -52,7 +52,7 @@ $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $modulePath = Join-Path $repoRoot 'modules/WbaToolkit.Networking/WbaToolkit.Networking.psd1'
 Import-Module $modulePath -Force -ErrorAction Stop
 
-# WBA-DOCS: Category=Diagnostics; Related=Diagnostico-Reparo-HD100.ps1; Manual=Teste de conectividade com a internet
+# WBA-DOCS: Category=Diagnostics; Related=diagnosticar-disco-100.ps1; Manual=Teste de conectividade com a internet
 
 $report = Invoke-ConnectivityTest -Detailed:$Detalhado
 Show-ConnectivityReport -Report $report
