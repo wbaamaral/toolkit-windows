@@ -16,6 +16,7 @@
         'Write-Info',
         'Write-Title',
         'Write-Section',
+        'Write-Step',
         'Read-YesNo',
         'Read-UserInput',
         'Invoke-ExternalCommand',

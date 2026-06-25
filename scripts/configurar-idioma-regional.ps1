@@ -193,13 +193,6 @@ function Test-SupportedWindows {
     return ($isWin10 -or $isWin11) -and $isPro
 }
 
-function Write-Step {
-    param([string]$Message, [int]$Percent)
-    Write-Progress -Activity "Configuracao pt-BR — $script:ScriptVersion" -Status $Message -PercentComplete $Percent
-    Write-Host ""
-    Write-Host "[$Percent%] $Message" -ForegroundColor Cyan
-}
-
 # ---------------------------------------------------------------------------
 # Funcoes principais
 # ---------------------------------------------------------------------------
