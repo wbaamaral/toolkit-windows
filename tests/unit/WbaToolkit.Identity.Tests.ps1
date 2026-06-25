@@ -86,7 +86,7 @@ Describe 'WbaToolkit.Identity - integracao com o launcher' {
         $script:launcher | Should -Match "Path\s+=\s+'scripts/gerenciar-login-automatico\.ps1'"
     }
 
-    It 'O script operador segue o nome verbo-objeto (ADR 0022)' {
+    It 'O script operador segue o nome verbo-objeto (ADR 0024)' {
         Test-Path -LiteralPath $script:scriptPath | Should -BeTrue
         (Split-Path -Leaf $script:scriptPath) | Should -Be 'gerenciar-login-automatico.ps1'
     }
