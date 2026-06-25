@@ -677,7 +677,7 @@ function New-DrvHtmlReport {
             default   { 'ignored' }
         }
 
-        $null = $sb.AppendLine(
+        $null = $sb.AppendLine((
             '<tr class="{0}"><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td><td>{5}</td><td>{6}</td><td>{7}</td></tr>' -f
             $rowClass,
             (ConvertTo-HtmlSafe -Value $r.Status),
@@ -687,7 +687,7 @@ function New-DrvHtmlReport {
             (ConvertTo-HtmlSafe -Value $r.Driver.Date),
             $device,
             (ConvertTo-HtmlSafe -Value $r.Driver.InfOriginal)
-        )
+        ))
     }
 
     $html = @"
