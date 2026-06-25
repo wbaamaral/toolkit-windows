@@ -24,13 +24,18 @@
 
     .OUTPUTS
         System.Management.Automation.PSCustomObject
-        Objeto com as propriedades: IsValid, OsVersion, BuildNumber, Errors, Warnings.
+        Objeto com as propriedades: IsValid, OsVersion, Edition, BuildNumber, Errors, Warnings, SysprepBlockers, AppxIssues.
     #>
     [CmdletBinding()]
-    param()
+    param(
+        [ValidateSet('Block', 'Warn', 'Skip')]
+        [string]$AppxPolicy = 'Block'
+    )
 
-    $erros    = New-Object 'System.Collections.Generic.List[string]'
-    $avisos   = New-Object 'System.Collections.Generic.List[string]'
+    $erros     = New-Object 'System.Collections.Generic.List[string]'
+    $avisos    = New-Object 'System.Collections.Generic.List[string]'
+    $bloqueios = New-Object 'System.Collections.Generic.List[object]'
+    $appxIssues = New-Object 'System.Collections.Generic.List[object]'
     $buildNum = 0
     $versaoSO = ''
     $edicao   = ''
@@ -94,12 +99,82 @@
         }
     }
 
+    # AutoLogon configurado antes do Sysprep pode travar o pos-generalizacao OOBE quando
+    # as credenciais salvas nao existem na nova implantacao da imagem.
+    $autoLogonDetectado = $false
+    try {
+        $autoLogonProp = Get-ItemProperty `
+            -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' `
+            -Name 'AutoAdminLogon' `
+            -ErrorAction SilentlyContinue
+        if ($autoLogonProp -and ($autoLogonProp.AutoAdminLogon -eq '1' -or $autoLogonProp.AutoAdminLogon -eq 1)) {
+            $autoLogonDetectado = $true
+            $avisos.Add('AutoLogon configurado (AutoAdminLogon=1). Sera desativado antes do Sysprep para evitar trava no pos-generalizacao OOBE.')
+        }
+    }
+    catch {
+        $avisos.Add("Nao foi possivel verificar configuracao de AutoLogon: $($_.Exception.Message)")
+    }
+
+    # Diretivas de grupo aplicadas ficam gravadas no registro e podem conflitar com a
+    # generalizacao do Sysprep e com a nova implantacao da imagem.
+    $gpoDetectado = $false
+    $gpoCaminhos  = @(
+        'HKLM:\SOFTWARE\Policies\Microsoft',
+        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies'
+    )
+    foreach ($gpoPath in $gpoCaminhos) {
+        if (Test-Path -LiteralPath $gpoPath) {
+            $gpoDetectado = $true
+            break
+        }
+    }
+    if ($gpoDetectado) {
+        $avisos.Add('Diretivas de grupo encontradas no registro. Serao removidas antes do Sysprep para evitar conflitos na nova implantacao.')
+    }
+
+    if ($AppxPolicy -ne 'Skip') {
+        try {
+            $appxDetectados = @(Get-SysprepAppxProvisioningIssue -IncludeWarnings)
+            foreach ($b in $appxDetectados) {
+                $appxIssues.Add($b)
+                $mensagem = "Pacote Appx pode bloquear Sysprep: $($b.PackageFullName) instalado para usuario, mas nao provisionado para todos os usuarios. Severidade: $($b.Severity). Motivo: $($b.Reason)."
+
+                if ($b.Severity -eq 'Blocker') {
+                    $bloqueios.Add($b)
+
+                    if ($AppxPolicy -eq 'Block') {
+                        $erros.Add($mensagem)
+                    }
+                    else {
+                        $avisos.Add($mensagem)
+                    }
+                }
+                else {
+                    $avisos.Add($mensagem)
+                }
+            }
+        }
+        catch {
+            if ($AppxPolicy -eq 'Block') {
+                $erros.Add($_.Exception.Message)
+            }
+            else {
+                $avisos.Add($_.Exception.Message)
+            }
+        }
+    }
+
     return [pscustomobject]@{
-        IsValid     = ($erros.Count -eq 0)
-        OsVersion   = $versaoSO
-        Edition     = $edicao
-        BuildNumber = $buildNum
-        Errors      = $erros.ToArray()
-        Warnings    = $avisos.ToArray()
+        IsValid            = ($erros.Count -eq 0)
+        OsVersion          = $versaoSO
+        Edition            = $edicao
+        BuildNumber        = $buildNum
+        Errors             = $erros.ToArray()
+        Warnings           = $avisos.ToArray()
+        SysprepBlockers    = $bloqueios.ToArray()
+        AppxIssues         = $appxIssues.ToArray()
+        AutoLogonDetectado = $autoLogonDetectado
+        GpoDetectado       = $gpoDetectado
     }
 }
