@@ -670,7 +670,7 @@ function Add-MarkdownTable {
         $Lines.Add('| Campo | Valor |')
         $Lines.Add('|---|---|')
         foreach ($key in $Fields.Keys) {
-            $Lines.Add('| {0} | {1} |' -f $key, (ConvertTo-MarkdownValue $item.($Fields[$key])))
+            $Lines.Add(('| {0} | {1} |' -f $key, (ConvertTo-MarkdownValue $item.($Fields[$key]))))
         }
         $index++
     }
