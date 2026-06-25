@@ -187,6 +187,29 @@ if ($machineSid) {
 
 Write-Section 'Verificacao de pre-requisitos'
 
+# O AppXSvc e um servico sob demanda: pode estar parado quando ninguem usou a Store
+# recentemente. A validacao/remocao de pacotes Appx exige o servico em execucao, entao
+# garantimos isso antes da pre-verificacao (evita bloqueio espurio do Sysprep).
+$appxSvc = Get-Service -Name 'AppXSvc' -ErrorAction SilentlyContinue
+if ($appxSvc) {
+    if ($appxSvc.StartType -eq 'Disabled') {
+        Set-Service -Name 'AppXSvc' -StartupType Manual -ErrorAction SilentlyContinue
+        Write-SysprepLog -Message 'AppXSvc estava Disabled; StartType ajustado para Manual.'
+    }
+    if ($appxSvc.Status -ne 'Running') {
+        try {
+            Start-Service -Name 'AppXSvc' -ErrorAction Stop
+            $appxSvc.WaitForStatus('Running', [TimeSpan]::FromSeconds(15))
+            Write-Info 'Servico AppXSvc iniciado para validacao de pacotes Appx.'
+            Write-SysprepLog -Message 'AppXSvc iniciado para validacao/remocao de pacotes Appx.'
+        }
+        catch {
+            Write-Warn "Nao foi possivel iniciar o AppXSvc: $($_.Exception.Message)"
+            Write-SysprepLog -Level 'WARN' -Message "Falha ao iniciar AppXSvc: $($_.Exception.Message)"
+        }
+    }
+}
+
 $ambiente = Test-SysprepEnvironment -AppxPolicy 'Warn'
 
 foreach ($aviso in $ambiente.Warnings) {
