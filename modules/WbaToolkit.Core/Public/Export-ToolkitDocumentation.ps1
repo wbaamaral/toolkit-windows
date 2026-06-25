@@ -12,8 +12,8 @@
     Pasta de saída do portal. Padrão: .\docs\portal
 
 .PARAMETER ManualPath
-    Caminho para a pasta docs\manual com os arquivos-fonte Markdown.
-    Padrão: .\docs\manual
+    Caminho para a pasta manuais com os arquivos-fonte Markdown.
+    Padrão: .\manuais
 
 .PARAMETER ModulePath
     Array de caminhos para os arquivos .psd1 dos módulos a documentar.
@@ -55,18 +55,8 @@
             (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'modules/WbaToolkit.Maintenance/WbaToolkit.Maintenance.psd1')
         ),
         [string[]]$ScriptPath = @(
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/configuration/Configurar-Idioma-Regional.ps1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/diagnostics/Diagnostico-Driver-Grafico.ps1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'scripts/diagnosticar-ad-cliente.ps1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/diagnostics/networking/Testar-Conectividade-Internet.ps1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'scripts/Inventario-Hardware-Software.ps1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/maintenance/Diagnostico-Reparo-HD100.ps1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/maintenance/Gerenciar-Inicializacao-Windows.ps1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'scripts/limpeza-windows.ps1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/maintenance/Preparar-Imagem-Windows.ps1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'scripts/atualizar-windows.ps1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/utilities/Analise-Espaco-Disco.ps1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/utilities/Remover-Perfis-Inativos.ps1')
+            Get-ChildItem -Path (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'scripts') -Filter '*.ps1' -ErrorAction SilentlyContinue |
+                Sort-Object Name | Select-Object -ExpandProperty FullName
         ),
         [ValidateSet('All', 'Portal', 'TechnicalReference')]
         [string]$Mode = 'All',

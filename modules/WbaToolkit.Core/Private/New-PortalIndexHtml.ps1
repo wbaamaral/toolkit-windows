@@ -24,32 +24,32 @@
   <div class="card">
     <h3>Diagnóstico de Rede</h3>
     <p>Testa conectividade TCP/UDP/ICMP/DNS por alvo. Gera relatório HTML.</p>
-    <code>.\diagnostics\networking\Testar-Conectividade-Internet.ps1</code>
+    <code>.\scripts\testar-conectividade-internet.ps1</code>
   </div>
   <div class="card">
     <h3>Diagnóstico HD100</h3>
     <p>Saúde do disco, processos em alta CPU e gerenciamento de inicialização.</p>
-    <code>.\maintenance\Diagnostico-Reparo-HD100.ps1</code>
+    <code>.\scripts\diagnosticar-disco-100.ps1</code>
   </div>
   <div class="card">
     <h3>Inventário</h3>
     <p>Hardware, software instalado, drivers. Exporta HTML, TXT, JSON e PDF.</p>
-    <code>.\scripts\Inventario-Hardware-Software.ps1</code>
+    <code>.\scripts\inventario-hardware-software.ps1</code>
   </div>
   <div class="card">
     <h3>Limpeza Windows</h3>
     <p>Remove arquivos temporários, cache e logs antigos.</p>
-    <code>.\maintenance\limpeza-windows.ps1</code>
+    <code>.\scripts\limpar-windows.ps1</code>
   </div>
   <div class="card">
     <h3>Gerenciar Inicialização</h3>
     <p>Lista, habilita e desabilita itens de inicialização do Windows.</p>
-    <code>.\maintenance\Gerenciar-Inicializacao-Windows.ps1</code>
+    <code>.\scripts\gerenciar-inicializacao.ps1</code>
   </div>
   <div class="card">
     <h3>Atualização Windows</h3>
     <p>Aplica atualizações do sistema e Chocolatey de forma conservadora.</p>
-    <code>.\updates\upgrade-windows.ps1</code>
+    <code>.\scripts\atualizar-windows.ps1</code>
   </div>
 </div>
 '@

@@ -40,16 +40,8 @@
 
         [Parameter(Mandatory = $false)]
         [string[]]$ScriptPath = @(
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/configuration/Configurar-Idioma-Regional.ps1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'scripts/diagnosticar-ad-cliente.ps1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/diagnostics/networking/Testar-Conectividade-Internet.ps1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/diagnostics/Diagnostico-Driver-Grafico.ps1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'scripts/Inventario-Hardware-Software.ps1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/maintenance/Diagnostico-Reparo-HD100.ps1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'scripts/limpeza-windows.ps1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'scripts/atualizar-windows.ps1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/utilities/Analise-Espaco-Disco.ps1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'experimental/utilities/Remover-Perfis-Inativos.ps1')
+            Get-ChildItem -Path (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'scripts') -Filter '*.ps1' -ErrorAction SilentlyContinue |
+                Sort-Object Name | Select-Object -ExpandProperty FullName
         ),
 
         [Parameter(Mandatory = $false)]
