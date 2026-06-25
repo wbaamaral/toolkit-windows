@@ -2,6 +2,41 @@
 
 ## [Não lançado]
 
+## [v2.0.0] — 2026-06-25
+
+> Versão MAJOR. Unifica as duas linhas de desenvolvimento (GitHub e Codeberg, que haviam
+> divergido em forks independentes) numa **linha canônica única** com a estrutura achatada
+> `scripts/` em kebab-case (ADR 0022). Os caminhos e nomes de scripts antigos
+> (`maintenance/`, `diagnostics/`, PascalCase) deixam de existir — daí o incremento de major.
+
+### Adicionado
+- `modules/WbaToolkit.Identity`: novo módulo de identidade/acesso local com **logon automático (autologon)** — senha protegida por segredo LSA (`Get-AutologonStatus`, `Enable-Autologon`, `Disable-Autologon`, `Set-Autologon`, `Invoke-AutologonManager`) (ADR 0023/0024)
+- `scripts/gerenciar-login-automatico.ps1`: script operador para habilitar, desabilitar e editar o autologon, com salvaguardas
+- `modules/WbaToolkit.Maintenance`: recuperado o **ciclo de remoção de bloqueadores Appx do Sysprep (BCK-022)** — `Get-SysprepAppxProvisioningIssue`, `Test-SysprepEnvironment -AppxPolicy`, reset de `secedit`, limpeza de GPO/AutoLogon e captura de SID; validado em Windows 10/PS 5.1 real
+- `scripts/atualizar-windows.ps1`: spinner animado com cronômetro HH:MM:SS durante as atualizações winget/choco (`Invoke-ProcessWithSpinner`)
+- `scripts/diagnosticar-ad-cliente.ps1`: reparo guiado de hora (time sync) e do canal seguro (secure channel) no diagnóstico de cliente de domínio
+- `modules/WbaToolkit.Core`: `Write-Step` promovido a função pública do Core (marcador textual `[NN%]`, ADR 0021), eliminando cópias locais nos scripts
+
+### Alterado
+- **Estrutura de scripts unificada**: todos os scripts operacionais migrados para `scripts/` em nomes verbo-objeto kebab-case (ADR 0022) — ex.: `maintenance/Preparar-Imagem-Windows.ps1` → `scripts/preparar-imagem-windows.ps1`, `diagnostics/Diagnostico-Memoria.ps1` → `scripts/diagnosticar-memoria.ps1`. **17 scripts** no total
+- Inventário de hardware/software movido para `scripts/inventario-hardware-software.ps1` + módulo `WbaToolkit.Inventory`
+- `regfiles/` movido para a raiz do projeto, corrigindo a referência da preparação de imagem
+- `modules/WbaToolkit.Core`: escrita de arquivos padronizada via `Write-TextFileUtf8` (UTF-8 com BOM, ADR 0007)
+- Todos os módulos alinhados para **ModuleVersion 2.0.0** (regra de alinhamento do processo de release)
+- Manuais do operador alinhados ao estado atual (17 scripts, 6 módulos) e PDF regenerado
+
+### Corrigido
+- `modules/WbaToolkit.Maintenance`: `AppXSvc` é iniciado antes da pré-verificação de bloqueadores Appx do Sysprep (serviço sob demanda podia estar parado e bloquear o Sysprep sem bloqueador real)
+- `xtudo.ps1`: normalização dos argumentos repassados aos scripts do launcher
+- `scripts/atualizar-windows.ps1`: resumo final protegido contra objetos de resultado incompletos
+- `modules/WbaToolkit.Core`: geradores de documentação apontados para os scripts atuais; inventário tornado portável nos geradores
+
+### Removido
+- Scaffolding experimental vazio e scripts não migrados; registro `não-validado` atualizado
+- Caminhos/nomes de scripts no layout antigo (`maintenance/`, `diagnostics/`, `utilities/`, `configuration/`, `inventory/`, `updates/` e nomes PascalCase) — substituídos pelo layout `scripts/` (mudança incompatível)
+
+## [v1.4.0] — 2026-06-23
+
 ### Adicionado
 - `updates/upgrade-windows.ps1`: reescrito com suporte a backend resolvido (Auto, WinGet, Chocolatey, All), ações UpgradeAll/ListOnly/Select, bloqueios `-NoWinGet`/`-NoChocolatey`/`-NoWindowsUpdate`, detecção de reboot pendente antes e após execução, resumo final consolidado e códigos de saída padronizados (BCK-018)
 - `tests/unit/upgrade-windows.Tests.ps1`: suite Pester com 62 testes cobrindo validação de parâmetros, resolução de backend, detecção de reboot, cálculo de código de saída e todos os fluxos de ação (BCK-018)

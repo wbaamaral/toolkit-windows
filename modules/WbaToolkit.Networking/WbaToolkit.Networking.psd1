@@ -1,6 +1,6 @@
 ﻿@{
     RootModule        = 'WbaToolkit.Networking.psm1'
-    ModuleVersion     = '1.2.0'
+    ModuleVersion     = '2.0.0'
     GUID              = 'f2d5f2d1-5e5f-4d5b-9af2-8f0f7a0e0e4a'
     Author            = 'wbaamaral'
     CompanyName       = 'wbaamaral'
