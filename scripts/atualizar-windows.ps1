@@ -252,16 +252,62 @@ function Invoke-WinGetList {
     return $updates.ToArray()
 }
 
+function Invoke-ProcessWithSpinner {
+    param(
+        [string]  $Label,
+        [string]  $FilePath,
+        [string[]]$ArgumentList
+    )
+    $tmpOut = [System.IO.Path]::GetTempFileName()
+    $tmpErr = [System.IO.Path]::GetTempFileName()
+    $frames = '|', '/', '-', '\'
+    $i      = 0
+    try {
+        $proc      = Start-Process -FilePath $FilePath -ArgumentList $ArgumentList `
+            -RedirectStandardOutput $tmpOut -RedirectStandardError $tmpErr `
+            -NoNewWindow -PassThru -ErrorAction Stop
+        $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+
+        while (-not $proc.HasExited) {
+            $elapsed = $stopwatch.Elapsed
+            $ts      = '{0:00}:{1:00}:{2:00}' -f $elapsed.Hours, $elapsed.Minutes, $elapsed.Seconds
+            $line    = "$($frames[$i % 4]) $Label [$ts]"
+            Write-Host "`r$line" -NoNewline -ForegroundColor Cyan
+            $i++
+            Start-Sleep -Milliseconds 200
+        }
+        $proc.WaitForExit()
+        $stopwatch.Stop()
+        $clearLen = $Label.Length + 20
+        Write-Host ("`r" + (' ' * $clearLen) + "`r") -NoNewline
+
+        $out = Get-Content -LiteralPath $tmpOut -ErrorAction SilentlyContinue
+        $err = Get-Content -LiteralPath $tmpErr -ErrorAction SilentlyContinue
+        if ($out) { $out | Out-Host }
+        if ($err) { $err | Out-Host }
+
+        return $proc.ExitCode
+    }
+    catch {
+        Write-Host ("`r" + (' ' * ($Label.Length + 20)) + "`r") -NoNewline
+        throw
+    }
+    finally {
+        Remove-Item -LiteralPath $tmpOut, $tmpErr -Force -ErrorAction SilentlyContinue
+    }
+}
+
 function Invoke-WinGetUpgrade {
     [PSCustomObject]@{ Success = $false; Partial = $false; ExitCode = 0; Message = '' }
 
     $result = [PSCustomObject]@{ Success = $false; Partial = $false; ExitCode = 0; Message = '' }
     try {
-        winget upgrade --all --include-unknown --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
-        $result.ExitCode = $LASTEXITCODE
-        $result.Success  = ($LASTEXITCODE -eq 0 -or $LASTEXITCODE -eq 3010)
-        $result.Partial  = ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne 3010)
-        $result.Message  = if ($result.Success) { 'WinGet: upgrade concluido.' } else { "WinGet: exit code $($LASTEXITCODE)." }
+        $exitCode = Invoke-ProcessWithSpinner -Label 'WinGet: trabalhando...' -FilePath 'winget' `
+            -ArgumentList @('upgrade', '--all', '--include-unknown', '--silent', '--accept-package-agreements', '--accept-source-agreements', '--disable-interactivity')
+        $result.ExitCode = $exitCode
+        $result.Success  = ($exitCode -eq 0 -or $exitCode -eq 3010)
+        $result.Partial  = ($exitCode -ne 0 -and $exitCode -ne 3010)
+        $result.Message  = if ($result.Success) { 'WinGet: upgrade concluido.' } else { "WinGet: exit code $exitCode." }
     }
     catch {
         $result.Message = "WinGet: excecao — $($_.Exception.Message)"
@@ -275,10 +321,11 @@ function Invoke-WinGetUpgradePackage {
 
     $result = [PSCustomObject]@{ PackageId = $PackageId; Success = $false; ExitCode = 0; Message = '' }
     try {
-        winget upgrade --id $PackageId --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
-        $result.ExitCode = $LASTEXITCODE
-        $result.Success  = ($LASTEXITCODE -eq 0 -or $LASTEXITCODE -eq 3010)
-        $result.Message  = if ($result.Success) { "WinGet: $PackageId atualizado." } else { "WinGet: $PackageId exit code $($LASTEXITCODE)." }
+        $exitCode = Invoke-ProcessWithSpinner -Label "WinGet: atualizando $PackageId..." -FilePath 'winget' `
+            -ArgumentList @('upgrade', '--id', $PackageId, '--silent', '--accept-package-agreements', '--accept-source-agreements', '--disable-interactivity')
+        $result.ExitCode = $exitCode
+        $result.Success  = ($exitCode -eq 0 -or $exitCode -eq 3010)
+        $result.Message  = if ($result.Success) { "WinGet: $PackageId atualizado." } else { "WinGet: $PackageId exit code $exitCode." }
     }
     catch {
         $result.Message = "WinGet: $PackageId excecao — $($_.Exception.Message)"
@@ -311,11 +358,12 @@ function Invoke-ChocolateyList {
 function Invoke-ChocolateyUpgrade {
     $result = [PSCustomObject]@{ Success = $false; Partial = $false; ExitCode = 0; Message = '' }
     try {
-        choco upgrade all -y --no-progress
-        $result.ExitCode = $LASTEXITCODE
-        $result.Success  = ($LASTEXITCODE -eq 0)
-        $result.Partial  = ($LASTEXITCODE -ne 0)
-        $result.Message  = if ($result.Success) { 'Chocolatey: upgrade concluido.' } else { "Chocolatey: exit code $($LASTEXITCODE)." }
+        $exitCode = Invoke-ProcessWithSpinner -Label 'Chocolatey: trabalhando...' -FilePath 'choco' `
+            -ArgumentList @('upgrade', 'all', '-y', '--no-progress')
+        $result.ExitCode = $exitCode
+        $result.Success  = ($exitCode -eq 0)
+        $result.Partial  = ($exitCode -ne 0)
+        $result.Message  = if ($result.Success) { 'Chocolatey: upgrade concluido.' } else { "Chocolatey: exit code $exitCode." }
     }
     catch {
         $result.Message = "Chocolatey: excecao — $($_.Exception.Message)"
@@ -329,10 +377,11 @@ function Invoke-ChocolateyUpgradePackage {
 
     $result = [PSCustomObject]@{ PackageId = $PackageId; Success = $false; ExitCode = 0; Message = '' }
     try {
-        choco upgrade $PackageId -y --no-progress
-        $result.ExitCode = $LASTEXITCODE
-        $result.Success  = ($LASTEXITCODE -eq 0)
-        $result.Message  = if ($result.Success) { "Choco: $PackageId atualizado." } else { "Choco: $PackageId exit code $($LASTEXITCODE)." }
+        $exitCode = Invoke-ProcessWithSpinner -Label "Chocolatey: atualizando $PackageId..." -FilePath 'choco' `
+            -ArgumentList @('upgrade', $PackageId, '-y', '--no-progress')
+        $result.ExitCode = $exitCode
+        $result.Success  = ($exitCode -eq 0)
+        $result.Message  = if ($result.Success) { "Choco: $PackageId atualizado." } else { "Choco: $PackageId exit code $exitCode." }
     }
     catch {
         $result.Message = "Choco: $PackageId excecao — $($_.Exception.Message)"
