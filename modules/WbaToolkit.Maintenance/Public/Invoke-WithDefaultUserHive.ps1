@@ -44,9 +44,13 @@
         & reg unload $mountKey 2>&1 | Out-Null
     }
 
+    # Mesmo comportamento de reg import: reg.exe PT-BR escreve sucesso em stderr.
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
     $loadOutput = & reg load $mountKey $hivePath 2>&1
+    $ErrorActionPreference = $prevEAP
     if ($LASTEXITCODE -ne 0) {
-        throw "Falha ao montar hive do perfil Default em '$mountKey': $loadOutput"
+        throw "Falha ao montar hive do perfil Default em '$mountKey': $($loadOutput -join ' ')"
     }
 
     $resultado  = $null
@@ -65,7 +69,10 @@
     for ($tentativa = 1; $tentativa -le 3; $tentativa++) {
         [System.GC]::Collect()
         [System.GC]::WaitForPendingFinalizers()
+        $prevEAP2 = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
         $unloadOutput = & reg unload $mountKey 2>&1
+        $ErrorActionPreference = $prevEAP2
         if ($LASTEXITCODE -eq 0) { $desmontado = $true; break }
         Start-Sleep -Milliseconds 400
     }

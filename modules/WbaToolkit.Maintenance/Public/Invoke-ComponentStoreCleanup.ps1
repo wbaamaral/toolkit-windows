@@ -87,17 +87,29 @@
     # a captura para RawOutput/log) para que o usuario veja o avanco.
     Write-Host "    DISM em execucao (pode levar varios minutos). Progresso abaixo:" -ForegroundColor DarkGray
 
+    # DISM em pipe escreve na OEM code page do sistema (ex: 850 em PT-BR), ignorando
+    # chcp/OutputEncoding do console. Restaurar temporariamente para decodificar certo.
+    $prevEncoding = [Console]::OutputEncoding
     try {
-        if ($Level -eq 'Aggressive') {
-            & dism.exe /Online /Cleanup-Image /StartComponentCleanup /ResetBase 2>&1 |
-                Tee-Object -Variable rawLines |
-                ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
+        [Console]::OutputEncoding = [System.Text.Encoding]::GetEncoding(
+            [System.Globalization.CultureInfo]::CurrentCulture.TextInfo.OEMCodePage)
+
+        $dismCmd = if ($Level -eq 'Aggressive') {
+            { & dism.exe /Online /Cleanup-Image /StartComponentCleanup /ResetBase 2>&1 }
+        } else {
+            { & dism.exe /Online /Cleanup-Image /StartComponentCleanup 2>&1 }
         }
-        else {
-            & dism.exe /Online /Cleanup-Image /StartComponentCleanup 2>&1 |
-                Tee-Object -Variable rawLines |
-                ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
-        }
+
+        & $dismCmd |
+            Tee-Object -Variable rawLines |
+            ForEach-Object {
+                $linha = [string]$_
+                # DISM usa \r para atualizar barra ASCII in-place; cada frame vira
+                # linha separada no pipeline. Filtrar para nao gerar nova linha por frame.
+                if ($linha -notmatch '^\s*\[=') {
+                    Write-Host "    $linha" -ForegroundColor DarkGray
+                }
+            }
         $exitCode = $LASTEXITCODE
     }
     catch {
@@ -109,6 +121,9 @@
             RawOutput    = $_.Exception.Message
             Success      = $false
         }
+    }
+    finally {
+        [Console]::OutputEncoding = $prevEncoding
     }
 
     $diskAfter    = Get-DiskInfo
