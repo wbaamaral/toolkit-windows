@@ -114,6 +114,56 @@ function New-XtudoCatalog {
             Keywords = @('atualizar', 'update', 'windows update', 'winget', 'chocolatey')
             Quick    = $false
         }
+        [pscustomobject]@{
+            Id       = 'configurar-idioma-regional'
+            Label    = 'Configurar idioma e região'
+            Category = 'Configuração'
+            Path     = 'scripts/configurar-idioma-regional.ps1'
+            Keywords = @('idioma', 'regional', 'locale', 'pt-br', 'fuso', 'timezone', 'teclado', 'abnt')
+            Quick    = $false
+        }
+        [pscustomobject]@{
+            Id       = 'gerenciar-drivers'
+            Label    = 'Gerenciar drivers (backup/restauração)'
+            Category = 'Manutenção'
+            Path     = 'scripts/gerenciar-drivers.ps1'
+            Keywords = @('driver', 'drivers', 'backup', 'restaurar', 'restore', 'pnputil', 'oem')
+            Quick    = $false
+        }
+        [pscustomobject]@{
+            Id       = 'gerenciar-inicializacao'
+            Label    = 'Gerenciar inicialização'
+            Category = 'Inicialização'
+            Path     = 'scripts/gerenciar-inicializacao.ps1'
+            Keywords = @('inicializacao', 'startup', 'boot', 'autorun', 'run', 'servicos', 'tarefas')
+            Quick    = $true
+            Args     = @('-Modo', 'Diagnostico')
+        }
+        [pscustomobject]@{
+            Id       = 'analisar-espaco-disco'
+            Label    = 'Analisar espaço em disco'
+            Category = 'Utilitários'
+            Path     = 'scripts/analisar-espaco-disco.ps1'
+            Keywords = @('espaco', 'disco', 'tamanho', 'pastas', 'baobab', 'storage', 'uso')
+            Quick    = $false
+        }
+        [pscustomobject]@{
+            Id       = 'remover-perfis-inativos'
+            Label    = 'Remover perfis inativos'
+            Category = 'Utilitários'
+            Path     = 'scripts/remover-perfis-inativos.ps1'
+            Keywords = @('perfil', 'perfis', 'inativos', 'usuarios', 'profile', 'limpeza')
+            Quick    = $false
+        }
+        [pscustomobject]@{
+            Id       = 'gerenciar-login-automatico'
+            Label    = 'Gerenciar login automático'
+            Category = 'Identidade'
+            Path     = 'scripts/gerenciar-login-automatico.ps1'
+            Keywords = @('login', 'autologon', 'automatico', 'winlogon', 'autoadminlogon', 'logon')
+            Quick    = $false
+            Args     = @('-Modo', 'Diagnostico')
+        }
     )
 }
 
