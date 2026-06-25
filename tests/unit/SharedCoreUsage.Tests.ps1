@@ -9,8 +9,8 @@ BeforeAll {
 }
 
 Describe 'Xtudo estrutura do toolkit' {
-    It 'Mantem dez scripts oficiais em scripts/' {
-        $script:scriptPaths.Count | Should -Be 10
+    It 'Mantem dezessete scripts oficiais em scripts/' {
+        $script:scriptPaths.Count | Should -Be 17
         foreach ($path in $script:scriptPaths) {
             Split-Path -Parent $path | Should -Be (Get-XtudoScriptsRoot)
         }
@@ -40,6 +40,7 @@ Describe 'Xtudo estrutura do toolkit' {
         $script:operatorGuideContent | Should -Match 'scripts\\limpar-windows\.ps1'
         $script:operatorGuideContent | Should -Match 'scripts\\atualizar-windows\.ps1'
         $script:operatorGuideContent | Should -Match 'scripts\\diagnosticar-ad-cliente\.ps1'
+        $script:operatorGuideContent | Should -Match 'scripts\\Inventario-Hardware-Software\.ps1'
         $script:operatorManualContent | Should -Match 'diagnosticar-ad-cliente\.ps1'
         $script:operatorManualContent | Should -Match 'Legado experimental de AD'
     }
