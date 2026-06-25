@@ -48,6 +48,10 @@
 
     if (-not [string]::IsNullOrWhiteSpace($LogPath)) {
         try {
+            $directory = Split-Path -Parent $LogPath
+            if (-not [string]::IsNullOrWhiteSpace($directory) -and -not (Test-Path -LiteralPath $directory)) {
+                New-Item -Path $directory -ItemType Directory -Force | Out-Null
+            }
             $line | Add-Content -LiteralPath $LogPath -Encoding UTF8
         }
         catch {

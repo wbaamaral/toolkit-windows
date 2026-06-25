@@ -102,6 +102,18 @@ function Write-HwSection {
     Write-HwLog -Message $Title
 }
 
+function Initialize-HwSession {
+    [CmdletBinding()]
+    param([string]$BasePath)
+
+    $session = Initialize-ScriptSession -ModuleName 'Diagnostics' -BasePath $BasePath -ExecutionMode 'Diagnostico'
+    $session | Add-Member -MemberType NoteProperty -Name 'InternalLogPath' -Value (Join-Path $session.LogsPath 'hardware-updates.log')
+    $session | Add-Member -MemberType NoteProperty -Name 'TranscriptPath'  -Value (Join-Path $session.LogsPath 'hardware-updates-transcript.log')
+    $session | Add-Member -MemberType NoteProperty -Name 'HtmlReportPath'  -Value (Join-Path $session.Path    'hardware-updates.html')
+    $session | Add-Member -MemberType NoteProperty -Name 'JsonReportPath'  -Value (Join-Path $session.Path    'hardware-updates.json')
+    return $session
+}
+
 function ConvertFrom-HwCimDate {
     [CmdletBinding()]
     param([AllowNull()]$Value)
@@ -357,11 +369,7 @@ if (-not (Test-IsAdministrator)) {
     exit
 }
 
-$script:HwSession = Initialize-ScriptSession -ModuleName 'Diagnostics' -BasePath $Path
-$script:HwSession | Add-Member -MemberType NoteProperty -Name 'InternalLogPath' -Value (Join-Path $script:HwSession.LogsPath 'hardware-updates.log')
-$script:HwSession | Add-Member -MemberType NoteProperty -Name 'TranscriptPath'  -Value (Join-Path $script:HwSession.LogsPath 'hardware-updates-transcript.log')
-$script:HwSession | Add-Member -MemberType NoteProperty -Name 'HtmlReportPath'  -Value (Join-Path $script:HwSession.Path    'hardware-updates.html')
-$script:HwSession | Add-Member -MemberType NoteProperty -Name 'JsonReportPath'  -Value (Join-Path $script:HwSession.Path    'hardware-updates.json')
+$script:HwSession = Initialize-HwSession -BasePath $Path
 
 Start-Transcript -Path $script:HwSession.TranscriptPath -Force | Out-Null
 
@@ -466,12 +474,12 @@ try {
         }
     }
 
-    $report | ConvertTo-Json -Depth 6 | Out-File -FilePath $script:HwSession.JsonReportPath -Encoding UTF8
+    Write-TextFileUtf8 -Path $script:HwSession.JsonReportPath -Content ($report | ConvertTo-Json -Depth 6)
     Write-Ok "JSON: $($script:HwSession.JsonReportPath)"
 
     if ($GerarHtml) {
         $html = ConvertTo-HwHtmlReport -Data $report
-        $html | Out-File -FilePath $script:HwSession.HtmlReportPath -Encoding UTF8
+        Write-TextFileUtf8 -Path $script:HwSession.HtmlReportPath -Content $html
         Write-Ok "HTML: $($script:HwSession.HtmlReportPath)"
     }
 

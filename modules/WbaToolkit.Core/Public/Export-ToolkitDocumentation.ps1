@@ -89,7 +89,7 @@
         # --- index.html ---
         $indexHtml  = New-PortalIndexHtml -ManualReadmePath (Join-Path $ManualPath 'README.md')
         $indexPath  = Join-Path $OutputPath 'index.html'
-        [System.IO.File]::WriteAllText($indexPath, $indexHtml, $enc)
+        Write-TextFileUtf8 -Path $indexPath -Content $indexHtml
         $portalIndex = $indexPath
 
         # --- operador.html ---
@@ -98,7 +98,7 @@
             $guiaMd   = [System.IO.File]::ReadAllText($guiaPath, $enc)
             $guiaBody = ConvertFrom-MarkdownSimple -Markdown $guiaMd
             $guiaHtml = ConvertTo-StaticDocsHtml -Title 'Guia Rápido do Operador' -Body $guiaBody
-            [System.IO.File]::WriteAllText((Join-Path $OutputPath 'operador.html'), $guiaHtml, $enc)
+            Write-TextFileUtf8 -Path (Join-Path $OutputPath 'operador.html') -Content $guiaHtml
         }
         else {
             Write-Warning "Export-ToolkitDocumentation: guia-rapido.md não encontrado em '$guiaPath'."
@@ -112,7 +112,7 @@
                 $clMd   = [System.IO.File]::ReadAllText($changelogPath, $enc)
                 $clBody = ConvertFrom-MarkdownSimple -Markdown $clMd
                 $clHtml = ConvertTo-StaticDocsHtml -Title 'Changelog' -Body $clBody
-                [System.IO.File]::WriteAllText((Join-Path $OutputPath 'changelog.html'), $clHtml, $enc)
+                Write-TextFileUtf8 -Path (Join-Path $OutputPath 'changelog.html') -Content $clHtml
             }
             else {
                 Write-Warning "Export-ToolkitDocumentation: CHANGELOG.md não encontrado."

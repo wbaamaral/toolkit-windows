@@ -817,7 +817,9 @@ function Invoke-UpgradeMain {
                 $summary.ExitCode = 9
             }
             else {
-                $anyFail = ($selectResult.Results | Where-Object { -not $_.Success }).Count -gt 0
+                $anyFail = ($selectResult.Results | Where-Object {
+                    -not [bool](Get-ResultPropertyValue -Object $_ -Name 'Success')
+                }).Count -gt 0
                 $summary.ExitCode = if ($anyFail) { 4 } else { 0 }
             }
         }
@@ -838,10 +840,10 @@ function Invoke-UpgradeMain {
                 $wr = $upgradeResult.WUResult
 
                 $summary.ExitCode = Get-UpgradeExitCode `
-                    -BackendSuccess        ($null -ne $br -and $br.Success) `
-                    -BackendPartialFailure ($null -ne $br -and $br.Partial) `
-                    -WUSuccess             ($null -ne $wr -and $wr.Success) `
-                    -WUSkipped             ($null -ne $wr -and $wr.Skipped) `
+                    -BackendSuccess        ([bool](Get-ResultPropertyValue -Object $br -Name 'Success')) `
+                    -BackendPartialFailure ([bool](Get-ResultPropertyValue -Object $br -Name 'Partial')) `
+                    -WUSuccess             ([bool](Get-ResultPropertyValue -Object $wr -Name 'Success')) `
+                    -WUSkipped             ([bool](Get-ResultPropertyValue -Object $wr -Name 'Skipped')) `
                     -RebootPending         $upgradeResult.RebootPendingAfter `
                     -ParameterError        $false `
                     -BackendUnavailable    $false `

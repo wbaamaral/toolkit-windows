@@ -1227,7 +1227,7 @@ function Invoke-HD100Diagnostic {
     Write-HD100Section 'Consultando eventos recentes de disco'
     $events = Get-HD100DiskEvents
     try {
-        $events.Events | Format-List | Out-File -LiteralPath (Join-Path $script:HD100Session.LogsPath 'eventos-disco.log') -Encoding UTF8
+        Write-TextFileUtf8 -Path (Join-Path $script:HD100Session.LogsPath 'eventos-disco.log') -Content (($events.Events | Format-List | Out-String))
     }
     catch { }
 
@@ -1324,9 +1324,9 @@ function Export-HD100Json {
     [CmdletBinding()]
     param([Parameter(Mandatory = $true)]$Diagnostic)
 
-    $Diagnostic | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $script:HD100Session.DiagnosticJsonPath
-    @($script:HD100Changes) | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $script:HD100Session.ChangesJsonPath
-    @($script:HD100Changes | Where-Object { $_.Reversivel }) | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $script:HD100Session.RollbackJsonPath
+    Write-TextFileUtf8 -Path $script:HD100Session.DiagnosticJsonPath -Content ($Diagnostic | ConvertTo-Json -Depth 8)
+    Write-TextFileUtf8 -Path $script:HD100Session.ChangesJsonPath -Content (@($script:HD100Changes) | ConvertTo-Json -Depth 6)
+    Write-TextFileUtf8 -Path $script:HD100Session.RollbackJsonPath -Content (@($script:HD100Changes | Where-Object { $_.Reversivel }) | ConvertTo-Json -Depth 6)
 }
 
 function Export-HD100ReportText {
@@ -1748,7 +1748,7 @@ function Export-HD100ReportHtml {
 "@
 
     $encoding = [System.Text.UTF8Encoding]::new($true)
-    [System.IO.File]::WriteAllText($script:HD100Session.HtmlReportPath, $html, $encoding)
+        Write-TextFileUtf8 -Path $script:HD100Session.HtmlReportPath -Content $html
 }
 
 function Invoke-HD100Rollback {

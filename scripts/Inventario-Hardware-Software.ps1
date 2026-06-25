@@ -635,7 +635,7 @@ function Export-HardwareDriverSummaryTxt {
     })
 
     $encoding = [System.Text.UTF8Encoding]::new($true)
-    [System.IO.File]::WriteAllText($Path, ($lines -join [Environment]::NewLine), $encoding)
+    Write-TextFileUtf8 -Path $Path -Content ($lines -join [Environment]::NewLine)
 }
 
 function ConvertTo-MarkdownValue {
@@ -741,7 +741,7 @@ function Export-HardwareDriverSummaryMarkdown {
     })
 
     $encoding = [System.Text.UTF8Encoding]::new($true)
-    [System.IO.File]::WriteAllText($Path, ($lines -join [Environment]::NewLine), $encoding)
+    Write-TextFileUtf8 -Path $Path -Content ($lines -join [Environment]::NewLine)
 }
 
 function Export-HardwareDriverSummaryJson {
@@ -752,7 +752,7 @@ function Export-HardwareDriverSummaryJson {
     )
 
     $encoding = [System.Text.UTF8Encoding]::new($true)
-    [System.IO.File]::WriteAllText($Path, ($Summary | ConvertTo-Json -Depth 8), $encoding)
+    Write-TextFileUtf8 -Path $Path -Content ($Summary | ConvertTo-Json -Depth 8)
 }
 
 function Export-HardwareDriverSummary {
@@ -1519,7 +1519,7 @@ $fullHtml = $htmlTop + $htmlCards + $htmlSO + $htmlCPU + $htmlRAM + $htmlMB +
             $htmlStorage + $htmlGPU + $htmlNet + $htmlMonitors +
             $htmlSoftware + $htmlHotfixes + $htmlServices + $htmlBottom
 
-Set-Content -Path $HtmlFile -Value $fullHtml -Encoding UTF8
+Write-TextFileUtf8 -Path $HtmlFile -Content $fullHtml
 Write-Ok "HTML salvo: $HtmlFile"
 
 # ---------------------------------------------------------------------------

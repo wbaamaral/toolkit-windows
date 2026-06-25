@@ -211,7 +211,7 @@ switch ($Modo) {
             ExitCode           = $info.ExitCode
         }
 
-        $infoExport | ConvertTo-Json -Depth 3 | Out-File -FilePath $jsonPath -Encoding UTF8
+        Write-TextFileUtf8 -Path $jsonPath -Content ($infoExport | ConvertTo-Json -Depth 3)
         Write-Ok "Relatorio JSON: $jsonPath"
 
         if ($GerarHtml) {
@@ -242,7 +242,7 @@ $($rows -join "`n")
 </body>
 </html>
 "@
-            $html | Out-File -FilePath $htmlPath -Encoding UTF8
+            Write-TextFileUtf8 -Path $htmlPath -Content $html
             Write-Ok "Relatorio HTML : $htmlPath"
         }
 

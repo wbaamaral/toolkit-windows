@@ -257,7 +257,7 @@ $relatorio = [pscustomobject]@{
 }
 
 $jsonPath = Join-Path $script:Session.Path 'relatorio-preparacao-imagem.json'
-$relatorio | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $jsonPath
+Write-TextFileUtf8 -Path $jsonPath -Content ($relatorio | ConvertTo-Json -Depth 6)
 
 Write-SysprepLog -Message 'Sessao encerrada.'
 Write-Ok "Relatorio JSON: $jsonPath"

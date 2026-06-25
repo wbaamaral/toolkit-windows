@@ -186,7 +186,7 @@ $examples
 "@
 
             $html = ConvertTo-StaticDocsHtml -Title $command.Name -Body $body -RelativePrefix '../'
-            [System.IO.File]::WriteAllText($functionPath, $html, $encoding)
+            Write-TextFileUtf8 -Path $functionPath -Content $html
 
             $null = $functionLinks.Add([pscustomobject]@{
                 Name = $command.Name
@@ -216,7 +216,7 @@ $moduleCards
 "@
 
         $moduleHtml = ConvertTo-StaticDocsHtml -Title $module.Name -Body $moduleBody -RelativePrefix '../'
-        [System.IO.File]::WriteAllText($modulePath, $moduleHtml, $encoding)
+        Write-TextFileUtf8 -Path $modulePath -Content $moduleHtml
 
         $null = $moduleDocs.Add([pscustomobject]@{
             Name = $module.Name
@@ -297,7 +297,7 @@ $scriptSections
 "@
 
         $scriptHtml = ConvertTo-StaticDocsHtml -Title $scriptName -Body $scriptBody -RelativePrefix '../'
-        [System.IO.File]::WriteAllText($scriptPagePath, $scriptHtml, $encoding)
+        Write-TextFileUtf8 -Path $scriptPagePath -Content $scriptHtml
 
         $null = $scriptDocs.Add([pscustomobject]@{
             Name = $scriptName
@@ -364,7 +364,7 @@ $scriptRows
 
     $indexHtml = ConvertTo-StaticDocsHtml -Title 'Manual de Funcoes do WBA Windows Toolkit' -Body $indexBody
     $indexPath = Join-Path $OutputPath 'index.html'
-    [System.IO.File]::WriteAllText($indexPath, $indexHtml, $encoding)
+    Write-TextFileUtf8 -Path $indexPath -Content $indexHtml
 
     [pscustomobject]@{
         Success = $true
