@@ -19,10 +19,10 @@ set -euo pipefail
 REPO_ROOT="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
-SOURCE="docs/manual-operador-wba-windows-toolkit.md"
+SOURCE="manuais/manual-operador-wba-windows-toolkit.md"
 TEX_FILE="docs/latex/build/manual.tex"
 BUILD_DIR="docs/latex/build"
-OUTPUT="docs/manual-operador-wba-windows-toolkit.pdf"
+OUTPUT="manuais/manual-operador-wba-windows-toolkit.pdf"
 DEFAULTS="docs/latex/pandoc-defaults.yaml"
 
 # ── Verificar dependências ──────────────────────────────────────────────────

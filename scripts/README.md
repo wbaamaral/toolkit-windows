@@ -2,14 +2,15 @@
 
 Camada plana de entrada operacional do `Xtudo`.
 
-Cada arquivo aqui usa um nome verbal curto e contém o fluxo operacional atual do MVP.
-Os diretórios em `experimental/` continuam guardando o backlog e os fluxos ainda não promovidos.
+Cada arquivo aqui usa um nome verbal curto (verbo-objeto, ADR 0022) e contém o fluxo
+operacional atual do MVP. Todos os scripts operacionais já vivem aqui em `scripts/`;
+`experimental/` mantém apenas o registro de não-validados e material futuro ainda não pronto.
 
 Regra prática:
 
 - operador entra por `.\xtudo.ps1`
 - scripts em `scripts/` são a superfície oficial do MVP
-- `experimental/` fica para o que ainda não foi promovido
+- `experimental/nao-validado/` registra scripts ainda sem validação operacional
 - parâmetros não precisam ser curtos por obrigação; prefira nomes em português, curtos e com sentido direto do que o parâmetro faz
 - mantenha `Comment-Based Help` para explicar nome, uso e efeito de cada parâmetro público
 - `-Help` é obrigatório em todos os scripts da superfície oficial e deve exibir a consulta inline de uso
@@ -27,7 +28,7 @@ Exemplos:
 
 ## Inventário
 
-### `Inventario-Hardware-Software.ps1`
+### `inventario-hardware-software.ps1`
 
 **Função:** Gera inventário completo de hardware e software em relatório HTML com conversão opcional para PDF.
 
@@ -59,8 +60,8 @@ Exemplos:
 **Exemplos:**
 
 ```powershell
-.\scripts\Inventario-Hardware-Software.ps1
-.\scripts\Inventario-Hardware-Software.ps1 -NaoPDF
-.\scripts\Inventario-Hardware-Software.ps1 -GerarResumoHardwareDrivers
-.\scripts\Inventario-Hardware-Software.ps1 -SomenteHardwareDrivers
+.\scripts\inventario-hardware-software.ps1
+.\scripts\inventario-hardware-software.ps1 -NaoPDF
+.\scripts\inventario-hardware-software.ps1 -GerarResumoHardwareDrivers
+.\scripts\inventario-hardware-software.ps1 -SomenteHardwareDrivers
 ```

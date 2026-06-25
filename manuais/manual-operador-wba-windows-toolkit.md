@@ -159,7 +159,25 @@ Import-Module .\modules\WbaToolkit.Networking\WbaToolkit.Networking.psd1 -Force
 Import-Module .\modules\WbaToolkit.Startup\WbaToolkit.Startup.psd1 -Force
 ```
 
-### 3.4. Ver quais comandos um módulo carregou
+### 3.4. Importar o módulo de manutenção
+
+```powershell
+Import-Module .\modules\WbaToolkit.Maintenance\WbaToolkit.Maintenance.psd1 -Force
+```
+
+### 3.5. Importar o módulo de identidade
+
+```powershell
+Import-Module .\modules\WbaToolkit.Identity\WbaToolkit.Identity.psd1 -Force
+```
+
+### 3.6. Importar o módulo de inventário
+
+```powershell
+Import-Module .\modules\WbaToolkit.Inventory\WbaToolkit.Inventory.psd1 -Force
+```
+
+### 3.7. Ver quais comandos um módulo carregou
 
 Para o módulo principal:
 
@@ -179,7 +197,7 @@ Para o módulo de inicialização:
 Get-Command -Module WbaToolkit.Startup
 ```
 
-### 3.5. Pedir ajuda de uma função
+### 3.8. Pedir ajuda de uma função
 
 Exemplo:
 
@@ -260,7 +278,41 @@ módulo, essas funções podem ser chamadas diretamente no PowerShell.
 | `Invoke-StartupManager` | Gerenciador interativo para seleção e modificação de entradas |
 | `Get-ServiceStartupState` | Retorna o estado e tipo de inicialização de serviços do Windows |
 
-### 4.4. Exemplo simples de uso de função do módulo
+### 4.4. Funções do módulo `WbaToolkit.Maintenance`
+
+| Função | Para que serve |
+|---|---|
+| `Get-ComponentStoreInfo` | Coleta informações do armazenamento de componentes (WinSxS) via DISM |
+| `Get-DefaultUserHivePath` | Resolve o caminho do hive do perfil Default do Windows |
+| `Get-DiskInfo` | Retorna dados de disco, volumes e espaço livre |
+| `Get-FilesystemErrorEvent` | Coleta eventos de erro de sistema de arquivos (NTFS, Disk) |
+| `Import-RegistryTweakToDefaultProfile` | Aplica tweaks de registro no perfil Default carregado |
+| `Invoke-ComponentStoreCleanup` | Executa limpeza do WinSxS via DISM com controle |
+| `Invoke-EventLogMaintenance` | Faz manutenção e limpeza dos logs do Visualizador de Eventos |
+| `Invoke-FilesystemCheck` | Executa verificação de sistema de arquivos (CHKDSK `/scan`) |
+| `Invoke-SysprepPreparation` | Prepara e inicia o sysprep para captura de imagem |
+| `Invoke-WithDefaultUserHive` | Carrega o hive Default, executa um bloco e descarrega com segurança |
+| `Remove-SafePath` | Remove caminho de arquivo/pasta com validação de segurança |
+| `Test-SysprepEnvironment` | Valida pré-requisitos do ambiente antes do sysprep |
+| `Write-MaintenanceEvent` | Registra evento de manutenção no log da sessão |
+
+### 4.5. Funções do módulo `WbaToolkit.Identity`
+
+| Função | Para que serve |
+|---|---|
+| `Get-AutologonStatus` | Lê o estado atual do login automático do Windows |
+| `Enable-Autologon` | Ativa o login automático para uma conta |
+| `Disable-Autologon` | Desativa o login automático |
+| `Set-Autologon` | Configura usuário, domínio e senha do login automático |
+| `Invoke-AutologonManager` | Gerenciador interativo do login automático |
+
+### 4.6. Funções do módulo `WbaToolkit.Inventory`
+
+| Função | Para que serve |
+|---|---|
+| `Get-InventoryCoverageMap` | Retorna o mapa de cobertura do inventário de hardware e software |
+
+### 4.7. Exemplo simples de uso de função do módulo
 
 ```powershell
 Import-Module .\modules\WbaToolkit.Networking\WbaToolkit.Networking.psd1 -Force
@@ -318,7 +370,7 @@ C:\ProgramData\WBA\WindowsToolkit\config.json
 Quando quiser alterar apenas uma execução, use o parâmetro do próprio script:
 
 ```powershell
-.\experimental\maintenance\Diagnostico-Reparo-HD100.ps1 `
+.\scripts\diagnosticar-disco-100.ps1 `
     -DiretorioSaida "D:\Atendimentos\Cliente01" -GerarHtml
 ```
 
@@ -420,11 +472,11 @@ Export-ToolkitDocumentation -Mode Portal -Force
 | Pasta errada gerada | PowerShell em diretório diferente | Execute `Set-Location C:\ti\wba-windows-toolkit` antes |
 | HTML sem estilo | Arquivo errado aberto | Abra `index.html` na raiz de `docs\portal\` |
 
-## 7. Script `Diagnostico-Reparo-HD100.ps1`
+## 7. Script `diagnosticar-disco-100.ps1`
 
 ### 7.1. Finalidade
 
-O script `Diagnostico-Reparo-HD100.ps1` ajuda a investigar o problema conhecido como “Disco 100%” ou “HD100”.
+O script `diagnosticar-disco-100.ps1` ajuda a investigar o problema conhecido como “Disco 100%” ou “HD100”.
 
 Ele coleta informações técnicas, gera relatórios e, no modo assistido, permite algumas ações controladas.
 
@@ -459,7 +511,7 @@ Set-Location C:\ti\wba-windows-toolkit
 Execute em modo diagnóstico com HTML:
 
 ```powershell
-.\experimental\maintenance\Diagnostico-Reparo-HD100.ps1 -GerarHtml
+.\scripts\diagnosticar-disco-100.ps1 -GerarHtml
 ```
 
 Esse modo é o mais seguro para começar. Ele gera relatório e não aplica correções permanentes.
@@ -478,31 +530,31 @@ Esse modo é o mais seguro para começar. Ele gera relatório e não aplica corr
 Diagnóstico seguro:
 
 ```powershell
-.\experimental\maintenance\Diagnostico-Reparo-HD100.ps1
+.\scripts\diagnosticar-disco-100.ps1
 ```
 
 Diagnóstico com HTML:
 
 ```powershell
-.\experimental\maintenance\Diagnostico-Reparo-HD100.ps1 -GerarHtml
+.\scripts\diagnosticar-disco-100.ps1 -GerarHtml
 ```
 
 Simulação sem executar comandos externos:
 
 ```powershell
-.\experimental\maintenance\Diagnostico-Reparo-HD100.ps1 -DryRun -GerarHtml
+.\scripts\diagnosticar-disco-100.ps1 -DryRun -GerarHtml
 ```
 
 Modo assistido:
 
 ```powershell
-.\experimental\maintenance\Diagnostico-Reparo-HD100.ps1 -Modo Assistido -GerarHtml
+.\scripts\diagnosticar-disco-100.ps1 -Modo Assistido -GerarHtml
 ```
 
 Rollback de inicialização:
 
 ```powershell
-.\experimental\maintenance\Diagnostico-Reparo-HD100.ps1 -Modo Rollback
+.\scripts\diagnosticar-disco-100.ps1 -Modo Rollback
 ```
 
 ### 7.7. O que ele coleta
@@ -609,11 +661,11 @@ Algumas ações exigem cuidado:
 | `DISM RestoreHealth` | Pode reparar imagem do Windows | Use em modo assistido |
 | Remover inicialização | Pode impedir software necessário de iniciar | Prefira desabilitar antes |
 
-## 8. Script `Inventario-Hardware-Software.ps1`
+## 8. Script `inventario-hardware-software.ps1`
 
 ### 8.1. Finalidade
 
-O script `Inventario-Hardware-Software.ps1` gera inventário técnico do computador. Ele pode criar o inventário
+O script `inventario-hardware-software.ps1` gera inventário técnico do computador. Ele pode criar o inventário
 completo em HTML/PDF e também um resumo enxuto de hardware e drivers ativos.
 
 ### 8.2. Quando usar
@@ -631,31 +683,31 @@ Use quando precisar:
 Inventário completo:
 
 ```powershell
-.\scripts\Inventario-Hardware-Software.ps1
+.\scripts\inventario-hardware-software.ps1
 ```
 
 Inventário completo sem PDF:
 
 ```powershell
-.\scripts\Inventario-Hardware-Software.ps1 -NaoPDF
+.\scripts\inventario-hardware-software.ps1 -NaoPDF
 ```
 
 Inventário completo e resumo de hardware/drivers:
 
 ```powershell
-.\scripts\Inventario-Hardware-Software.ps1 -GerarResumoHardwareDrivers
+.\scripts\inventario-hardware-software.ps1 -GerarResumoHardwareDrivers
 ```
 
 Somente resumo rápido:
 
 ```powershell
-.\scripts\Inventario-Hardware-Software.ps1 -SomenteHardwareDrivers
+.\scripts\inventario-hardware-software.ps1 -SomenteHardwareDrivers
 ```
 
 Somente Markdown:
 
 ```powershell
-.\scripts\Inventario-Hardware-Software.ps1 `
+.\scripts\inventario-hardware-software.ps1 `
     -SomenteHardwareDrivers -FormatoResumoHardwareDrivers Markdown
 ```
 
@@ -706,11 +758,11 @@ Ainda não existe, nesta linha de projeto, um inventário separado para:
 - classificação de software por criticidade ou compliance;
 - patrimônio/CMDB com etiquetas, tombamento e status financeiro.
 
-## 9. Script `Diagnostico-Driver-Grafico.ps1`
+## 9. Script `diagnosticar-grafico.ps1`
 
 ### 9.1. Finalidade
 
-O script `Diagnostico-Driver-Grafico.ps1` coleta evidências para problemas de vídeo, tela preta, travamento gráfico,
+O script `diagnosticar-grafico.ps1` coleta evidências para problemas de vídeo, tela preta, travamento gráfico,
 falhas de DWM, TDR, WHEA, Kernel-Power e instabilidade relacionada a driver de GPU.
 
 ### 9.2. Quando usar
@@ -728,19 +780,19 @@ Use quando o computador apresentar:
 Diagnóstico seguro:
 
 ```powershell
-.\experimental\diagnostics\Diagnostico-Driver-Grafico.ps1
+.\scripts\diagnosticar-grafico.ps1
 ```
 
 Diagnóstico com HTML:
 
 ```powershell
-.\experimental\diagnostics\Diagnostico-Driver-Grafico.ps1 -GerarHtml
+.\scripts\diagnosticar-grafico.ps1 -GerarHtml
 ```
 
 Coleta assistida com HTML, DXDiag e EVTX:
 
 ```powershell
-.\experimental\diagnostics\Diagnostico-Driver-Grafico.ps1 -Modo Assistido
+.\scripts\diagnosticar-grafico.ps1 -Modo Assistido
 ```
 
 ### 9.4. Relatórios gerados
@@ -762,11 +814,11 @@ Arquivos principais:
 | `logs\System.evtx` | Exportação opcional do log System |
 | `logs\Application.evtx` | Exportação opcional do log Application |
 
-## 10. Script `Gerenciar-Inicializacao-Windows.ps1`
+## 10. Script `gerenciar-inicializacao.ps1`
 
 ### 10.1. Finalidade
 
-O script `Gerenciar-Inicializacao-Windows.ps1` é a ferramenta dedicada ao gerenciamento da inicialização do Windows.
+O script `gerenciar-inicializacao.ps1` é a ferramenta dedicada ao gerenciamento da inicialização do Windows.
 
 Ele usa o módulo `WbaToolkit.Startup` para coletar, exibir e, no modo assistido, modificar entradas das três fontes:
 
@@ -777,7 +829,7 @@ Ele usa o módulo `WbaToolkit.Startup` para coletar, exibir e, no modo assistido
 Exibe também o estado e tipo de inicialização dos serviços mais relevantes.
 
 > Use este script quando o objetivo for gerenciar exclusivamente a inicialização, sem executar o diagnóstico completo
-> de disco 100% que o `Diagnostico-Reparo-HD100.ps1` realiza.
+> de disco 100% que o `diagnosticar-disco-100.ps1` realiza.
 
 ### 10.2. Quando usar
 
@@ -801,31 +853,31 @@ Use quando:
 Diagnóstico somente leitura:
 
 ```powershell
-.\experimental\maintenance\Gerenciar-Inicializacao-Windows.ps1
+.\scripts\gerenciar-inicializacao.ps1
 ```
 
 Diagnóstico com relatório HTML:
 
 ```powershell
-.\experimental\maintenance\Gerenciar-Inicializacao-Windows.ps1 -GerarHtml
+.\scripts\gerenciar-inicializacao.ps1 -GerarHtml
 ```
 
 Modo assistido para modificações:
 
 ```powershell
-.\experimental\maintenance\Gerenciar-Inicializacao-Windows.ps1 -Modo Assistido
+.\scripts\gerenciar-inicializacao.ps1 -Modo Assistido
 ```
 
 Simulação sem alterar o sistema:
 
 ```powershell
-.\experimental\maintenance\Gerenciar-Inicializacao-Windows.ps1 -Modo Assistido -DryRun
+.\scripts\gerenciar-inicializacao.ps1 -Modo Assistido -DryRun
 ```
 
 Em pasta de saída específica:
 
 ```powershell
-.\experimental\maintenance\Gerenciar-Inicializacao-Windows.ps1 -Modo Assistido -DiretorioSaida "D:\Atendimentos\Cliente01"
+.\scripts\gerenciar-inicializacao.ps1 -Modo Assistido -DiretorioSaida "D:\Atendimentos\Cliente01"
 ```
 
 ### 10.5. O que ele coleta e exibe
@@ -884,11 +936,11 @@ $item = Get-StartupItem | Where-Object { $_.ManagedDisabled -and $_.Name -eq 'On
 Enable-StartupItem -Item $item
 ```
 
-## 11. Script `Testar-Conectividade-Internet.ps1`
+## 11. Script `testar-conectividade-internet.ps1`
 
 ### 11.1. Finalidade
 
-O script `Testar-Conectividade-Internet.ps1` executa um diagnóstico sequencial de conectividade com a internet. Ele
+O script `testar-conectividade-internet.ps1` executa um diagnóstico sequencial de conectividade com a internet. Ele
 usa o módulo `WbaToolkit.Networking` para verificar rede local, gateway, DNS, ICMP e TCP.
 
 ### 11.2. Quando usar
@@ -904,13 +956,13 @@ Use quando houver:
 ### 11.3. Diagnóstico geral de internet
 
 ```powershell
-.\experimental\diagnostics\networking\Testar-Conectividade-Internet.ps1
+.\scripts\testar-conectividade-internet.ps1
 ```
 
 Com detalhes:
 
 ```powershell
-.\experimental\diagnostics\networking\Testar-Conectividade-Internet.ps1 -Detalhado
+.\scripts\testar-conectividade-internet.ps1 -Detalhado
 ```
 
 ### 11.4. Teste direcionado por alvo
@@ -931,11 +983,11 @@ $report = Invoke-TargetConnectivityTest -TargetAddress 192.168.5.10 -Protocol TC
 Show-ConnectivityReport -Report $report
 ```
 
-## 12. Script `limpeza-windows.ps1`
+## 12. Script `limpar-windows.ps1`
 
 ### 12.1. Finalidade
 
-O script `limpeza-windows.ps1` faz limpeza segura e manutenção conservadora do Windows.
+O script `limpar-windows.ps1` faz limpeza segura e manutenção conservadora do Windows.
 
 Ele remove arquivos temporários, limpa caches, pode executar SFC/DISM, verificar eventos de disco e liberar espaço.
 
@@ -966,7 +1018,7 @@ O script não remove:
 
 ```powershell
 Set-Location C:\ti\wba-windows-toolkit
-.\experimental\maintenance\limpeza-windows.ps1 -NoReboot
+.\scripts\limpar-windows.ps1 -NoReboot
 ```
 
 O parâmetro `-NoReboot` evita reinicialização automática.
@@ -995,25 +1047,25 @@ O parâmetro `-NoReboot` evita reinicialização automática.
 Limpeza sem reiniciar:
 
 ```powershell
-.\experimental\maintenance\limpeza-windows.ps1 -NoReboot
+.\scripts\limpar-windows.ps1 -NoReboot
 ```
 
 Somente reparar sistema:
 
 ```powershell
-.\experimental\maintenance\limpeza-windows.ps1 -RepararSistema -NoReboot
+.\scripts\limpar-windows.ps1 -RepararSistema -NoReboot
 ```
 
 Limpeza sem SFC/DISM:
 
 ```powershell
-.\experimental\maintenance\limpeza-windows.ps1 -NoSfc -NoReboot
+.\scripts\limpar-windows.ps1 -NoSfc -NoReboot
 ```
 
 Automação conservadora:
 
 ```powershell
-.\experimental\maintenance\limpeza-windows.ps1 -ChkdskAction Skip -EventLogCleanup None -NoReboot
+.\scripts\limpar-windows.ps1 -ChkdskAction Skip -EventLogCleanup None -NoReboot
 ```
 
 ### 12.7. Onde fica o log
@@ -1143,11 +1195,11 @@ Configurações > Windows Update
 - Se Chocolatey falhar por timeout, tente novamente mais tarde.
 - Não desligue o computador durante instalação de atualização.
 
-## 14. Script `Preparar-Imagem-Windows.ps1`
+## 14. Script `preparar-imagem-windows.ps1`
 
 ### 14.1. Finalidade
 
-O script `Preparar-Imagem-Windows.ps1` aplica tweaks no perfil Default do Windows e,
+O script `preparar-imagem-windows.ps1` aplica tweaks no perfil Default do Windows e,
 opcionalmente, inicia o sysprep para preparar uma imagem corporativa.
 
 ### 14.2. Quando usar
@@ -1171,28 +1223,28 @@ Use quando precisar:
 Simulação obrigatória antes da primeira execução:
 
 ```powershell
-.\experimental\maintenance\Preparar-Imagem-Windows.ps1 -ApenasDryRun
+.\scripts\preparar-imagem-windows.ps1 -ApenasDryRun
 ```
 
 Apenas aplicar tweaks, sem sysprep:
 
 ```powershell
-.\experimental\maintenance\Preparar-Imagem-Windows.ps1 -SemSysprep
+.\scripts\preparar-imagem-windows.ps1 -SemSysprep
 ```
 
 Execução completa (tweaks + sysprep):
 
 ```powershell
-.\experimental\maintenance\Preparar-Imagem-Windows.ps1
+.\scripts\preparar-imagem-windows.ps1
 ```
 
 ---
 
-## 15. Script `Configurar-Idioma-Regional.ps1`
+## 15. Script `configurar-idioma-regional.ps1`
 
 ### 15.1. Finalidade
 
-O script `Configurar-Idioma-Regional.ps1` padroniza idioma, locale regional e fuso horário
+O script `configurar-idioma-regional.ps1` padroniza idioma, locale regional e fuso horário
 de instalações Windows 10/11 para o padrão brasileiro (pt-BR).
 
 ### 15.2. Quando usar
@@ -1218,34 +1270,34 @@ Use quando precisar:
 Configuração padrão (pt-BR, UTC-4):
 
 ```powershell
-.\configuration\Configurar-Idioma-Regional.ps1
+.\scripts\configurar-idioma-regional.ps1
 ```
 
 Modo silencioso sem reboot (automação):
 
 ```powershell
-.\configuration\Configurar-Idioma-Regional.ps1 -Silent -NoReboot
+.\scripts\configurar-idioma-regional.ps1 -Silent -NoReboot
 ```
 
 Fuso de Brasília (UTC-3):
 
 ```powershell
-.\configuration\Configurar-Idioma-Regional.ps1 -TimeZone "E. South America Standard Time"
+.\scripts\configurar-idioma-regional.ps1 -TimeZone "E. South America Standard Time"
 ```
 
 Listar fusos do Brasil:
 
 ```powershell
-.\configuration\Configurar-Idioma-Regional.ps1 -ListTimeZones
+.\scripts\configurar-idioma-regional.ps1 -ListTimeZones
 ```
 
 ---
 
-## 16. Script `Analise-Espaco-Disco.ps1`
+## 16. Script `analisar-espaco-disco.ps1`
 
 ### 16.1. Finalidade
 
-O script `Analise-Espaco-Disco.ps1` varre os volumes locais, identifica as 20 maiores pastas
+O script `analisar-espaco-disco.ps1` varre os volumes locais, identifica as 20 maiores pastas
 e os 10 maiores arquivos e estima categorias de espaço desperdiçado. Gera relatório HTML.
 
 ### 16.2. Quando usar
@@ -1262,34 +1314,34 @@ Use quando precisar:
 Varrer todos os volumes locais:
 
 ```powershell
-.\utilities\Analise-Espaco-Disco.ps1
+.\scripts\analisar-espaco-disco.ps1
 ```
 
 Varrer somente o volume C:
 
 ```powershell
-.\utilities\Analise-Espaco-Disco.ps1 -Drive C
+.\scripts\analisar-espaco-disco.ps1 -Drive C
 ```
 
 Sem conversão para PDF:
 
 ```powershell
-.\utilities\Analise-Espaco-Disco.ps1 -NaoPDF
+.\scripts\analisar-espaco-disco.ps1 -NaoPDF
 ```
 
 Salvar em pasta específica:
 
 ```powershell
-.\utilities\Analise-Espaco-Disco.ps1 -OutputDir "D:\Relatorios"
+.\scripts\analisar-espaco-disco.ps1 -OutputDir "D:\Relatorios"
 ```
 
 ---
 
-## 17. Script `Remover-Perfis-Inativos.ps1`
+## 17. Script `remover-perfis-inativos.ps1`
 
 ### 17.1. Finalidade
 
-O script `Remover-Perfis-Inativos.ps1` lista perfis de usuário locais com espaço em disco
+O script `remover-perfis-inativos.ps1` lista perfis de usuário locais com espaço em disco
 e permite remover interativamente perfis antigos, inativos ou órfãos.
 
 ### 17.2. Quando usar
@@ -1314,25 +1366,25 @@ Use quando precisar:
 Simulação — ver o que seria removido:
 
 ```powershell
-.\utilities\Remover-Perfis-Inativos.ps1 -DryRun
+.\scripts\remover-perfis-inativos.ps1 -DryRun
 ```
 
 Modo interativo (padrão):
 
 ```powershell
-.\utilities\Remover-Perfis-Inativos.ps1
+.\scripts\remover-perfis-inativos.ps1
 ```
 
 Automático sem interação:
 
 ```powershell
-.\utilities\Remover-Perfis-Inativos.ps1 -Silent
+.\scripts\remover-perfis-inativos.ps1 -Silent
 ```
 
 Excluindo perfis específicos:
 
 ```powershell
-.\utilities\Remover-Perfis-Inativos.ps1 -ExcludeProfile "svc.backup","adm.temp"
+.\scripts\remover-perfis-inativos.ps1 -ExcludeProfile "svc.backup","adm.temp"
 ```
 
 ---
@@ -1390,30 +1442,263 @@ Diagnóstico com relatório HTML:
 
 ---
 
-## 19. Legado experimental de AD
+## 19. Script `diagnosticar-memoria.ps1`
 
 ### 19.1. Finalidade
 
-As ferramentas antigas de Active Directory continuam na árvore `experimental/active-directory/` apenas para
-consulta histórica e comparação. O fluxo oficial já e o script `.\scripts\diagnosticar-ad-cliente.ps1`.
+O script `diagnosticar-memoria.ps1` identifica os maiores consumidores de memória e gera um relatório para
+verificação de legitimidade. Cada processo é enriquecido com publisher, assinatura digital, hash SHA256 e nível
+de confiança, com links prontos para pesquisa no Google, ProcessLibrary e VirusTotal.
 
-### 19.2. Regra prática
+É um script somente leitura: não altera processos, serviços ou configurações.
 
-Nao use o legado como ponto de entrada do operador. Se precisar evoluir o diagnostico de AD, trabalhe no script
-oficial em `scripts/`.
+### 19.2. Quando usar
+
+Use quando:
+
+- o computador estiver com uso alto de memória RAM;
+- houver suspeita de processo desconhecido consumindo memória;
+- precisar identificar um possível vazamento (leak) de memória;
+- precisar verificar a legitimidade de um processo (assinatura, hash, publisher).
+
+### 19.3. Principais parâmetros
+
+| Parâmetro | O que faz |
+|---|---|
+| `-Top` | Quantidade de processos a analisar (padrão 10, máximo 50) |
+| `-Metrica` | Critério de ordenação: `WorkingSet` (padrão), `PrivateBytes` ou `VirtualMemory` |
+| `-Todos` | Lista todos os processos sem limite (ignora `-Top`) |
+| `-GerarHtml` | Gera relatório HTML além do TXT |
+| `-AbrirRelatorio` | Abre o relatório ao final |
+| `-Path` | Raiz de relatórios personalizada |
+
+### 19.4. Exemplos de uso
+
+Diagnóstico padrão:
+
+```powershell
+.\scripts\diagnosticar-memoria.ps1
+```
+
+Top 20 por memória privada, com HTML:
+
+```powershell
+.\scripts\diagnosticar-memoria.ps1 -Top 20 -Metrica PrivateBytes -GerarHtml -AbrirRelatorio
+```
+
+Listar todos os processos com HTML:
+
+```powershell
+.\scripts\diagnosticar-memoria.ps1 -Todos -GerarHtml -AbrirRelatorio
+```
+
+Os relatórios ficam em `C:\WBA\Relatorios\Diagnostics\<timestamp>\`.
 
 ---
 
-## 20. Fluxo de atendimento recomendado
+## 20. Script `gerenciar-drivers.ps1`
 
-### 20.1. Quando o problema é disco 100%
+### 20.1. Finalidade
+
+O script `gerenciar-drivers.ps1` faz backup e restauração de drivers de terceiros (OEM, não-inbox) instalados no
+Windows. A exportação e a reinstalação são feitas via `pnputil`. No modo `Restore`, o script verifica a presença
+do hardware antes de instalar; drivers sem hardware detectado exigem confirmação explícita do operador, com aviso
+de risco de instabilidade.
+
+Requer execução como Administrador.
+
+### 20.2. Quando usar
+
+Use quando precisar:
+
+- guardar uma cópia dos drivers OEM antes de uma reinstalação ou imagem;
+- restaurar drivers de terceiros após reinstalar o Windows;
+- preservar drivers difíceis de obter (notebooks antigos, hardware descontinuado);
+- comparar/recuperar uma versão específica de driver.
+
+### 20.3. Modos de execução
+
+| Modo | O que faz |
+|---|---|
+| `Backup` | Enumera e exporta os drivers OEM instalados via `pnputil` (padrão) |
+| `Restore` | Localiza um backup anterior e reinstala os drivers selecionados via `pnputil` |
+
+### 20.4. Principais parâmetros
+
+| Parâmetro | O que faz |
+|---|---|
+| `-Modo` | `Backup` (padrão) ou `Restore` |
+| `-DryRun` | Simula as operações sem executar o `pnputil` |
+| `-GerarHtml` | Gera relatório HTML além do TXT |
+| `-Path` | Raiz de relatórios/backup personalizada |
+
+### 20.5. Exemplos de uso
+
+Backup dos drivers (padrão):
+
+```powershell
+.\scripts\gerenciar-drivers.ps1
+```
+
+Simulação do backup:
+
+```powershell
+.\scripts\gerenciar-drivers.ps1 -DryRun
+```
+
+Restauração com relatório HTML:
+
+```powershell
+.\scripts\gerenciar-drivers.ps1 -Modo Restore -GerarHtml
+```
+
+Backup em pasta específica:
+
+```powershell
+.\scripts\gerenciar-drivers.ps1 -Path "D:\Backup\Drivers"
+```
+
+---
+
+## 21. Script `verificar-atualizacoes-hardware.ps1`
+
+### 21.1. Finalidade
+
+O script `verificar-atualizacoes-hardware.ps1` faz um diagnóstico de atualizações de BIOS e drivers via Windows
+Update. Ele verifica o estado do BIOS (versão, data, fabricante e ferramenta oficial recomendada), inventaria os
+drivers instalados e consulta o Windows Update por drivers disponíveis mas ainda não instalados.
+
+O script é somente leitura: não instala nada e não altera o sistema. Atualizações de BIOS nunca são aplicadas
+automaticamente — o script apenas aponta a ferramenta oficial do fabricante para execução manual controlada. A
+busca por drivers respeita políticas de GPO/WSUS.
+
+### 21.2. Quando usar
+
+Use quando precisar:
+
+- conferir se há atualização de BIOS recomendada pelo fabricante;
+- verificar se há drivers disponíveis no Windows Update;
+- documentar versões e datas de drivers instalados;
+- planejar uma janela de atualização de firmware/drivers.
+
+### 21.3. Principais parâmetros
+
+| Parâmetro | O que faz |
+|---|---|
+| `-GerarHtml` | Gera relatório HTML além do JSON |
+| `-AbrirRelatorio` | Abre o relatório ao final |
+| `-Path` | Raiz de relatórios personalizada |
+
+### 21.4. Exemplos de uso
+
+Diagnóstico padrão:
+
+```powershell
+.\scripts\verificar-atualizacoes-hardware.ps1
+```
+
+Com relatório HTML aberto ao final:
+
+```powershell
+.\scripts\verificar-atualizacoes-hardware.ps1 -GerarHtml -AbrirRelatorio
+```
+
+Salvar em pasta específica:
+
+```powershell
+.\scripts\verificar-atualizacoes-hardware.ps1 -GerarHtml -Path D:\Relatorios
+```
+
+---
+
+## 22. Script `gerenciar-login-automatico.ps1`
+
+### 22.1. Finalidade
+
+O script `gerenciar-login-automatico.ps1` gerencia o logon automático (autologon) do Windows: diagnóstico,
+habilitar, desabilitar e editar. Ele é a interface operacional do módulo `WbaToolkit.Identity` e faz backup dos
+valores atuais antes de qualquer alteração.
+
+A senha do autologon é sempre armazenada como segredo LSA (`DefaultPassword`), nunca em texto claro no registro.
+A senha nunca é aceita por parâmetro de texto: é sempre solicitada de forma segura (`Read-Host -AsSecureString`)
+e nunca aparece em logs ou relatórios.
+
+### 22.2. Quando usar
+
+Use quando precisar:
+
+- verificar se o autologon está ativo e para qual conta;
+- habilitar o autologon em uma máquina de quiosque ou painel;
+- desabilitar o autologon e limpar a senha guardada;
+- editar a conta ou contagem de logons automáticos.
+
+### 22.3. Modos e parâmetros principais
+
+| Parâmetro | O que faz |
+|---|---|
+| `-Modo` | `Diagnostico` (padrão, somente leitura) ou `Assistido` (gerenciador interativo) |
+| `-Acao` | Uso não-interativo: `Habilitar`, `Desabilitar` ou `Editar` |
+| `-UserName` | Conta alvo (para `Habilitar`/`Editar`) |
+| `-Domain` | Domínio da conta (padrão: nome da máquina, conta local) |
+| `-AutoLogonCount` | Número de logons automáticos antes de o Windows desativar o autologon |
+| `-DryRun` | Simula operações que alterariam o sistema, sem executá-las |
+| `-Path` | Raiz de relatórios personalizada |
+
+### 22.4. Exemplos de uso
+
+Diagnóstico (somente leitura):
+
+```powershell
+.\scripts\gerenciar-login-automatico.ps1
+```
+
+Gerenciador interativo:
+
+```powershell
+.\scripts\gerenciar-login-automatico.ps1 -Modo Assistido
+```
+
+Habilitar autologon para a conta local `kiosk` (a senha será solicitada de forma segura):
+
+```powershell
+.\scripts\gerenciar-login-automatico.ps1 -Acao Habilitar -UserName kiosk -AutoLogonCount 1
+```
+
+Desabilitar e limpar a senha do segredo LSA:
+
+```powershell
+.\scripts\gerenciar-login-automatico.ps1 -Acao Desabilitar
+```
+
+---
+
+## 23. Legado experimental de AD
+
+### 23.1. Finalidade
+
+Os scripts antigos de Active Directory (`Diagnostico-GPO-Client` e `Testa-Repara-ContaMaquinaAD`) não estão mais
+disponíveis na árvore do projeto: a pasta `experimental/active-directory/` foi removida. Esse legado foi
+consolidado no script oficial `scripts/diagnosticar-ad-cliente.ps1`, que reúne o diagnóstico de GPO, canal seguro,
+conta de máquina e demais verificações de cliente AD em um único fluxo.
+
+### 23.2. Regra prática
+
+Não procure mais pelos scripts antigos: eles não existem mais separadamente. O ponto de entrada oficial do
+operador para diagnóstico de AD é o `.\scripts\diagnosticar-ad-cliente.ps1`. Se precisar evoluir o diagnóstico de
+AD, trabalhe diretamente nesse script em `scripts/`.
+
+---
+
+## 24. Fluxo de atendimento recomendado
+
+### 24.1. Quando o problema é disco 100%
 
 1. Abrir PowerShell como Administrador.
 2. Entrar na pasta do toolkit.
 3. Executar:
 
 ```powershell
-.\experimental\maintenance\Diagnostico-Reparo-HD100.ps1 -GerarHtml
+.\scripts\diagnosticar-disco-100.ps1 -GerarHtml
 ```
 
 4. Abrir o HTML gerado.
@@ -1427,18 +1712,18 @@ oficial em `scripts/`.
 7. Desabilitar apenas uma entrada de inicialização por vez.
 8. Reiniciar e testar.
 
-### 20.2. Quando o problema é pouco espaço em disco
+### 24.2. Quando o problema é pouco espaço em disco
 
 1. Executar:
 
 ```powershell
-.\experimental\maintenance\limpeza-windows.ps1 -NoReboot
+.\scripts\limpar-windows.ps1 -NoReboot
 ```
 
 2. Verificar o log em `C:\WBA\Relatorios\Maintenance\<timestamp>\logs`.
 3. Confirmar espaço livre depois da execução.
 
-### 20.3. Quando o problema é sistema desatualizado
+### 24.3. Quando o problema é sistema desatualizado
 
 1. Executar:
 
@@ -1449,12 +1734,12 @@ oficial em `scripts/`.
 2. Conferir Windows Update nas Configurações.
 3. Reiniciar se o Windows solicitar.
 
-### 20.4. Quando o problema é tela preta ou travamento gráfico
+### 24.4. Quando o problema é tela preta ou travamento gráfico
 
 1. Executar:
 
 ```powershell
-.\experimental\diagnostics\Diagnostico-Driver-Grafico.ps1 -Modo Assistido
+.\scripts\diagnosticar-grafico.ps1 -Modo Assistido
 ```
 
 2. Abrir o HTML gerado.
@@ -1467,12 +1752,12 @@ oficial em `scripts/`.
 4. Se for trocar driver, gerar também:
 
 ```powershell
-.\scripts\Inventario-Hardware-Software.ps1 -SomenteHardwareDrivers
+.\scripts\inventario-hardware-software.ps1 -SomenteHardwareDrivers
 ```
 
 5. Depois da intervenção, executar o resumo novamente e comparar a versão do driver.
 
-### 20.5. Quando precisa de portal de documentação local
+### 24.5. Quando precisa de portal de documentação local
 
 1. Importar módulo:
 
@@ -1492,7 +1777,7 @@ Export-ToolkitDocumentation -Mode All -Force
 Start-Process .\docs\portal\index.html
 ```
 
-## 21. Mensagens comuns e o que fazer
+## 25. Mensagens comuns e o que fazer
 
 | Situação | Causa | Ação |
 |---|---|---|
@@ -1504,7 +1789,7 @@ Start-Process .\docs\portal\index.html
 | CHKDSK agendado no próximo boot | Verificação agendada | Avisar o usuário antes de reiniciar |
 | Relatório HTML não abre | Caminho incorreto | Abrir `index.html` ou `relatorio-hd100.html` na pasta correta |
 
-## 22. Regras de segurança para operador
+## 26. Regras de segurança para operador
 
 1. Comece sempre pelo modo diagnóstico.
 2. Leia o resumo antes de executar correções.
@@ -1517,7 +1802,7 @@ Start-Process .\docs\portal\index.html
 9. Guarde o caminho do relatório e do log.
 10. Em dúvida, pare e escale para um técnico mais experiente.
 
-## 23. Checklist rápido
+## 27. Checklist rápido
 
 Antes de executar:
 

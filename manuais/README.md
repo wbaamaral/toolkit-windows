@@ -53,11 +53,18 @@ Os itens abaixo são as rotas oficiais que o operador deve usar hoje.
 | Preparar imagem corporativa | `scripts/preparar-imagem-windows.ps1` | Tweaks de perfil Default + sysprep |
 | Atualizar Windows | `scripts/atualizar-windows.ps1` | Windows Update e Chocolatey quando disponível |
 | Login automático | `scripts/gerenciar-login-automatico.ps1` | Autologon: diagnóstico, habilitar, desabilitar e editar; senha protegida por segredo LSA |
+| Inventário de hardware e software | `scripts/inventario-hardware-software.ps1` | Inventário completo de hardware/software; HTML, TXT, JSON e PDF |
+| Analisar espaço em disco | `scripts/analisar-espaco-disco.ps1` | Top pastas/arquivos por tamanho e estimativa de limpeza (somente leitura) |
+| Gerenciar drivers | `scripts/gerenciar-drivers.ps1` | Backup e restauração de drivers OEM via pnputil |
+| Gerenciar inicialização | `scripts/gerenciar-inicializacao.ps1` | Itens de inicialização e serviços (Registro, pasta Startup, tarefas) |
+| Configurar idioma e região | `scripts/configurar-idioma-regional.ps1` | Padroniza idioma, locale, teclado e fuso para pt-BR |
+| Remover perfis inativos | `scripts/remover-perfis-inativos.ps1` | Lista e remove perfis de usuário inativos/órfãos (com -DryRun) |
 
 ## Fora da superfície oficial
 
-Ferramentas ainda não promovidas ficam fora deste catálogo operacional e seguem em
-`experimental/` até passarem para a superfície oficial.
+Os scripts operacionais já foram promovidos para `scripts/`. A pasta `experimental/`
+mantém apenas o registro de scripts ainda não validados operacionalmente
+(`experimental/nao-validado/`) e serve de espaço para material futuro ainda não pronto.
 
 ## Módulos PowerShell
 
@@ -68,6 +75,7 @@ Ferramentas ainda não promovidas ficam fora deste catálogo operacional e segue
 | `WbaToolkit.Startup` | 7 | Gerenciamento de itens de inicialização do Windows |
 | `WbaToolkit.Maintenance` | 13 | Manutenção avançada: limpeza, WinSxS, sistema de arquivos e preparação de imagem |
 | `WbaToolkit.Identity` | 5 | Identidade e acesso local: gerenciamento do logon automático (autologon) com senha em segredo LSA |
+| `WbaToolkit.Inventory` | 1 | Inventário: mapa de cobertura e lacunas do inventário do equipamento |
 
 ## Geração de documentação HTML local
 

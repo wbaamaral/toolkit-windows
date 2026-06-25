@@ -93,10 +93,10 @@ Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1 -Force
 ### Inventário de hardware e software
 
 ```powershell
-.\scripts\Inventario-Hardware-Software.ps1
-.\scripts\Inventario-Hardware-Software.ps1 -NaoPDF
-.\scripts\Inventario-Hardware-Software.ps1 -GerarResumoHardwareDrivers
-.\scripts\Inventario-Hardware-Software.ps1 -SomenteHardwareDrivers
+.\scripts\inventario-hardware-software.ps1
+.\scripts\inventario-hardware-software.ps1 -NaoPDF
+.\scripts\inventario-hardware-software.ps1 -GerarResumoHardwareDrivers
+.\scripts\inventario-hardware-software.ps1 -SomenteHardwareDrivers
 ```
 
 ### Limpeza do Windows
@@ -153,6 +153,46 @@ Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1 -Force
 ```
 
 A senha é guardada como segredo LSA, nunca em texto claro no registro.
+
+### Gerenciar inicialização
+
+```powershell
+.\scripts\gerenciar-inicializacao.ps1
+.\scripts\gerenciar-inicializacao.ps1 -Modo Assistido
+.\scripts\gerenciar-inicializacao.ps1 -Modo Assistido -DryRun
+```
+
+### Gerenciar drivers (backup/restauração)
+
+```powershell
+.\scripts\gerenciar-drivers.ps1 -Modo Backup -DryRun
+.\scripts\gerenciar-drivers.ps1 -Modo Backup
+.\scripts\gerenciar-drivers.ps1 -Modo Restore -GerarHtml
+```
+
+### Configurar idioma e região (pt-BR)
+
+```powershell
+.\scripts\configurar-idioma-regional.ps1 -ListTimeZones
+.\scripts\configurar-idioma-regional.ps1
+.\scripts\configurar-idioma-regional.ps1 -Silent -NoReboot -TimeZone "E. South America Standard Time"
+```
+
+### Analisar espaço em disco (somente leitura)
+
+```powershell
+.\scripts\analisar-espaco-disco.ps1
+.\scripts\analisar-espaco-disco.ps1 -Drive C -MaxDepth 3
+.\scripts\analisar-espaco-disco.ps1 -Drive C -NaoPDF
+```
+
+### Remover perfis inativos
+
+```powershell
+.\scripts\remover-perfis-inativos.ps1 -DryRun
+.\scripts\remover-perfis-inativos.ps1
+.\scripts\remover-perfis-inativos.ps1 -Silent -InactiveDays 180
+```
 
 ---
 

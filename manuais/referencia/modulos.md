@@ -156,3 +156,13 @@ Localização: `modules/WbaToolkit.Identity/WbaToolkit.Identity.psm1`
 | `Disable-Autologon` | Desabilita o autologon e limpa o segredo LSA |
 | `Set-Autologon` | Edita usuário/domínio/senha/AutoLogonCount sem alternar o estado |
 | `Invoke-AutologonManager` | Gerenciador interativo (habilitar/desabilitar/editar) |
+
+## WbaToolkit.Inventory
+
+Apoio ao inventário do equipamento: mapa de cobertura e lacunas do que é coletado.
+
+Localização: `modules/WbaToolkit.Inventory/WbaToolkit.Inventory.psm1`
+
+| Função | Descrição |
+|---|---|
+| `Get-InventoryCoverageMap` | Retorna o mapa do escopo coberto e as lacunas do inventário |
