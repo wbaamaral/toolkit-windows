@@ -2,7 +2,7 @@
 title: "Manual do Operador - WBA Windows Toolkit"
 author: "WBA Windows Toolkit"
 lang: "pt-BR"
-date: "2026-06-14"
+date: "2026-06-27"
 ---
 
 # Manual do Operador - WBA Windows Toolkit
