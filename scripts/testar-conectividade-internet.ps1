@@ -71,7 +71,7 @@ function Show-Help {
 
 if ($Help) { Show-Help; exit 0 }
 
-$repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$repoRoot = Split-Path -Parent $PSScriptRoot
 $modulePath = Join-Path $repoRoot 'modules/WbaToolkit.Networking/WbaToolkit.Networking.psd1'
 Import-Module $modulePath -Force -ErrorAction Stop
 
