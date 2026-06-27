@@ -1,6 +1,6 @@
-# WBA Windows Toolkit — v2.0.0
+# WBA Windows Toolkit — v2.0.1
 
-> **v2.0.0** · PowerShell 5.1 · Windows 10 / Server 2016+
+> **v2.0.1** · PowerShell 5.1 · Windows 10 / Server 2016+
 
 ---
 
@@ -8,12 +8,12 @@
 
 | Módulo | Versão | Funções | Descrição |
 |---|---|---|---|
-| `WbaToolkit.Core` | 2.0.0 | 25 | Funções base: saída padronizada, logging, sessão, relatórios, utilitários e documentação HTML |
-| `WbaToolkit.Networking` | 2.0.0 | 16 | Diagnóstico de conectividade TCP/UDP/ICMP/DNS, wizard e exportação de relatórios |
-| `WbaToolkit.Startup` | 2.0.0 | 7 | Gerenciamento de itens de inicialização do Windows |
-| `WbaToolkit.Maintenance` | 2.0.0 | 13 | Manutenção avançada: limpeza, WinSxS, sistema de arquivos e preparação de imagem (sysprep) |
-| `WbaToolkit.Identity` | 2.0.0 | 5 | Identidade e acesso local: logon automático (autologon) com senha protegida por segredo LSA |
-| `WbaToolkit.Inventory` | 2.0.0 | 1 | Mapa de cobertura para o inventário de hardware/software |
+| `WbaToolkit.Core` | 2.0.1 | 25 | Funções base: saída padronizada, logging, sessão, relatórios, utilitários e documentação HTML |
+| `WbaToolkit.Networking` | 2.0.1 | 16 | Diagnóstico de conectividade TCP/UDP/ICMP/DNS, wizard e exportação de relatórios |
+| `WbaToolkit.Startup` | 2.0.1 | 7 | Gerenciamento de itens de inicialização do Windows |
+| `WbaToolkit.Maintenance` | 2.0.1 | 13 | Manutenção avançada: limpeza, WinSxS, sistema de arquivos e preparação de imagem (sysprep) |
+| `WbaToolkit.Identity` | 2.0.1 | 5 | Identidade e acesso local: logon automático (autologon) com senha protegida por segredo LSA |
+| `WbaToolkit.Inventory` | 2.0.1 | 1 | Mapa de cobertura para o inventário de hardware/software |
 | **Total** | | **67** | |
 
 ---
@@ -68,6 +68,35 @@
 ---
 
 ## O que mudou nesta versão
+
+### v2.0.1 — Ajuda inline padronizada e correções de relatórios
+
+> Versão PATCH. Padroniza a ajuda inline (`-Help`) em todos os scripts e corrige bugs
+> descobertos em uso pós-v2.0.0, sem alterar o comportamento das funções dos módulos.
+
+**Adicionado:**
+
+| Artefato | Descrição |
+|---|---|
+| `-Help` em todos os scripts | Ajuda inline em português nos 17 scripts: uso, uma linha por parâmetro e exemplos; encerra antes de qualquer verificação de elevação (ADR 0021) |
+
+**Corrigido:**
+
+| Componente | Correção |
+|---|---|
+| `gerenciar-drivers.ps1` | Relatório HTML voltava com "Error formatting a string": o `-f` era passado direto como argumento de `.AppendLine(...)` (vírgulas viravam separadores de argumento); agrupado entre parênteses |
+| `inventario-hardware-software.ps1` | Mesmo problema na tabela Markdown (`-f` dentro de `.Add(...)`); agrupado entre parênteses |
+| `testar-conectividade-internet.ps1` | Raiz do repositório era resolvida dois níveis acima (resquício do layout antigo), quebrando o `Import-Module` do Networking; ajustado para um nível (ADR 0022) |
+| `inventario` e `diagnosticar-ad-cliente` | `#Requires -RunAsAdministrator` exigia elevação até para `-Help`; verificação de admin movida para após o despacho do `-Help` |
+| `WbaToolkit.Inventory.psd1` | Regravado com BOM UTF-8 (ADR 0007) |
+
+**Alterado:**
+
+| Componente | Alteração |
+|---|---|
+| Todos os módulos | Alinhados para `ModuleVersion 2.0.1` |
+
+---
 
 ### v2.0.0 — Linha canônica única, autologon e Sysprep BCK-022
 
@@ -124,18 +153,6 @@
 | `scripts/` | Promoção do MVP para camada oficial do operador (limpar, diagnosticar, preparar imagem, atualizar etc.) |
 | `updates/upgrade-windows.ps1` | Reescrito com backend resolvido (Auto/WinGet/Chocolatey/All), detecção de reboot e códigos de saída padronizados (BCK-018) |
 | `tools/release-check.sh` | Pré-voo anti-LFS que bloqueia ponteiros de texto antes de tag/publicação |
-
----
-
-### v1.3.0 — Validação operacional, hardening de segurança e laboratório AD
-
-| Componente | Mudança |
-|---|---|
-| `Invoke-Safe` | Detecção de falha de comando nativo (código morto eliminado) |
-| `Remove-SafePath` | Whitelist de raízes, anti path-traversal, `-WhatIf` real |
-| `WbaToolkit.Startup` | Preservação de tipo nativo do registro; `-WhatIf` real |
-| `tests/lab-ad/` | Provisionamento de laboratório AD (DC + cliente) para validação em domínio real |
-| 45 arquivos `.ps1` | UTF-8 com BOM restaurado (ADR 0007) |
 
 ---
 

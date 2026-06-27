@@ -1,5 +1,5 @@
 ﻿@{
-    ModuleVersion     = '2.0.0'
+    ModuleVersion     = '2.0.1'
     GUID              = 'd3f1a8b2-6c4e-4a91-b7d0-2e9f5a1c8b34'
     Author            = 'wbaamaral'
     CompanyName       = 'WBA'
@@ -8,7 +8,7 @@
     PowerShellVersion = '5.1'
     RootModule        = 'WbaToolkit.Identity.psm1'
     RequiredModules   = @(
-        @{ ModuleName = 'WbaToolkit.Core'; ModuleVersion = '2.0.0' }
+        @{ ModuleName = 'WbaToolkit.Core'; ModuleVersion = '2.0.1' }
     )
     FunctionsToExport = @(
         'Get-AutologonStatus'

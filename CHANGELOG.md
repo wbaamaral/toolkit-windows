@@ -2,6 +2,25 @@
 
 ## [Não lançado]
 
+## [v2.0.1] — 2026-06-26
+
+> Versão PATCH. Correções de bugs descobertos em uso pós-v2.0.0 e padronização da ajuda
+> inline (`-Help`) em todos os scripts oficiais (ADR 0021), sem mudança de comportamento
+> nas funções dos módulos.
+
+### Adicionado
+- Parâmetro `-Help` padronizado em **todos os 17 scripts** operacionais: ajuda inline em português, uma linha por parâmetro e exemplos de uso; encerra antes de qualquer verificação de elevação (ADR 0021)
+
+### Corrigido
+- `scripts/gerenciar-drivers.ps1`: relatório HTML voltava com "Error formatting a string" — o operador `-f` era passado diretamente como argumento de método (`.AppendLine(...)`), fazendo as vírgulas separarem argumentos do método; agrupado entre parênteses
+- `scripts/inventario-hardware-software.ps1`: mesmo problema na tabela Markdown (`-f` dentro de `.Add(...)`); agrupado entre parênteses
+- `scripts/testar-conectividade-internet.ps1`: resolução da raiz do repositório subia dois níveis (resquício do layout antigo), apontando para fora do projeto e quebrando o `Import-Module` do WbaToolkit.Networking; ajustado para um nível (layout `scripts/`, ADR 0022)
+- `scripts/inventario-hardware-software.ps1` e `scripts/diagnosticar-ad-cliente.ps1`: `#Requires -RunAsAdministrator` forçava elevação até para `-Help`; a exigência de administrador passou a ser verificada após o despacho do `-Help`, permitindo consultar a ajuda sem privilégios (ADR 0021)
+- `modules/WbaToolkit.Inventory/WbaToolkit.Inventory.psd1`: arquivo regravado com BOM UTF-8 (ADR 0007)
+
+### Alterado
+- Todos os módulos alinhados para **ModuleVersion 2.0.1** (regra de alinhamento do processo de release)
+
 ## [v2.0.0] — 2026-06-25
 
 > Versão MAJOR. Unifica as duas linhas de desenvolvimento (GitHub e Codeberg, que haviam

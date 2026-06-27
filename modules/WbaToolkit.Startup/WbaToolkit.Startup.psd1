@@ -1,5 +1,5 @@
 ﻿@{
-    ModuleVersion     = '2.0.0'
+    ModuleVersion     = '2.0.1'
     GUID              = 'c7e4a221-9b3f-4d2e-8f10-5a6b7c8d9e0f'
     Author            = 'wbaamaral'
     CompanyName       = 'WBA'
@@ -8,7 +8,7 @@
     PowerShellVersion = '5.1'
     RootModule        = 'WbaToolkit.Startup.psm1'
     RequiredModules   = @(
-        @{ ModuleName = 'WbaToolkit.Core'; ModuleVersion = '2.0.0' }
+        @{ ModuleName = 'WbaToolkit.Core'; ModuleVersion = '2.0.1' }
     )
     FunctionsToExport = @(
         'Get-StartupItem'
