@@ -1,5 +1,4 @@
 ﻿#Requires -Version 5.1
-#Requires -RunAsAdministrator
 
 <#
 .SYNOPSIS
@@ -140,7 +139,7 @@ $OutputEncoding           = [System.Text.Encoding]::UTF8
 $PSDefaultParameterValues['Out-File:Encoding']    = 'utf8'
 $PSDefaultParameterValues['Set-Content:Encoding'] = 'utf8'
 $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
-chcp 65001 | Out-Null
+try { chcp 65001 | Out-Null } catch { }
 
 $ScriptName = if ($MyInvocation.MyCommand.Name) {
     $MyInvocation.MyCommand.Name
@@ -819,6 +818,20 @@ function Export-HardwareDriverSummary {
 # Preparacao de paths
 # ---------------------------------------------------------------------------
 if ($Help) { Show-Help; exit 0 }
+
+if (-not (Test-IsAdministrator)) {
+    Write-Warn 'Privilegio de Administrador necessario. Solicitando elevacao...'
+    $relaunchArgs = foreach ($kv in $PSBoundParameters.GetEnumerator()) {
+        if ($kv.Value -is [switch]) {
+            if ($kv.Value.IsPresent) { "-$($kv.Key)" }
+        } else {
+            "-$($kv.Key)"; "$($kv.Value)"
+        }
+    }
+    $allArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"") + $relaunchArgs
+    Start-Process powershell.exe -ArgumentList $allArgs -Verb RunAs
+    exit
+}
 
 $Timestamp = Get-Date -Format 'yyyy-MM-dd_HHmmss'
 $DataHora  = Get-Date -Format 'dd/MM/yyyy HH:mm:ss'
