@@ -23,6 +23,9 @@
 .PARAMETER Path
     Raiz de relatorios/backup. Quando omitido, usa configuracao do toolkit ou C:\WBA\Relatorios.
 
+.PARAMETER Help
+    Exibe a ajuda resumida do script e encerra.
+
 .EXAMPLE
     .\gerenciar-drivers.ps1
 
@@ -49,7 +52,9 @@ param(
     [switch]$GerarHtml,
 
     [Alias('DiretorioSaida')]
-    [string]$Path
+    [string]$Path,
+
+    [switch]$Help
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -103,6 +108,27 @@ function Write-DrvSection {
     param([Parameter(Mandatory = $true)][string]$Title)
     Write-Section $Title
     Write-DrvLog -Message $Title
+}
+
+function Show-Help {
+    [CmdletBinding()]
+    param()
+    Write-Host ""
+    Write-Host "Backup e Restauracao de Drivers — $script:ScriptVersion" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Uso:  .\$script:ScriptName [opcoes]"
+    Write-Host ""
+    Write-Host "  -Modo <Backup|Restore>  Operacao a executar. Padrao: Backup."
+    Write-Host "  -DryRun            Simula sem executar pnputil; exibe o que seria feito."
+    Write-Host "  -GerarHtml         Gera relatorio HTML alem do TXT."
+    Write-Host "  -DiretorioSaida '<dir>' Raiz de relatorios/backup. Padrao: config do toolkit ou C:\WBA\Relatorios"
+    Write-Host "  -Help              Esta ajuda."
+    Write-Host ""
+    Write-Host "Exemplos:"
+    Write-Host "  .\$script:ScriptName"
+    Write-Host "  .\$script:ScriptName -DryRun"
+    Write-Host "  .\$script:ScriptName -Modo Restore -GerarHtml"
+    Write-Host ""
 }
 
 # ─── enumeracao de drivers (Modo Backup) ─────────────────────────────────────
@@ -737,6 +763,8 @@ $($sb.ToString())
 }
 
 # ─── execucao principal ───────────────────────────────────────────────────────
+
+if ($Help) { Show-Help; exit 0 }
 
 Write-Title "WBA Windows Toolkit - Backup e Restauracao de Drivers $ScriptVersion"
 

@@ -39,6 +39,9 @@
     Raiz de relatorios. Quando omitido, usa a configuracao persistente do toolkit
     ou C:\WBA\Relatorios.
 
+.PARAMETER Help
+    Exibe a ajuda resumida do script e encerra.
+
 .EXAMPLE
     .\gerenciar-login-automatico.ps1
 
@@ -80,7 +83,9 @@ param(
     [switch]$DryRun,
 
     [Alias('DiretorioSaida')]
-    [string]$Path
+    [string]$Path,
+
+    [switch]$Help
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -103,6 +108,32 @@ Import-Module (Join-Path $ToolkitRoot 'modules/WbaToolkit.Identity/WbaToolkit.Id
 # WBA-DOCS: Category=Identidade; Manual=Gerenciamento de login automatico do Windows
 
 $ErrorActionPreference = 'Continue'
+
+function Show-Help {
+    [CmdletBinding()]
+    param()
+    Write-Host ""
+    Write-Host "Gerenciamento de Login Automatico (Autologon) — $script:ScriptVersion" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Uso:  .\$script:ScriptName [opcoes]"
+    Write-Host ""
+    Write-Host "  -Modo <valor>        Diagnostico (padrao, somente leitura) ou Assistido (interativo)."
+    Write-Host "  -Acao <valor>        Uso nao-interativo: Habilitar, Desabilitar ou Editar."
+    Write-Host "  -UserName '<conta>'  Conta alvo (para -Acao Habilitar/Editar)."
+    Write-Host "  -Domain '<dominio>'  Dominio da conta. Padrao: nome da maquina (conta local)."
+    Write-Host "  -AutoLogonCount <n>  Numero de logons automaticos antes do Windows desativar."
+    Write-Host "  -DryRun              Simula operacoes que alterariam o sistema, sem executa-las."
+    Write-Host "  -DiretorioSaida '<dir>' Raiz de relatorios. Padrao: persistente do toolkit ou C:\WBA\Relatorios."
+    Write-Host "  -Help                Esta ajuda."
+    Write-Host ""
+    Write-Host "Exemplos:"
+    Write-Host "  .\$script:ScriptName"
+    Write-Host "  .\$script:ScriptName -Modo Assistido"
+    Write-Host "  .\$script:ScriptName -Acao Habilitar -UserName kiosk -AutoLogonCount 1"
+    Write-Host ""
+}
+
+if ($Help) { Show-Help; exit 0 }
 
 # --- elevacao -----------------------------------------------------------------
 if (-not (Test-IsAdministrator)) {

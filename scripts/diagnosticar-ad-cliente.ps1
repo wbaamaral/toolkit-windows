@@ -39,6 +39,9 @@
 .PARAMETER Path
     Raiz de relatorios. Quando omitido, usa a raiz persistente do toolkit.
 
+.PARAMETER Help
+    Exibe a ajuda resumida do script e encerra.
+
 .EXAMPLE
     .\diagnosticar-ad-cliente.ps1
 
@@ -67,7 +70,9 @@ param(
     [switch]$AbrirRelatorio,
 
     [Alias('DiretorioSaida')]
-    [string]$Path
+    [string]$Path,
+
+    [switch]$Help
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -95,6 +100,32 @@ $script:ComputerName = $env:COMPUTERNAME
 $script:Domain = $DomainFQDN
 $script:NetBIOS = $DomainNetBIOS
 $script:TargetDc = $PreferredDc
+
+function Show-Help {
+    [CmdletBinding()]
+    param()
+    Write-Host ""
+    Write-Host "Diagnóstico de Cliente de Domínio (AD) — $ScriptVersion" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Uso:  .\$ScriptName [opcoes]"
+    Write-Host ""
+    Write-Host "  -Modo '<modo>'         Diagnostico (padrao) ou Assistido (permite reparo guiado)."
+    Write-Host "  -Hora                  Habilita o reparo guiado da hora (modo Assistido)."
+    Write-Host "  -Canal                 Habilita o reparo guiado do canal seguro (modo Assistido)."
+    Write-Host "  -DomainFQDN '<fqdn>'   FQDN do dominio. Padrao: inferido do ambiente."
+    Write-Host "  -DomainNetBIOS '<nb>'  Nome NetBIOS do dominio. Padrao: derivado do FQDN."
+    Write-Host "  -PreferredDc '<dc>'    Controlador de dominio preferencial."
+    Write-Host "  -DnsServers <lista>    Servidores DNS esperados no cliente."
+    Write-Host "  -GerarHtml             Gera tambem o relatorio em HTML."
+    Write-Host "  -AbrirRelatorio        Abre o relatorio HTML ao final."
+    Write-Host "  -DiretorioSaida '<dir>' Raiz de relatorios. Padrao: raiz persistente do toolkit."
+    Write-Host "  -Help                  Esta ajuda."
+    Write-Host ""
+    Write-Host "Exemplos:"
+    Write-Host "  .\$ScriptName"
+    Write-Host "  .\$ScriptName -Modo Assistido -Hora -Canal -DomainFQDN wba.test"
+    Write-Host ""
+}
 
 function Add-AdCheck {
     [CmdletBinding()]
@@ -580,6 +611,8 @@ function Write-AdReport {
         Write-TextFileUtf8 -Path $script:HtmlReportPath -Content $html
     }
 }
+
+if ($Help) { Show-Help; exit 0 }
 
 $script:ReportSession = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'ActiveDirectory'
 $script:TextReportPath = Join-Path $script:ReportSession.Path 'diagnostico-ad-cliente.txt'

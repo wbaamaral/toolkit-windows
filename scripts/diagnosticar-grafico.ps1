@@ -58,6 +58,9 @@
     Raiz de relatorios escolhida pelo usuario. Quando omitido, usa ReportsRoot persistente do toolkit ou
     C:\WBA\Relatorios.
 
+.PARAMETER Help
+    Exibe a ajuda resumida do script e encerra.
+
 .EXAMPLE
     .\diagnosticar-grafico.ps1
 
@@ -102,7 +105,9 @@ param(
     [switch]$AbrirRelatorio,
 
     [Alias('DiretorioSaida')]
-    [string]$Path
+    [string]$Path,
+
+    [switch]$Help
 )
 
 Set-StrictMode -Version 2.0
@@ -140,6 +145,32 @@ if ($Modo -eq 'Assistido') {
     $GerarHtml = $true
     $ExportarEvtx = $true
     $ColetarDxDiag = $true
+}
+
+function Show-Help {
+    [CmdletBinding()]
+    param()
+    Write-Host ""
+    Write-Host "Diagnostico de Driver Grafico — $script:ScriptVersion" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Uso:  .\$script:ScriptName [opcoes]"
+    Write-Host ""
+    Write-Host "  -Modo <Diagnostico|Assistido>  Profundidade. Assistido = + HTML + DXDiag + EVTX. Padrao: Diagnostico."
+    Write-Host "  -Dias <n>          Dias retroativos de eventos (1-90). Padrao: 7."
+    Write-Host "  -MaxEventos <n>    Maximo de eventos lidos por log (100-20000). Padrao: 5000."
+    Write-Host "  -GerarHtml         Gera relatorio HTML alem do TXT e JSON."
+    Write-Host "  -GerarJson         Compatibilidade; o JSON e gerado por padrao."
+    Write-Host "  -ExportarEvtx      Exporta System.evtx e Application.evtx para os logs da sessao."
+    Write-Host "  -ColetarDxDiag     Executa dxdiag /t e salva em logs\dxdiag.txt."
+    Write-Host "  -AbrirRelatorio    Abre o relatorio ao final (HTML se -GerarHtml, senao TXT)."
+    Write-Host "  -DiretorioSaida '<dir>' Raiz de relatorios. Padrao: ReportsRoot persistente ou C:\WBA\Relatorios."
+    Write-Host "  -Help              Esta ajuda."
+    Write-Host ""
+    Write-Host "Exemplos:"
+    Write-Host "  .\$script:ScriptName"
+    Write-Host "  .\$script:ScriptName -Modo Assistido"
+    Write-Host "  .\$script:ScriptName -Dias 14 -ExportarEvtx -ColetarDxDiag -GerarHtml"
+    Write-Host ""
 }
 
 function Get-GfxUtf8BomEncoding {
@@ -1132,6 +1163,8 @@ function Show-GfxConsoleReport {
 # ---------------------------------------------------------------------------
 # Execucao principal
 # ---------------------------------------------------------------------------
+
+if ($Help) { Show-Help; exit 0 }
 
 if (-not (Test-IsAdministrator) -and [string]::IsNullOrWhiteSpace($Path)) {
     $relaunchArgs = foreach ($kv in $PSBoundParameters.GetEnumerator()) {

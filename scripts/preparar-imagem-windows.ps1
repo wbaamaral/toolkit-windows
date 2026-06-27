@@ -32,6 +32,9 @@
     Raiz de relatorios da sessao. Quando omitido, usa a configuracao persistente
     do toolkit ou C:\WBA\Relatorios.
 
+.PARAMETER Help
+    Exibe a ajuda resumida do script e encerra.
+
 .USO
     Simular sem alterar o sistema:
         .\preparar-imagem-windows.ps1 -ApenasDryRun
@@ -53,7 +56,8 @@ param(
     [switch]$ConfirmarSysprep,
     [Alias('DiretorioSaida')]
     [string]$Path,
-    [string[]]$IgnorarBloqueadoresAppx = @()
+    [string[]]$IgnorarBloqueadoresAppx = @(),
+    [switch]$Help
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -145,7 +149,32 @@ function Save-SysprepPreparationReport {
     return $jsonPath
 }
 
+function Show-Help {
+    [CmdletBinding()]
+    param()
+    Write-Host ""
+    Write-Host "Preparacao de Imagem do Windows (Sysprep) — $script:ScriptVersion" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Uso:  .\$script:ScriptName [opcoes]"
+    Write-Host ""
+    Write-Host "  -ApenasDryRun      Simula: nao aplica tweaks nem executa sysprep."
+    Write-Host "  -SemSysprep        Aplica os tweaks do perfil Default sem executar sysprep.exe."
+    Write-Host "  -Confirmar         Confirma a aplicacao dos tweaks (operacao que altera o sistema)."
+    Write-Host "  -ConfirmarSysprep  Confirma a execucao do sysprep /generalize (destrutivo)."
+    Write-Host "  -DiretorioSaida '<dir>' Raiz de relatorios. Padrao: ReportsRoot persistente ou C:\WBA\Relatorios"
+    Write-Host "  -IgnorarBloqueadoresAppx <pkgs> Lista de pacotes Appx a ignorar na pre-verificacao."
+    Write-Host "  -Help              Esta ajuda."
+    Write-Host ""
+    Write-Host "Exemplos:"
+    Write-Host "  .\$script:ScriptName -ApenasDryRun"
+    Write-Host "  .\$script:ScriptName -SemSysprep"
+    Write-Host "  .\$script:ScriptName -Confirmar -ConfirmarSysprep"
+    Write-Host ""
+}
+
 # ─── inicializacao ───────────────────────────────────────────────────────────
+
+if ($Help) { Show-Help; exit 0 }
 
 Write-Title "WBA Windows Toolkit - Preparacao de Imagem Windows $ScriptVersion"
 

@@ -40,6 +40,9 @@
     Raiz de relatorios escolhida pelo usuario. Quando omitido, usa ReportsRoot persistente do
     toolkit ou C:\WBA\Relatorios.
 
+.PARAMETER Help
+    Exibe a ajuda resumida do script e encerra.
+
 .EXAMPLE
     .\diagnosticar-memoria.ps1
 
@@ -77,7 +80,9 @@ param(
     [switch]$AbrirRelatorio,
 
     [Alias('DiretorioSaida')]
-    [string]$Path
+    [string]$Path,
+
+    [switch]$Help
 )
 
 Set-StrictMode -Version 2.0
@@ -114,6 +119,29 @@ $script:MemSession = $null
 # ---------------------------------------------------------------------------
 # Funcoes privadas
 # ---------------------------------------------------------------------------
+
+function Show-Help {
+    [CmdletBinding()]
+    param()
+    Write-Host ""
+    Write-Host "Diagnostico de Memoria — $script:ScriptVersion" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Uso:  .\$script:ScriptName [opcoes]"
+    Write-Host ""
+    Write-Host "  -Top <n>           Quantidade de processos a analisar (1-50). Padrao: 10."
+    Write-Host "  -Metrica <m>       Ordenacao: WorkingSet (padrao), PrivateBytes ou VirtualMemory."
+    Write-Host "  -Todos             Lista todos os processos sem limite. Ignora -Top."
+    Write-Host "  -GerarHtml         Gera relatorio HTML alem do TXT."
+    Write-Host "  -AbrirRelatorio    Abre o relatorio ao final da execucao."
+    Write-Host "  -Path '<dir>'      Raiz de relatorios. Padrao: ReportsRoot persistente ou C:\WBA\Relatorios"
+    Write-Host "  -Help              Esta ajuda."
+    Write-Host ""
+    Write-Host "Exemplos:"
+    Write-Host "  .\$script:ScriptName"
+    Write-Host "  .\$script:ScriptName -Top 20 -Metrica PrivateBytes -GerarHtml -AbrirRelatorio"
+    Write-Host "  .\$script:ScriptName -Todos -GerarHtml -AbrirRelatorio"
+    Write-Host ""
+}
 
 function Initialize-MemSession {
     [CmdletBinding()]
@@ -695,6 +723,8 @@ function Show-MemConsoleReport {
 # ---------------------------------------------------------------------------
 # Execucao principal
 # ---------------------------------------------------------------------------
+
+if ($Help) { Show-Help; exit 0 }
 
 if (-not (Test-IsAdministrator) -and [string]::IsNullOrWhiteSpace($Path)) {
     $relaunchArgs = foreach ($kv in $PSBoundParameters.GetEnumerator()) {

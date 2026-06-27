@@ -45,6 +45,9 @@
     Raiz de relatorios escolhida pelo usuario. Quando omitido, usa ReportsRoot persistente do toolkit ou
     C:\WBA\Relatorios.
 
+.PARAMETER Help
+    Exibe a ajuda resumida do script e encerra.
+
 .USO
     Execucao diagnostica padrao:
         .\diagnosticar-disco-100.ps1
@@ -80,7 +83,9 @@ param(
     [switch]$CriarPontoRestauracao,
 
     [Alias('DiretorioSaida')]
-    [string]$Path
+    [string]$Path,
+
+    [switch]$Help
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -140,6 +145,30 @@ function Initialize-HD100Session {
     $s | Add-Member -MemberType NoteProperty -Name 'ChangesJsonPath'    -Value (Join-Path $s.Path 'alteracoes.json')
     $s | Add-Member -MemberType NoteProperty -Name 'RollbackJsonPath'   -Value (Join-Path $s.Path 'rollback.json')
     return $s
+}
+
+function Show-Help {
+    [CmdletBinding()]
+    param()
+    Write-Host ""
+    Write-Host "Diagnostico de Disco 100% — $script:ScriptVersion" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Uso:  .\$script:ScriptName [opcoes]"
+    Write-Host ""
+    Write-Host "  -Modo <modo>           Diagnostico (padrao), Assistido, Relatorio ou Rollback."
+    Write-Host "  -DryRun                Simula a execucao sem chamar CHKDSK, DISM ou SFC."
+    Write-Host "  -GerarHtml             Gera relatorio HTML alem do TXT e JSON."
+    Write-Host "  -GerarJson             Compatibilidade — o JSON ja e gerado por padrao."
+    Write-Host "  -AgendarChkdsk         No modo Assistido, oferece agendamento de CHKDSK /R."
+    Write-Host "  -CriarPontoRestauracao Reservado ao modo Assistido; exige confirmacao."
+    Write-Host "  -DiretorioSaida '<dir>' Raiz de relatorios. Padrao: ReportsRoot persistente ou C:\WBA\Relatorios"
+    Write-Host "  -Help                  Esta ajuda."
+    Write-Host ""
+    Write-Host "Exemplos:"
+    Write-Host "  .\$script:ScriptName"
+    Write-Host "  .\$script:ScriptName -GerarHtml"
+    Write-Host "  .\$script:ScriptName -Modo Assistido -GerarHtml"
+    Write-Host ""
 }
 
 function Write-HD100Log {
@@ -1831,6 +1860,8 @@ function Invoke-HD100ReportMode {
 
     Write-Host $text
 }
+
+if ($Help) { Show-Help; exit 0 }
 
 if ($Modo -eq 'Relatorio') {
     Invoke-HD100ReportMode

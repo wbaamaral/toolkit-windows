@@ -29,6 +29,9 @@
 .PARAMETER Path
     Diretorio raiz de relatorios. Padrao: configuracao global ou C:\WBA\Relatorios.
 
+.PARAMETER Help
+    Exibe a ajuda resumida do script e encerra.
+
 .EXAMPLE
     .\verificar-atualizacoes-hardware.ps1
 
@@ -55,7 +58,9 @@ param(
     [switch]$AbrirRelatorio,
 
     [Alias('DiretorioSaida')]
-    [string]$Path
+    [string]$Path,
+
+    [switch]$Help
 )
 
 Set-StrictMode -Version 2.0
@@ -351,9 +356,31 @@ $wuRows
 "@
 }
 
+function Show-Help {
+    [CmdletBinding()]
+    param()
+    Write-Host ""
+    Write-Host "Verificacao de Atualizacoes de Hardware (BIOS/Drivers) — $ScriptVersion" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Uso:  .\$ScriptName [opcoes]"
+    Write-Host ""
+    Write-Host "  -GerarHtml         Gera relatorio HTML alem do JSON."
+    Write-Host "  -AbrirRelatorio    Abre o relatorio ao final da execucao."
+    Write-Host "  -DiretorioSaida '<dir>' Raiz de relatorios. Padrao: config global ou C:\WBA\Relatorios"
+    Write-Host "  -Help              Esta ajuda."
+    Write-Host ""
+    Write-Host "Exemplos:"
+    Write-Host "  .\$ScriptName"
+    Write-Host "  .\$ScriptName -GerarHtml -AbrirRelatorio"
+    Write-Host "  .\$ScriptName -GerarHtml -DiretorioSaida D:\Relatorios"
+    Write-Host ""
+}
+
 # ---------------------------------------------------------------------------
 # Execucao principal
 # ---------------------------------------------------------------------------
+
+if ($Help) { Show-Help; exit 0 }
 
 if (-not (Test-IsAdministrator)) {
     $relaunchArgs = foreach ($kv in $PSBoundParameters.GetEnumerator()) {

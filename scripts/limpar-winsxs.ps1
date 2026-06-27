@@ -37,6 +37,9 @@
 .PARAMETER Path
     Diretorio raiz de relatorios. Padrao: configuracao global ou C:\WBA\Relatorios.
 
+.PARAMETER Help
+    Exibe a ajuda resumida do script e encerra.
+
 .EXAMPLE
     .\limpar-winsxs.ps1
 
@@ -66,7 +69,9 @@ param(
     [switch]$GerarHtml,
 
     [Alias('DiretorioSaida')]
-    [string]$Path
+    [string]$Path,
+
+    [switch]$Help
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -89,6 +94,30 @@ Import-Module $MaintenanceModulePath -Force -ErrorAction Stop
 
 $ScriptVersion = 'v1.0'
 $ScriptName    = $MyInvocation.MyCommand.Name
+
+function Show-Help {
+    [CmdletBinding()]
+    param()
+    Write-Host ""
+    Write-Host "Limpeza do Component Store (WinSxS) — $script:ScriptVersion" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Uso:  .\$script:ScriptName [opcoes]"
+    Write-Host ""
+    Write-Host "  -Modo <modo>       Diagnostico (padrao), Limpeza ou Relatorio."
+    Write-Host "  -ResetBase         So em -Modo Limpeza. Ativa /ResetBase (IRREVERSIVEL)."
+    Write-Host "  -DryRun            So em -Modo Limpeza. Simula sem executar."
+    Write-Host "  -GerarHtml         So em -Modo Relatorio. Salva tambem relatorio HTML."
+    Write-Host "  -DiretorioSaida '<dir>' Raiz de relatorios. Padrao: config global ou C:\WBA\Relatorios"
+    Write-Host "  -Help              Esta ajuda."
+    Write-Host ""
+    Write-Host "Exemplos:"
+    Write-Host "  .\$script:ScriptName"
+    Write-Host "  .\$script:ScriptName -Modo Relatorio -GerarHtml"
+    Write-Host "  .\$script:ScriptName -Modo Limpeza -DryRun"
+    Write-Host ""
+}
+
+if ($Help) { Show-Help; exit 0 }
 
 if (-not (Test-IsAdministrator)) {
     $relaunchArgs = foreach ($kv in $PSBoundParameters.GetEnumerator()) {

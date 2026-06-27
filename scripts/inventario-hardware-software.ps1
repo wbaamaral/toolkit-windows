@@ -66,6 +66,9 @@
 .PARAMETER FormatoResumoHardwareDrivers
     Define o formato do resumo enxuto: Txt, Markdown, Json ou Todos.
 
+.PARAMETER Help
+    Exibe a ajuda resumida do script e encerra.
+
 .EXAMPLE
     .\scripts\inventario-hardware-software.ps1
 
@@ -123,7 +126,9 @@ param(
     [switch]$SomenteHardwareDrivers,
 
     [ValidateSet('Txt', 'Markdown', 'Json', 'Todos')]
-    [string]$FormatoResumoHardwareDrivers = 'Todos'
+    [string]$FormatoResumoHardwareDrivers = 'Todos',
+
+    [switch]$Help
 )
 
 Set-StrictMode -Version 2.0
@@ -154,6 +159,32 @@ Import-Module $ToolkitModulePath -Force -ErrorAction Stop
 Import-Module $InventoryModulePath -Force -ErrorAction Stop
 
 # WBA-DOCS: Category=Inventory; Manual=Inventario de hardware software e drivers
+
+# ---------------------------------------------------------------------------
+# Ajuda
+# ---------------------------------------------------------------------------
+
+function Show-Help {
+    [CmdletBinding()]
+    param()
+    Write-Host ""
+    Write-Host "Inventario de Hardware e Software" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Uso:  .\$script:ScriptName [opcoes]"
+    Write-Host ""
+    Write-Host "  -DiretorioSaida '<dir>'        Raiz de relatorios. Padrao: ReportsRoot persistente ou C:\WBA\Relatorios"
+    Write-Host "  -NaoPDF                        Gera apenas HTML sem converter para PDF."
+    Write-Host "  -GerarResumoHardwareDrivers    Gera tambem o resumo enxuto de hardware e drivers ativos."
+    Write-Host "  -SomenteHardwareDrivers        Gera apenas o resumo enxuto (sem HTML/PDF/inventario completo)."
+    Write-Host "  -FormatoResumoHardwareDrivers  Formato do resumo: Txt, Markdown, Json ou Todos (padrao)."
+    Write-Host "  -Help                          Esta ajuda."
+    Write-Host ""
+    Write-Host "Exemplos:"
+    Write-Host "  .\$script:ScriptName"
+    Write-Host "  .\$script:ScriptName -DiretorioSaida `"D:\Relatorios`" -NaoPDF"
+    Write-Host "  .\$script:ScriptName -SomenteHardwareDrivers"
+    Write-Host ""
+}
 
 # ---------------------------------------------------------------------------
 # Helpers visuais
@@ -787,6 +818,8 @@ function Export-HardwareDriverSummary {
 # ---------------------------------------------------------------------------
 # Preparacao de paths
 # ---------------------------------------------------------------------------
+if ($Help) { Show-Help; exit 0 }
+
 $Timestamp = Get-Date -Format 'yyyy-MM-dd_HHmmss'
 $DataHora  = Get-Date -Format 'dd/MM/yyyy HH:mm:ss'
 $DataCurta = Get-Date -Format 'dd/MM/yyyy'

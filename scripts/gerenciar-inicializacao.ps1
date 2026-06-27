@@ -44,6 +44,9 @@
     Raiz de relatorios escolhida pelo usuario. Quando omitido, usa a configuracao
     persistente do toolkit ou C:\WBA\Relatorios. Aceita o alias -DiretorioSaida.
 
+.PARAMETER Help
+    Exibe a ajuda resumida do script e encerra.
+
 .EXAMPLE
     .\gerenciar-inicializacao.ps1
 
@@ -83,7 +86,9 @@ param(
     [switch]$GerarHtml,
 
     [Alias('DiretorioSaida')]
-    [string]$Path
+    [string]$Path,
+
+    [switch]$Help
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -142,6 +147,27 @@ if ($Modo -eq 'Assistido' -and -not (Test-IsAdministrator)) {
 }
 
 # ─── helpers locais ──────────────────────────────────────────────────────────
+
+function Show-Help {
+    [CmdletBinding()]
+    param()
+    Write-Host ""
+    Write-Host "Gerenciamento de Inicializacao do Windows — $script:ScriptVersion" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Uso:  .\$script:ScriptName [opcoes]"
+    Write-Host ""
+    Write-Host "  -Modo <valor>      Diagnostico (padrao, somente leitura) ou Assistido (interativo)."
+    Write-Host "  -DryRun            Simula as operacoes sem efetuar alteracoes no sistema."
+    Write-Host "  -GerarHtml         Reservado para geracao de relatorio HTML alem do TXT e JSON."
+    Write-Host "  -DiretorioSaida '<dir>' Raiz de relatorios. Padrao: ReportsRoot persistente ou C:\WBA\Relatorios"
+    Write-Host "  -Help              Esta ajuda."
+    Write-Host ""
+    Write-Host "Exemplos:"
+    Write-Host "  .\$script:ScriptName"
+    Write-Host "  .\$script:ScriptName -Modo Assistido"
+    Write-Host "  .\$script:ScriptName -Modo Assistido -DryRun"
+    Write-Host ""
+}
 
 function Write-WinStartupLog {
     [CmdletBinding()]
@@ -236,6 +262,8 @@ $changeRows
 }
 
 # ─── execucao principal ───────────────────────────────────────────────────────
+
+if ($Help) { Show-Help; exit 0 }
 
 Write-Title "WBA Windows Toolkit - Gerenciamento de Inicializacao $ScriptVersion"
 
