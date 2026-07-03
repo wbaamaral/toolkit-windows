@@ -86,7 +86,11 @@
     try {
         Write-Host "Executando: Agendando chkdsk $env:SystemDrive /f /r" -ForegroundColor Green
         $output = cmd.exe /c "echo Y | chkdsk $env:SystemDrive /f /r" 2>&1
+        $chkdskExitCode = $LASTEXITCODE
         $output | ForEach-Object { Write-Host "  $_" }
+        if ($chkdskExitCode -ne 0) {
+            throw "chkdsk retornou codigo $chkdskExitCode"
+        }
     }
     catch {
         Write-Host "Falha ao agendar chkdsk: $($_.Exception.Message)" -ForegroundColor Red

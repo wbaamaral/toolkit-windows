@@ -68,6 +68,9 @@
                 try {
                     Write-Host "Executando: Limpar log de eventos '$log'" -ForegroundColor Green
                     wevtutil.exe cl $log 2>&1 | Out-Null
+                    if ($LASTEXITCODE -ne 0) {
+                        throw "wevtutil cl retornou codigo $LASTEXITCODE"
+                    }
                     Write-Host "Log '$log' limpo." -ForegroundColor Green
                 }
                 catch {
@@ -92,7 +95,13 @@
                     $backup = Join-Path $BackupPath "eventos-$log-$ts.evtx"
                     Write-Host "Executando: Exportar erros de '$log' e limpar" -ForegroundColor Green
                     wevtutil.exe epl $log $backup "/q:*[System[Level<=2]]" 2>&1 | Out-Null
+                    if ($LASTEXITCODE -ne 0) {
+                        throw "wevtutil epl retornou codigo $LASTEXITCODE — backup nao foi criado, log '$log' NAO sera limpo"
+                    }
                     wevtutil.exe cl $log 2>&1 | Out-Null
+                    if ($LASTEXITCODE -ne 0) {
+                        throw "wevtutil cl retornou codigo $LASTEXITCODE apos backup em $backup"
+                    }
                     Write-Host "Log '$log' limpo. Backup de erros: $backup" -ForegroundColor Green
                     $cleaned += $log
                 }
