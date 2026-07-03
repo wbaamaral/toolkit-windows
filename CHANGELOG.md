@@ -61,6 +61,13 @@
   vez de `$env:SystemDrive\Users`
 - `scripts/diagnosticar-memoria.ps1`: falha ao listar processos era mascarada como lista vazia
   (0 processos) em vez de propagar o erro
+- `docs/adr/`: ADR local (`0021-ajuda-inline-parametros-portugues.md`) removida do repositório
+  de código — especificações não devem existir dentro de `wba-windows-toolkit`; conteúdo
+  preservado como ADR-0026 em `spec-win-toolkit`
+
+### Alterado
+- `manuais/manual-operador-wba-windows-toolkit.pdf`: corpo do texto passa a usar fonte sem
+  serifa (Libertinus Sans, com fallback para Latin Modern Sans)
 
 ## [v2.0.1] — 2026-06-26
 
@@ -94,7 +101,7 @@
 - `modules/WbaToolkit.Maintenance`: recuperado o **ciclo de remoção de bloqueadores Appx do Sysprep (BCK-022)** — `Get-SysprepAppxProvisioningIssue`, `Test-SysprepEnvironment -AppxPolicy`, reset de `secedit`, limpeza de GPO/AutoLogon e captura de SID; validado em Windows 10/PS 5.1 real
 - `scripts/atualizar-windows.ps1`: spinner animado com cronômetro HH:MM:SS durante as atualizações winget/choco (`Invoke-ProcessWithSpinner`)
 - `scripts/diagnosticar-ad-cliente.ps1`: reparo guiado de hora (time sync) e do canal seguro (secure channel) no diagnóstico de cliente de domínio
-- `modules/WbaToolkit.Core`: `Write-Step` promovido a função pública do Core (marcador textual `[NN%]`, ADR-0026 (spec-win-toolkit)), eliminando cópias locais nos scripts
+- `modules/WbaToolkit.Core`: `Write-Step` promovido a função pública do Core (marcador textual `[NN%]`, ADR-0021 do spec-win-toolkit — "padronizar feedback ao operador"), eliminando cópias locais nos scripts
 
 ### Alterado
 - **Estrutura de scripts unificada**: todos os scripts operacionais migrados para `scripts/` em nomes verbo-objeto kebab-case (ADR 0022) — ex.: `maintenance/Preparar-Imagem-Windows.ps1` → `scripts/preparar-imagem-windows.ps1`, `diagnostics/Diagnostico-Memoria.ps1` → `scripts/diagnosticar-memoria.ps1`. **17 scripts** no total
