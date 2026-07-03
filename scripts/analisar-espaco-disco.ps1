@@ -360,7 +360,7 @@ function Get-WasteEstimates {
 
     foreach ($uc in $userCaches) {
         $sz = [long]0
-        Get-ChildItem "C:\Users" -Directory -Force -ErrorAction SilentlyContinue | ForEach-Object {
+        Get-ChildItem "$env:SystemDrive\Users" -Directory -Force -ErrorAction SilentlyContinue | ForEach-Object {
             $p = Join-Path $_.FullName $uc.SubPath
             if (Test-Path $p) { $sz += FolderSize $p }
         }
@@ -636,12 +636,8 @@ if ($Version) { Write-Info "Versao: $ScriptVersion"; exit 0 }
 
 if (-not (Test-IsAdministrator)) {
     Write-Warn "Privilegio de Administrador recomendado para acessar pastas protegidas. Solicitando elevacao..."
-    $relaunchArgs = foreach ($kv in $PSBoundParameters.GetEnumerator()) {
-        if ($kv.Value -is [switch]) { if ($kv.Value.IsPresent) { "-$($kv.Key)" } }
-        else { "-$($kv.Key)"; "$($kv.Value)" }
-    }
-    $allArgs = @('-NoProfile','-ExecutionPolicy','Bypass','-File',"`"$PSCommandPath`"") + $relaunchArgs
-    Start-Process powershell.exe -ArgumentList $allArgs -Verb RunAs
+    $relaunchCommand = New-ToolkitElevationCommand -ScriptPath $PSCommandPath -BoundParameters $PSBoundParameters
+    Start-Process powershell.exe -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $relaunchCommand) -Verb RunAs
     exit
 }
 

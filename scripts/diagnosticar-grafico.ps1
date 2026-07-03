@@ -804,7 +804,7 @@ function Get-GfxProbableCategory {
     [CmdletBinding()]
     param([Parameter(Mandatory = $true)]$Findings)
 
-    $priority = @('TDR/Display', 'DWM', 'Hardware/WHEA', 'BugCheck', 'DirectX', 'Apps com GPU', 'Driver', 'PnP', 'Energia')
+    $priority = @('TDR/Display', 'TDR', 'GPU', 'DWM', 'Hardware/WHEA', 'BugCheck', 'DirectX', 'Apps com GPU', 'Driver', 'Assinatura', 'PnP', 'Energia')
     foreach ($category in $priority) {
         if (@($Findings | Where-Object { $_.Categoria -eq $category -and $_.Severidade -in @('Critico', 'Alto', 'Medio') }).Count -gt 0) {
             return $category
@@ -1167,17 +1167,8 @@ function Show-GfxConsoleReport {
 if ($Help) { Show-Help; exit 0 }
 
 if (-not (Test-IsAdministrator) -and [string]::IsNullOrWhiteSpace($Path)) {
-    $relaunchArgs = foreach ($kv in $PSBoundParameters.GetEnumerator()) {
-        if ($kv.Value -is [switch]) {
-            if ($kv.Value.IsPresent) { "-$($kv.Key)" }
-        }
-        else {
-            "-$($kv.Key)"
-            "$($kv.Value)"
-        }
-    }
-    $allArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"") + $relaunchArgs
-    Start-Process powershell.exe -ArgumentList $allArgs -Verb RunAs
+    $relaunchCommand = New-ToolkitElevationCommand -ScriptPath $PSCommandPath -BoundParameters $PSBoundParameters
+    Start-Process powershell.exe -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $relaunchCommand) -Verb RunAs
     exit
 }
 

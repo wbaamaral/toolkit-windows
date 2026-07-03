@@ -138,16 +138,8 @@ if ($Help) { Show-Help; exit 0 }
 # --- elevacao -----------------------------------------------------------------
 if (-not (Test-IsAdministrator)) {
     Write-Warn 'Operacao requer privilegios de Administrador. Reabrindo elevado...'
-    $relaunchArgs = foreach ($kv in $PSBoundParameters.GetEnumerator()) {
-        if ($kv.Value -is [switch]) {
-            if ($kv.Value.IsPresent) { "-$($kv.Key)" }
-        }
-        else {
-            "-$($kv.Key)"; "$($kv.Value)"
-        }
-    }
-    $allArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"") + $relaunchArgs
-    Start-Process powershell.exe -ArgumentList $allArgs -Verb RunAs
+    $relaunchCommand = New-ToolkitElevationCommand -ScriptPath $PSCommandPath -BoundParameters $PSBoundParameters
+    Start-Process powershell.exe -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $relaunchCommand) -Verb RunAs
     exit
 }
 
@@ -174,8 +166,8 @@ if ($Acao) {
                 Write-Fail '-UserName e obrigatorio para -Acao Habilitar.'
                 exit 1
             }
-            $pwd = Read-Host 'Senha da conta' -AsSecureString
-            $params = @{ UserName = $UserName; Domain = $Domain; Password = $pwd; DryRun = $DryRun }
+            $securePassword = Read-Host 'Senha da conta' -AsSecureString
+            $params = @{ UserName = $UserName; Domain = $Domain; Password = $securePassword; DryRun = $DryRun }
             if ($PSBoundParameters.ContainsKey('AutoLogonCount')) { $params['AutoLogonCount'] = $AutoLogonCount }
             $sessionLog = @(Enable-Autologon @params)
         }

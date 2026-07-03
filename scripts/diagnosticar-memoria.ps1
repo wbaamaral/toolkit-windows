@@ -243,7 +243,7 @@ function Get-ProcessMemoryData {
     }
     catch {
         Write-MemLog -Level 'ERROR' -Message "Falha ao listar processos: $($_.Exception.Message)"
-        return @()
+        throw
     }
 
     # Coletar Win32_Process de uma so vez para eficiencia
@@ -727,17 +727,8 @@ function Show-MemConsoleReport {
 if ($Help) { Show-Help; exit 0 }
 
 if (-not (Test-IsAdministrator) -and [string]::IsNullOrWhiteSpace($Path)) {
-    $relaunchArgs = foreach ($kv in $PSBoundParameters.GetEnumerator()) {
-        if ($kv.Value -is [switch]) {
-            if ($kv.Value.IsPresent) { "-$($kv.Key)" }
-        }
-        else {
-            "-$($kv.Key)"
-            "$($kv.Value)"
-        }
-    }
-    $allArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"") + $relaunchArgs
-    Start-Process powershell.exe -ArgumentList $allArgs -Verb RunAs
+    $relaunchCommand = New-ToolkitElevationCommand -ScriptPath $PSCommandPath -BoundParameters $PSBoundParameters
+    Start-Process powershell.exe -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $relaunchCommand) -Verb RunAs
     exit
 }
 

@@ -330,6 +330,7 @@ function Test-AdSecureChannel {
                     }
                     $post = Test-ComputerSecureChannel -ErrorAction Stop
                     if ($post) {
+                        Set-AdCheckResult -Category 'Domínio' -Name 'Canal seguro' -Status 'OK' -Detail 'Secure channel íntegro apos reparo.' -Penalty 0
                         Add-AdCheck -Category 'Domínio' -Name 'Reparo do canal seguro' -Status 'OK' -Detail 'Reparo concluído com sucesso.' -Penalty 0
                     }
                     else {
@@ -615,15 +616,8 @@ if ($Help) { Show-Help; exit 0 }
 
 if (-not (Test-IsAdministrator)) {
     Write-Warn 'Privilegio de Administrador necessario. Solicitando elevacao...'
-    $relaunchArgs = foreach ($kv in $PSBoundParameters.GetEnumerator()) {
-        if ($kv.Value -is [switch]) {
-            if ($kv.Value.IsPresent) { "-$($kv.Key)" }
-        } else {
-            "-$($kv.Key)"; "$($kv.Value)"
-        }
-    }
-    $allArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"") + $relaunchArgs
-    Start-Process powershell.exe -ArgumentList $allArgs -Verb RunAs
+    $relaunchCommand = New-ToolkitElevationCommand -ScriptPath $PSCommandPath -BoundParameters $PSBoundParameters
+    Start-Process powershell.exe -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $relaunchCommand) -Verb RunAs
     exit
 }
 

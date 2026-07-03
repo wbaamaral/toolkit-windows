@@ -298,8 +298,6 @@ function Invoke-ProcessWithSpinner {
 }
 
 function Invoke-WinGetUpgrade {
-    [PSCustomObject]@{ Success = $false; Partial = $false; ExitCode = 0; Message = '' }
-
     $result = [PSCustomObject]@{ Success = $false; Partial = $false; ExitCode = 0; Message = '' }
     try {
         $exitCode = Invoke-ProcessWithSpinner -Label 'WinGet: trabalhando...' -FilePath 'winget' `
@@ -929,16 +927,8 @@ if (-not $env:WBA_PESTER_TESTING) {
     }
 
     if (-not (Test-IsAdministrator)) {
-        $relaunchArgs = foreach ($kv in $PSBoundParameters.GetEnumerator()) {
-            if ($kv.Value -is [switch]) {
-                if ($kv.Value.IsPresent) { "-$($kv.Key)" }
-            }
-            else {
-                "-$($kv.Key)"; "$($kv.Value)"
-            }
-        }
-        $allArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$ScriptPath`"") + $relaunchArgs
-        Start-Process powershell.exe -ArgumentList $allArgs -Verb RunAs
+        $relaunchCommand = New-ToolkitElevationCommand -ScriptPath $ScriptPath -BoundParameters $PSBoundParameters
+        Start-Process powershell.exe -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $relaunchCommand) -Verb RunAs
         exit
     }
 

@@ -836,6 +836,12 @@ function Register-HD100ChkdskRepair {
     Write-Warn 'O CHKDSK /R pode exigir reinicializacao e pode demorar varias horas.'
     Write-Warn 'Em discos com defeito, o processo pode ficar parado em uma porcentagem por bastante tempo.'
     Write-Warn 'Faca backup antes de continuar.'
+
+    if ($DryRun) {
+        Write-HD100Log -Message 'DRY-RUN: agendamento de CHKDSK /R simulado (nenhum comando executado).'
+        return [pscustomobject]@{ Scheduled = $false; Reason = 'DryRun.' }
+    }
+
     $confirmation = Read-Host 'Para agendar, DIGITE: AGENDAR CHKDSK'
 
     if ($confirmation -ne 'AGENDAR CHKDSK') {
@@ -1068,7 +1074,7 @@ function Get-HD100BankPlugins {
     [CmdletBinding()]
     param()
 
-    $patterns = @('Warsaw', 'Topaz', 'GBPlugin', 'GAS Tecnologia', 'core.exe', 'Diebold', 'Guardiao', 'Guardião')
+    $patterns = @('Warsaw', 'Topaz', 'GBPlugin', 'GAS Tecnologia', 'core', 'Diebold', 'Guardiao', 'Guardião')
     $processes = @(Get-Process -ErrorAction SilentlyContinue | Where-Object {
         $name = $_.Name
         $patterns | Where-Object { $name -match [regex]::Escape($_) }
@@ -1873,17 +1879,8 @@ if (-not (Test-HD100Windows)) {
 }
 
 if (-not (Test-IsAdministrator)) {
-    $relaunchArgs = foreach ($kv in $PSBoundParameters.GetEnumerator()) {
-        if ($kv.Value -is [switch]) {
-            if ($kv.Value.IsPresent) { "-$($kv.Key)" }
-        }
-        else {
-            "-$($kv.Key)"
-            "$($kv.Value)"
-        }
-    }
-    $allArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"") + $relaunchArgs
-    Start-Process powershell.exe -ArgumentList $allArgs -Verb RunAs
+    $relaunchCommand = New-ToolkitElevationCommand -ScriptPath $PSCommandPath -BoundParameters $PSBoundParameters
+    Start-Process powershell.exe -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $relaunchCommand) -Verb RunAs
     exit
 }
 
