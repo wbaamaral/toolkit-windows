@@ -37,6 +37,7 @@ Localização: `modules/WbaToolkit.Core/WbaToolkit.Core.psm1`
 | `Invoke-Safe` | Executa bloco com tratamento de erro padronizado |
 | `Invoke-ExternalCommand` | Executa comando externo com captura de saída |
 | `Get-CimInstanceSafe` | Consulta CIM com fallback seguro |
+| `New-ToolkitElevationCommand` | Monta a linha de comando de relançamento elevado preservando arrays e valores com espaço |
 
 ### Sessão e logging
 

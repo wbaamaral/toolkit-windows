@@ -34,5 +34,6 @@ Export-ModuleMember -Function @(
     'Get-ToolkitReportsRoot',
     'Initialize-ToolkitReportSession',
     'Export-ToolkitFunctionDocs',
-    'Export-ToolkitDocumentation'
+    'Export-ToolkitDocumentation',
+    'New-ToolkitElevationCommand'
 )
