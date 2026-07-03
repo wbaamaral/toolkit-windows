@@ -649,14 +649,18 @@ else {
 
 Write-Section 'Relatorio da sessao'
 
+# Usa a validacao pos-remocao de bloqueadores Appx quando ela existir (sysprep foi tentado);
+# caso contrario cai no scan inicial ($ambiente) para nao referenciar variavel inexistente.
+$ambienteFinal = if ($validacaoSysprep) { $validacaoSysprep } else { $ambiente }
+
 $jsonPath = Save-SysprepPreparationReport `
     -Session             $script:Session `
-    -Ambiente            $ambiente `
+    -Ambiente            $ambienteFinal `
     -Resultados          $resultados `
     -SysprepEstado       $sysprepEstado `
     -SysprepExecutado    $sysprepExecutado `
     -SysprepExitCode     $sysprepExitCode `
-    -SysprepBloqueadores @($ambiente.SysprepBlockers) `
+    -SysprepBloqueadores @($ambienteFinal.SysprepBlockers) `
     -MachineSid          $machineSid
 
 Write-SysprepLog -Message 'Sessao encerrada.'
