@@ -43,7 +43,7 @@
 \renewcommand{\headrulewidth}{0.4pt}
 \renewcommand{\footrulewidth}{0pt}
 
-% Fonte monoespaçada para blocos de código
+% Fonte monoespaçada para blocos de código e fonte principal sem serifa
 % fontspec já foi carregado pelo template Pandoc neste ponto
 \AtBeginDocument{%
   \IfFontExistsTF{Libertinus Mono}{%
@@ -51,4 +51,12 @@
   }{%
     \setmonofont{Latin Modern Mono}[Scale=0.9]%
   }%
+  \IfFontExistsTF{Libertinus Sans}{%
+    \setsansfont{Libertinus Sans}%
+  }{%
+    \setsansfont{Latin Modern Sans}%
+  }%
+  % Corpo do texto sem serifa: \sfdefault agora aponta para uma fonte sans real
+  \renewcommand{\familydefault}{\sfdefault}%
+  \normalfont%
 }
