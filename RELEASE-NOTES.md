@@ -1,6 +1,6 @@
-# WBA Windows Toolkit — v2.0.1
+# WBA Windows Toolkit — v2.0.2
 
-> **v2.0.1** · PowerShell 5.1 · Windows 10 / Server 2016+
+> **v2.0.2** · PowerShell 5.1 · Windows 10 / Server 2016+
 
 ---
 
@@ -8,13 +8,13 @@
 
 | Módulo | Versão | Funções | Descrição |
 |---|---|---|---|
-| `WbaToolkit.Core` | 2.0.1 | 25 | Funções base: saída padronizada, logging, sessão, relatórios, utilitários e documentação HTML |
-| `WbaToolkit.Networking` | 2.0.1 | 16 | Diagnóstico de conectividade TCP/UDP/ICMP/DNS, wizard e exportação de relatórios |
-| `WbaToolkit.Startup` | 2.0.1 | 7 | Gerenciamento de itens de inicialização do Windows |
-| `WbaToolkit.Maintenance` | 2.0.1 | 13 | Manutenção avançada: limpeza, WinSxS, sistema de arquivos e preparação de imagem (sysprep) |
-| `WbaToolkit.Identity` | 2.0.1 | 5 | Identidade e acesso local: logon automático (autologon) com senha protegida por segredo LSA |
-| `WbaToolkit.Inventory` | 2.0.1 | 1 | Mapa de cobertura para o inventário de hardware/software |
-| **Total** | | **67** | |
+| `WbaToolkit.Core` | 2.0.2 | 26 | Funções base: saída padronizada, logging, sessão, relatórios, utilitários e documentação HTML |
+| `WbaToolkit.Networking` | 2.0.2 | 16 | Diagnóstico de conectividade TCP/UDP/ICMP/DNS, wizard e exportação de relatórios |
+| `WbaToolkit.Startup` | 2.0.2 | 7 | Gerenciamento de itens de inicialização do Windows |
+| `WbaToolkit.Maintenance` | 2.0.2 | 13 | Manutenção avançada: limpeza, WinSxS, sistema de arquivos e preparação de imagem (sysprep) |
+| `WbaToolkit.Identity` | 2.0.2 | 5 | Identidade e acesso local: logon automático (autologon) com senha protegida por segredo LSA |
+| `WbaToolkit.Inventory` | 2.0.2 | 1 | Mapa de cobertura para o inventário de hardware/software |
+| **Total** | | **68** | |
 
 ---
 
@@ -68,6 +68,38 @@
 ---
 
 ## O que mudou nesta versão
+
+### v2.0.2 — Revisão de código completa: relançamento elevado, segurança do autologon e robustez
+
+> Versão PATCH. Revisão de código dos 6 módulos e 17 scripts (análise estática + revisão
+> manual). Corrige um bug sistêmico de quoting no relançamento elevado, um gate de segurança
+> fail-open no autologon e bugs de robustez pontuais. Sem mudança de comportamento esperado
+> para o operador em uso normal.
+
+**Adicionado:**
+
+| Artefato | Descrição |
+|---|---|
+| `New-ToolkitElevationCommand` (Core) | Monta a linha de comando de relançamento elevado via `-Command`, preservando arrays e valores com espaço |
+
+**Corrigido:**
+
+| Componente | Correção |
+|---|---|
+| 14 scripts operacionais | Relançamento elevado via `-File` colapsava parâmetros array (`-Drive C,D`) e valores com espaço num único argumento; migrados para `New-ToolkitElevationCommand` |
+| `Test-PrivilegedAccount` (Identity) | Falha na consulta CIM abria o gate de segurança do autologon sem confirmação (fail-open); agora falha fechado |
+| `Enable-Autologon` / `Set-Autologon` (Identity) | Contas de domínio nunca exigiam confirmação de risco; adicionado aviso explícito |
+| `gerenciar-login-automatico.ps1` / `Invoke-AutologonManager` | Senha sobrescrevia a variável automática `$PWD`; renomeada para `$securePassword` |
+| `Get-ConnectivitySummary` (Networking) | Contadores retornavam `$null` em vez de `0` em PS 5.1 quando nenhum resultado tinha a classificação |
+| `Invoke-ExternalCommand` (Core) | Resolução de comando não restringia a `-CommandType Application` |
+| `Invoke-EventLogMaintenance` / `Invoke-FilesystemCheck` (Maintenance) | Códigos de saída de `wevtutil`/`chkdsk` não verificados antes de reportar sucesso |
+| `atualizar-windows.ps1` | `Invoke-WinGetUpgrade` retornava array de 2 objetos por linha órfã, reportando falha total mesmo com sucesso |
+| `diagnosticar-ad-cliente.ps1` | Reparo do canal seguro não atualizava o check original (estado crítico persistia após reparo) |
+| `diagnosticar-grafico.ps1` | Categorias `GPU`, `Assinatura` e `TDR` não reconhecidas em `Get-GfxProbableCategory` |
+| `diagnosticar-disco-100.ps1` | `Register-HD100ChkdskRepair` ignorava `-DryRun`; `Get-HD100BankPlugins` nunca detectava o plugin bancário |
+| `preparar-imagem-windows.ps1` | Relatório final usava scan anterior à remoção de bloqueadores Appx |
+| `analisar-espaco-disco.ps1` | Cache de navegador varria `C:\Users` fixo em vez de `$env:SystemDrive\Users` |
+| `diagnosticar-memoria.ps1` | Falha ao listar processos mascarada como lista vazia |
 
 ### v2.0.1 — Ajuda inline padronizada e correções de relatórios
 

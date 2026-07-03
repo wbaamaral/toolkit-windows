@@ -2,6 +2,66 @@
 
 ## [Não lançado]
 
+## [v2.0.2] — 2026-07-03
+
+> Versão PATCH. Revisão de código completa (análise estática com PSScriptAnalyzer + revisão
+> manual dirigida por agentes) sobre todos os módulos e scripts operacionais. Corrige bugs de
+> robustez, um gate de segurança fail-open e um bug sistêmico de quoting no relançamento elevado.
+> Sem mudança de comportamento esperado para o operador em uso normal.
+
+### Adicionado
+- `modules/WbaToolkit.Core`: `New-ToolkitElevationCommand` — monta a linha de comando de
+  relançamento elevado via `-Command` (em vez de `-File`), preservando parâmetros com espaços,
+  aspas e arrays (`[string[]]`) intactos no processo elevado
+
+### Corrigido
+- **Bug sistêmico de quoting no relançamento elevado** (14 scripts: `analisar-espaco-disco`,
+  `atualizar-windows`, `configurar-idioma-regional`, `diagnosticar-ad-cliente`,
+  `diagnosticar-disco-100`, `diagnosticar-grafico`, `diagnosticar-memoria`,
+  `gerenciar-inicializacao`, `gerenciar-login-automatico`, `inventario-hardware-software`,
+  `limpar-windows`, `limpar-winsxs`, `remover-perfis-inativos`, `verificar-atualizacoes-hardware`):
+  parâmetros array (ex.: `-Drive C,D`) e valores com espaço eram colapsados num único argumento
+  ao relançar elevado via `-File`, silenciosamente quebrando a seleção de múltiplos discos e
+  caminhos com espaço; todos migrados para `New-ToolkitElevationCommand`
+- `modules/WbaToolkit.Identity/Private/Test-PrivilegedAccount.ps1`: falha na consulta CIM
+  (WMI degradado) fazia o gate de segurança do autologon abrir sem confirmação (fail-open);
+  agora falha fechado (trata como privilegiada) e avisa o operador
+- `modules/WbaToolkit.Identity/Public/Enable-Autologon.ps1` e `Set-Autologon.ps1`: contas de
+  **domínio** nunca exigiam confirmação de risco (a verificação local de privilégio não se
+  aplica a elas); adicionado aviso e confirmação explícita também para contas de domínio
+- `scripts/gerenciar-login-automatico.ps1` e `modules/WbaToolkit.Identity/Public/Invoke-AutologonManager.ps1`:
+  senha lida via `Read-Host -AsSecureString` sobrescrevia a variável automática `$PWD`
+  (diretório atual); renomeada para `$securePassword`
+- `modules/WbaToolkit.Networking/Private/Get-ConnectivitySummary.ps1`: contadores de resumo
+  (`Success`, `Failed`, `Warning`, etc.) retornavam `$null` em vez de `0` quando nenhum
+  resultado tinha aquela classificação, em Windows PowerShell 5.1 — linhas em branco no
+  relatório e lógica condicional afetada
+- `modules/WbaToolkit.Core/Public/Invoke-ExternalCommand.ps1`: resolução do comando não
+  restringia a `-CommandType Application`, podendo executar um alias/função com o mesmo nome
+  em vez do executável nativo (ex.: `sc` como alias de `Set-Content` em PS 5.1 Desktop)
+- `modules/WbaToolkit.Maintenance/Public/Invoke-EventLogMaintenance.ps1`: modo `ErrorOnly` não
+  verificava o código de saída do `wevtutil epl` (backup) antes de limpar o log — falha
+  silenciosa no backup não impedia a limpeza, perdendo os eventos de erro
+- `modules/WbaToolkit.Maintenance/Public/Invoke-FilesystemCheck.ps1`: agendamento de `chkdsk`
+  reportava sucesso ao operador mesmo quando o comando falhava (código de saída não verificado)
+- `scripts/atualizar-windows.ps1`: linha órfã em `Invoke-WinGetUpgrade` fazia a função retornar
+  um array de 2 objetos em vez de um `PSCustomObject`, reportando "Falha total" mesmo com
+  upgrade WinGet 100% bem-sucedido
+- `scripts/diagnosticar-ad-cliente.ps1`: reparo do canal seguro (secure channel) não atualizava
+  o resultado do check original — `Get-AdHealthSummary` continuava calculando estado crítico
+  após reparo bem-sucedido, e o modo assistido pedia a senha e repetia o reparo duas vezes
+- `scripts/diagnosticar-grafico.ps1`: `Get-GfxProbableCategory` não reconhecia os rótulos de
+  categoria `GPU`, `Assinatura` e `TDR`, retornando "Inconclusivo" nos achados mais críticos
+- `scripts/diagnosticar-disco-100.ps1`: `Register-HD100ChkdskRepair` não respeitava `-DryRun`
+  (sempre pedia confirmação real); `Get-HD100BankPlugins` comparava `'core.exe'` contra
+  `Get-Process.Name` (que nunca inclui extensão), nunca detectando o plugin bancário
+- `scripts/preparar-imagem-windows.ps1`: relatório final de sucesso usava o scan de ambiente
+  anterior à remoção de bloqueadores Appx, listando bloqueadores já removidos como presentes
+- `scripts/analisar-espaco-disco.ps1`: varredura de cache de navegador fixa em `C:\Users` em
+  vez de `$env:SystemDrive\Users`
+- `scripts/diagnosticar-memoria.ps1`: falha ao listar processos era mascarada como lista vazia
+  (0 processos) em vez de propagar o erro
+
 ## [v2.0.1] — 2026-06-26
 
 > Versão PATCH. Correções de bugs descobertos em uso pós-v2.0.0 e padronização da ajuda
