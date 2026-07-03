@@ -67,6 +67,17 @@
     $moduleDocs = [System.Collections.ArrayList]::new()
     $scriptDocs = [System.Collections.ArrayList]::new()
 
+    # Garante que os modulos do toolkit sejam resolviveis por nome durante o Import-Module,
+    # permitindo que o RequiredModules dos manifestos (ex.: WbaToolkit.Core) seja satisfeito
+    # mesmo que a dependencia ainda nao esteja carregada na sessao.
+    $modulesRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+    if ($modulesRoot -and (Test-Path -LiteralPath $modulesRoot)) {
+        $psModulePathEntries = $env:PSModulePath -split [System.IO.Path]::PathSeparator
+        if ($modulesRoot -notin $psModulePathEntries) {
+            $env:PSModulePath = $modulesRoot + [System.IO.Path]::PathSeparator + $env:PSModulePath
+        }
+    }
+
     foreach ($path in $ModulePath) {
         $resolvedPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($path)
 
@@ -190,7 +201,7 @@ $examples
 
         $moduleSlug = New-StaticDocsSlug -Name $module.Name
         $moduleFile = "$moduleSlug.html"
-        $modulePath = Join-Path $moduleOutputPath $moduleFile
+        $modulePagePath = Join-Path $moduleOutputPath $moduleFile
         $moduleCards = @($functionLinks | ForEach-Object {
             @"
 <div class="card">
@@ -208,7 +219,7 @@ $moduleCards
 "@
 
         $moduleHtml = ConvertTo-StaticDocsHtml -Title $module.Name -Body $moduleBody -RelativePrefix '../'
-        Write-TextFileUtf8 -Path $modulePath -Content $moduleHtml
+        Write-TextFileUtf8 -Path $modulePagePath -Content $moduleHtml
 
         $null = $moduleDocs.Add([pscustomobject]@{
             Name = $module.Name
