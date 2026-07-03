@@ -64,8 +64,8 @@
             'H' {
                 $user = Read-UserInput -Question 'Usuario'
                 $dom  = Read-UserInput -Question 'Dominio' -DefaultValue $env:COMPUTERNAME
-                $pwd  = Read-Host 'Senha' -AsSecureString
-                $params = @{ UserName = $user; Domain = $dom; Password = $pwd; DryRun = $DryRun }
+                $securePassword = Read-Host 'Senha' -AsSecureString
+                $params = @{ UserName = $user; Domain = $dom; Password = $securePassword; DryRun = $DryRun }
                 if (Read-YesNo -Question 'Limitar numero de logons automaticos?' -DefaultYes $false) {
                     $cntText = Read-UserInput -Question 'AutoLogonCount'
                     $cnt = 0

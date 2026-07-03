@@ -64,7 +64,16 @@
     $effectiveDomain = if ($PSBoundParameters.ContainsKey('Domain')) { $Domain } else { $status.Domain }
     if ([string]::IsNullOrWhiteSpace($effectiveDomain)) { $effectiveDomain = $env:COMPUTERNAME }
 
-    if (-not $Force -and $PSBoundParameters.ContainsKey('UserName') -and
+    $isLocalAccount = [string]::IsNullOrWhiteSpace($effectiveDomain) -or $effectiveDomain -ieq $env:COMPUTERNAME -or $effectiveDomain -eq '.'
+    if (-not $Force -and $PSBoundParameters.ContainsKey('UserName') -and -not $isLocalAccount) {
+        Write-Warn "A conta '$effectiveDomain\$effectiveUser' e de dominio; nao e possivel verificar localmente se e privilegiada (ex.: Domain Admin)."
+        $confirm = Read-UserInput -Question "Digite CONFIRMAR para prosseguir mesmo assim"
+        if ($confirm -ne 'CONFIRMAR') {
+            Write-Info 'Operacao cancelada (conta de dominio nao confirmada).'
+            return [pscustomobject]@{ Name = $effectiveUser; Action = 'Set'; Success = $false; Message = 'Cancelada: conta de dominio nao confirmada.' }
+        }
+    }
+    elseif (-not $Force -and $PSBoundParameters.ContainsKey('UserName') -and
         (Test-PrivilegedAccount -UserName $effectiveUser -Domain $effectiveDomain)) {
         Write-Warn "A conta '$effectiveDomain\$effectiveUser' e privilegiada (Administradores)."
         $confirm = Read-UserInput -Question "Digite CONFIRMAR para prosseguir mesmo assim"

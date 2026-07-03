@@ -11,7 +11,9 @@
 
         A verificacao e feita apenas para contas locais (Domain vazio ou igual ao
         nome da maquina). Para contas de dominio, retorna $false (indeterminado local)
-        e cabe ao chamador alertar separadamente.
+        e cabe ao chamador alertar separadamente. Se a consulta CIM falhar (WMI
+        degradado, timeout, ACL), retorna $true (fail-closed) para nao deixar passar
+        sem confirmacao uma conta que pode ser privilegiada.
 
     .PARAMETER UserName
         Nome da conta (sem dominio).
@@ -51,7 +53,8 @@
         }
     }
     catch {
-        Write-Verbose "Test-PrivilegedAccount: $($_.Exception.Message)"
+        Write-Warning "Test-PrivilegedAccount: nao foi possivel verificar associacao ao grupo Administradores ($($_.Exception.Message)). Tratando '$UserName' como privilegiada por seguranca (fail-closed)."
+        return $true
     }
 
     return $false

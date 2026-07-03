@@ -80,8 +80,19 @@
         return [pscustomobject]@{ Name = $UserName; Action = 'Enable'; Success = $false; Message = 'Senha ausente.' }
     }
 
+    # Salvaguarda: conta de dominio nao pode ser verificada localmente; exige confirmacao explicita.
+    $isLocalAccount = [string]::IsNullOrWhiteSpace($Domain) -or $Domain -ieq $env:COMPUTERNAME -or $Domain -eq '.'
+    if (-not $Force -and -not $isLocalAccount) {
+        Write-Warn "A conta '$Domain\$UserName' e de dominio; nao e possivel verificar localmente se e privilegiada (ex.: Domain Admin)."
+        Write-Warn 'Autologon de conta de dominio potencialmente administrativa e de ALTO RISCO de seguranca fisica.'
+        $confirm = Read-UserInput -Question "Digite CONFIRMAR para prosseguir mesmo assim"
+        if ($confirm -ne 'CONFIRMAR') {
+            Write-Info 'Operacao cancelada (conta de dominio nao confirmada).'
+            return [pscustomobject]@{ Name = $UserName; Action = 'Enable'; Success = $false; Message = 'Cancelada: conta de dominio nao confirmada.' }
+        }
+    }
     # Salvaguarda: conta privilegiada exige confirmacao explicita.
-    if (-not $Force -and (Test-PrivilegedAccount -UserName $UserName -Domain $Domain)) {
+    elseif (-not $Force -and (Test-PrivilegedAccount -UserName $UserName -Domain $Domain)) {
         Write-Warn "A conta '$Domain\$UserName' e privilegiada (Administradores)."
         Write-Warn 'Autologon de conta administradora e de ALTO RISCO de seguranca fisica.'
         $confirm = Read-UserInput -Question "Digite CONFIRMAR para prosseguir mesmo assim"
