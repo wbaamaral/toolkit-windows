@@ -35,7 +35,7 @@ modules/
 - Funções públicas devem expor ajuda inline consistente com `Get-Help`, incluindo suporte a `-Help` quando a função for invocada diretamente por script de operação.
 - Funções públicas podem declarar metadados do manual HTML com uma linha interna no formato
   `# WBA-DOCS: Category=Networking; Related=Show-ConnectivityReport; Manual=Descrição curta`.
-- A decisão formal dessa padronização está na ADR 0021.
+- A decisão formal dessa padronização está na ADR-0026 (repositório `spec-win-toolkit`).
 
 ## `WbaToolkit.Core`
 

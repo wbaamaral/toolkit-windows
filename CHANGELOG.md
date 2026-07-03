@@ -65,17 +65,17 @@
 ## [v2.0.1] — 2026-06-26
 
 > Versão PATCH. Correções de bugs descobertos em uso pós-v2.0.0 e padronização da ajuda
-> inline (`-Help`) em todos os scripts oficiais (ADR 0021), sem mudança de comportamento
+> inline (`-Help`) em todos os scripts oficiais (ADR-0026 (spec-win-toolkit)), sem mudança de comportamento
 > nas funções dos módulos.
 
 ### Adicionado
-- Parâmetro `-Help` padronizado em **todos os 17 scripts** operacionais: ajuda inline em português, uma linha por parâmetro e exemplos de uso; encerra antes de qualquer verificação de elevação (ADR 0021)
+- Parâmetro `-Help` padronizado em **todos os 17 scripts** operacionais: ajuda inline em português, uma linha por parâmetro e exemplos de uso; encerra antes de qualquer verificação de elevação (ADR-0026 (spec-win-toolkit))
 
 ### Corrigido
 - `scripts/gerenciar-drivers.ps1`: relatório HTML voltava com "Error formatting a string" — o operador `-f` era passado diretamente como argumento de método (`.AppendLine(...)`), fazendo as vírgulas separarem argumentos do método; agrupado entre parênteses
 - `scripts/inventario-hardware-software.ps1`: mesmo problema na tabela Markdown (`-f` dentro de `.Add(...)`); agrupado entre parênteses
 - `scripts/testar-conectividade-internet.ps1`: resolução da raiz do repositório subia dois níveis (resquício do layout antigo), apontando para fora do projeto e quebrando o `Import-Module` do WbaToolkit.Networking; ajustado para um nível (layout `scripts/`, ADR 0022)
-- `scripts/inventario-hardware-software.ps1` e `scripts/diagnosticar-ad-cliente.ps1`: `#Requires -RunAsAdministrator` forçava elevação até para `-Help`; a exigência de administrador passou a ser verificada após o despacho do `-Help`, permitindo consultar a ajuda sem privilégios (ADR 0021)
+- `scripts/inventario-hardware-software.ps1` e `scripts/diagnosticar-ad-cliente.ps1`: `#Requires -RunAsAdministrator` forçava elevação até para `-Help`; a exigência de administrador passou a ser verificada após o despacho do `-Help`, permitindo consultar a ajuda sem privilégios (ADR-0026 (spec-win-toolkit))
 - `modules/WbaToolkit.Inventory/WbaToolkit.Inventory.psd1`: arquivo regravado com BOM UTF-8 (ADR 0007)
 
 ### Alterado
@@ -94,7 +94,7 @@
 - `modules/WbaToolkit.Maintenance`: recuperado o **ciclo de remoção de bloqueadores Appx do Sysprep (BCK-022)** — `Get-SysprepAppxProvisioningIssue`, `Test-SysprepEnvironment -AppxPolicy`, reset de `secedit`, limpeza de GPO/AutoLogon e captura de SID; validado em Windows 10/PS 5.1 real
 - `scripts/atualizar-windows.ps1`: spinner animado com cronômetro HH:MM:SS durante as atualizações winget/choco (`Invoke-ProcessWithSpinner`)
 - `scripts/diagnosticar-ad-cliente.ps1`: reparo guiado de hora (time sync) e do canal seguro (secure channel) no diagnóstico de cliente de domínio
-- `modules/WbaToolkit.Core`: `Write-Step` promovido a função pública do Core (marcador textual `[NN%]`, ADR 0021), eliminando cópias locais nos scripts
+- `modules/WbaToolkit.Core`: `Write-Step` promovido a função pública do Core (marcador textual `[NN%]`, ADR-0026 (spec-win-toolkit)), eliminando cópias locais nos scripts
 
 ### Alterado
 - **Estrutura de scripts unificada**: todos os scripts operacionais migrados para `scripts/` em nomes verbo-objeto kebab-case (ADR 0022) — ex.: `maintenance/Preparar-Imagem-Windows.ps1` → `scripts/preparar-imagem-windows.ps1`, `diagnostics/Diagnostico-Memoria.ps1` → `scripts/diagnosticar-memoria.ps1`. **17 scripts** no total

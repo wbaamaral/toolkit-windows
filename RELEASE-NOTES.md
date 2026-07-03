@@ -110,7 +110,7 @@
 
 | Artefato | Descrição |
 |---|---|
-| `-Help` em todos os scripts | Ajuda inline em português nos 17 scripts: uso, uma linha por parâmetro e exemplos; encerra antes de qualquer verificação de elevação (ADR 0021) |
+| `-Help` em todos os scripts | Ajuda inline em português nos 17 scripts: uso, uma linha por parâmetro e exemplos; encerra antes de qualquer verificação de elevação (ADR-0026 (spec-win-toolkit)) |
 
 **Corrigido:**
 
@@ -146,7 +146,7 @@
 | Sysprep BCK-022 | Ciclo de remoção de bloqueadores Appx recuperado: `Get-SysprepAppxProvisioningIssue`, `Test-SysprepEnvironment -AppxPolicy`, reset de `secedit`, limpeza de GPO/AutoLogon e captura de SID |
 | `scripts\atualizar-windows.ps1` | Spinner animado com cronômetro HH:MM:SS nas atualizações winget/choco |
 | `scripts\diagnosticar-ad-cliente.ps1` | Reparo guiado de hora e do canal seguro no diagnóstico de cliente de domínio |
-| `WbaToolkit.Core` | `Write-Step` promovido a função pública (marcador `[NN%]`, ADR 0021) |
+| `WbaToolkit.Core` | `Write-Step` promovido a função pública (marcador `[NN%]`, ADR-0026 (spec-win-toolkit)) |
 
 **Alterado:**
 

@@ -11,7 +11,7 @@ palavra-chave e reduz a necessidade de navegar pela árvore do projeto.
 - [Catálogo de documentação](manuais/README.md)
 - [Guia rápido do operador](manuais/operador/README.md)
 - [Manual completo do operador](manuais/manual-operador-wba-windows-toolkit.md)
-- [ADRs do projeto](docs/adr/README.md)
+- ADRs e demais especificações do projeto: repositório `spec-win-toolkit` (`spec/adr/`)
 
 ## O que existe no projeto
 
@@ -20,7 +20,6 @@ palavra-chave e reduz a necessidade de navegar pela árvore do projeto.
 | `scripts/` | Rotas oficiais do operador e da linha atual |
 | `modules/` | Funções reutilizáveis compartilhadas pelos scripts |
 | `manuais/` | Guias do operador e documentação de referência |
-| `docs/adr/` | Decisões arquiteturais e operacionais |
 | `experimental/` | Ferramentas históricas ou ainda não promovidas |
 | `tests/` | Testes unitários e laboratórios de validação |
 | `tools/` | Apoio a releases e conferência do repositório |
@@ -50,7 +49,7 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
 - Consulte `manuais/` quando precisar de roteiro ou referência.
 - Mantenha `experimental/` fora do fluxo principal do operador.
 - `-Help` e `Comment-Based Help` são obrigatórios na superfície oficial para consulta inline e documentação gerada.
-- ADR 0021 registra o motivo dessa padronização.
+- ADR-0026 (repositório `spec-win-toolkit`) registra o motivo dessa padronização.
 - Rode os testes em `tests/unit` antes de publicar mudanças.
 
 ## Testes
