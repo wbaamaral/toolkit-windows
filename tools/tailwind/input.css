@@ -1,0 +1,45 @@
+/*
+ * input.css — WBA Windows Toolkit
+ * Fonte do CSS dos relatorios e do portal de documentacao HTML (ADR 0012,
+ * spec-win-toolkit). Compilado via tools/build-report-css.sh e embutido nos
+ * geradores de HTML em modules/WbaToolkit.Core e modules/WbaToolkit.Networking.
+ */
+@import "tailwindcss";
+@source "../../modules/**/*.ps1";
+
+/*
+ * Estilo base para elementos de conteudo (titulos, tabelas, links, blocos de
+ * codigo) que aparecem em HTML gerado por outras funcoes sem atributo class
+ * (ex.: secoes do manual, catalogo Markdown convertido por
+ * ConvertFrom-MarkdownSimple). Espelha as regras de seletor bare que o CSS
+ * artesanal anterior usava, para nao exigir classe em toda ocorrencia de
+ * h2/h3/table/etc. Resolvido em tempo de build; classes utilitarias
+ * explicitas em elementos especificos continuam tendo precedencia.
+ */
+@layer base {
+  h1 { @apply m-0 font-bold text-slate-900 text-[28px]; }
+  h2 { @apply mt-7 font-bold text-slate-900 text-lg border-b border-gray-300 pb-2; }
+  h3 { @apply mt-[18px] font-bold text-slate-900 text-[15px]; }
+  p, li { @apply leading-normal; }
+  a { @apply text-blue-600 no-underline; }
+  a:hover { @apply underline; }
+  code, pre { @apply bg-slate-50 border border-gray-300 rounded-md; }
+  code { @apply px-1 py-0.5; }
+  pre { @apply p-3 overflow-x-auto whitespace-pre-wrap; }
+  table { @apply w-full border-collapse mt-3; }
+  th, td { @apply border-b border-gray-300 px-2 py-2 text-left align-top; }
+  th { @apply bg-gray-50 text-gray-500 text-xs uppercase; }
+  nav { @apply mt-2 text-gray-500 text-sm; }
+  footer { @apply mt-7 pt-3 border-t border-gray-300 text-gray-500 text-xs text-center; }
+}
+
+/* Regras sem equivalente em utilitario, mantidas como CSS puro */
+@page {
+  size: A4;
+  margin: 15mm;
+}
+
+* {
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}

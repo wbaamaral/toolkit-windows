@@ -20,7 +20,7 @@
         $Value,
 
         [Parameter(Mandatory = $false)]
-        [string]$Default = '<span class="muted">&mdash;</span>'
+        [string]$Default = '<span class="text-gray-500">&mdash;</span>'
     )
 
     if ($null -eq $Value -or [string]::IsNullOrWhiteSpace("$Value")) {

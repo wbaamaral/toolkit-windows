@@ -169,7 +169,7 @@ $metadataRows
             }) -join "`r`n"
 
             $body = @"
-<p class="muted">Modulo: <a href="../modules/$([string](New-StaticDocsSlug -Name $module.Name)).html">$([string](ConvertTo-HtmlSafe -Value $module.Name))</a></p>
+<p class="text-gray-500">Modulo: <a href="../modules/$([string](New-StaticDocsSlug -Name $module.Name)).html">$([string](ConvertTo-HtmlSafe -Value $module.Name))</a></p>
 $metadataSection
 <h2>Sinopse</h2>
 <p>$([string](ConvertTo-HtmlSafe -Value $help.Synopsis))</p>
@@ -204,16 +204,16 @@ $examples
         $modulePagePath = Join-Path $moduleOutputPath $moduleFile
         $moduleCards = @($functionLinks | ForEach-Object {
             @"
-<div class="card">
-  <div class="card-title"><a href="../$($_.RelativePath)">$([string](ConvertTo-HtmlSafe -Value $_.Name))</a></div>
-  <div class="card-meta">$([string](ConvertTo-HtmlSafe -Value $_.Synopsis))</div>
+<div class="border border-gray-300 rounded-lg p-4 bg-white break-inside-avoid">
+  <div class="font-bold text-slate-900"><a href="../$($_.RelativePath)">$([string](ConvertTo-HtmlSafe -Value $_.Name))</a></div>
+  <div class="mt-1.5 text-gray-500 text-[13px]">$([string](ConvertTo-HtmlSafe -Value $_.Synopsis))</div>
 </div>
 "@
         }) -join "`r`n"
 
         $moduleBody = @"
-<p class="muted">Funcoes exportadas: $($commands.Count)</p>
-<div class="grid">
+<p class="text-gray-500">Funcoes exportadas: $($commands.Count)</p>
+<div class="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-3">
 $moduleCards
 </div>
 "@
@@ -292,8 +292,8 @@ $moduleCards
         }) -join "`r`n"
 
         $scriptBody = @"
-<p class="muted">Script operacional: <code>$([string](ConvertTo-HtmlSafe -Value $scriptName))</code></p>
-<p class="muted">Categoria: $([string](ConvertTo-HtmlSafe -Value $scriptCategory))</p>
+<p class="text-gray-500">Script operacional: <code>$([string](ConvertTo-HtmlSafe -Value $scriptName))</code></p>
+<p class="text-gray-500">Categoria: $([string](ConvertTo-HtmlSafe -Value $scriptCategory))</p>
 <h2>Como executar</h2>
 <pre>.\$([string](ConvertTo-HtmlSafe -Value $scriptName))</pre>
 $scriptSections
@@ -312,9 +312,9 @@ $scriptSections
 
     $indexCards = @($moduleDocs | ForEach-Object {
         @"
-<div class="card">
-  <div class="card-title"><a href="$($_.RelativePath)">$([string](ConvertTo-HtmlSafe -Value $_.Name))</a></div>
-  <div class="card-meta">$($_.FunctionCount) funcoes exportadas</div>
+<div class="border border-gray-300 rounded-lg p-4 bg-white break-inside-avoid">
+  <div class="font-bold text-slate-900"><a href="$($_.RelativePath)">$([string](ConvertTo-HtmlSafe -Value $_.Name))</a></div>
+  <div class="mt-1.5 text-gray-500 text-[13px]">$($_.FunctionCount) funcoes exportadas</div>
 </div>
 "@
     }) -join "`r`n"
@@ -344,9 +344,9 @@ $scriptSections
     }) -join "`r`n"
 
     $indexBody = @"
-<p class="muted">Gerado em $(Get-Date -Format 'dd/MM/yyyy HH:mm:ss'). Abra este arquivo localmente no navegador.</p>
+<p class="text-gray-500">Gerado em $(Get-Date -Format 'dd/MM/yyyy HH:mm:ss'). Abra este arquivo localmente no navegador.</p>
 <h2>Modulos</h2>
-<div class="grid">
+<div class="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-3">
 $indexCards
 </div>
 <h2>Indice de funcoes</h2>
