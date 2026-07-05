@@ -248,6 +248,35 @@ Describe 'WbaToolkit.Maintenance' {
         }
     }
 
+    Context 'Invoke-FilesystemCheck — Action Ask em contexto nao-interativo' {
+        BeforeAll {
+            Mock -CommandName 'Get-FilesystemErrorEvent' -ModuleName 'WbaToolkit.Maintenance' -MockWith {
+                [pscustomobject]@{
+                    TimeCreated  = (Get-Date)
+                    Id           = 7
+                    ProviderName = 'disk'
+                    Message      = 'Falha simulada no sistema de arquivos.'
+                }
+            }
+            Mock -CommandName 'cmd.exe' -ModuleName 'WbaToolkit.Maintenance' -MockWith {
+                $global:LASTEXITCODE = 0
+            }
+            Mock -CommandName 'Write-MaintenanceEvent' -ModuleName 'WbaToolkit.Maintenance' -MockWith { }
+        }
+
+        It 'Nao deve entrar em loop infinito quando Read-Host retorna nulo (contexto nao-interativo)' {
+            Mock -CommandName 'Read-Host' -ModuleName 'WbaToolkit.Maintenance' -MockWith { $null }
+            { Invoke-FilesystemCheck -Action Ask } | Should -Not -Throw
+            Should -Invoke -CommandName 'cmd.exe' -ModuleName 'WbaToolkit.Maintenance' -Times 0 -Exactly
+        }
+
+        It 'Nao deve entrar em loop infinito quando Read-Host retorna string vazia' {
+            Mock -CommandName 'Read-Host' -ModuleName 'WbaToolkit.Maintenance' -MockWith { '' }
+            { Invoke-FilesystemCheck -Action Ask } | Should -Not -Throw
+            Should -Invoke -CommandName 'cmd.exe' -ModuleName 'WbaToolkit.Maintenance' -Times 0 -Exactly
+        }
+    }
+
     # BCK-016: o DISM/chkdsk reais sao mockados (ModuleName) para que a suite valide
     # o contrato sem executar as ferramentas — conclui em segundos, sem prompts nem
     # efeitos no sistema (CI/SSH desassistido).
