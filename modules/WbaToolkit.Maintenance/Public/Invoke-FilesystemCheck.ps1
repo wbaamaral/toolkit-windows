@@ -68,7 +68,10 @@
             Write-Host "  [S] Sim — agendar chkdsk (requer reinicializacao)"
             Write-Host "  [N] Nao — ignorar e continuar" -ForegroundColor Green
             Write-Host ""
-            do { $choice = Read-Host "Escolha [S/N]" } while ($choice -notmatch '^[SsNn]$')
+            $choice = $null
+            try {
+                do { $choice = Read-Host "Escolha [S/N]" } while ((-not [string]::IsNullOrEmpty($choice)) -and ($choice -notmatch '^[SsNn]$'))
+            } catch { $choice = $null }
             $schedule = $choice -match '^[Ss]$'
         }
         'Schedule' { $schedule = $true }
