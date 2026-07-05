@@ -1,6 +1,6 @@
 ﻿@{
     RootModule        = 'WbaToolkit.Core.psm1'
-    ModuleVersion     = '2.0.2'
+    ModuleVersion     = '2.0.3'
     GUID              = '6b7a86d1-0d50-4d3a-88f3-25ad0f0f58bc'
     Author            = 'wbaamaral'
     CompanyName       = 'wbaamaral'

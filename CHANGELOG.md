@@ -2,6 +2,37 @@
 
 ## [Não lançado]
 
+## [v2.0.3] — 2026-07-05
+
+> Versão PATCH. Implementa a ADR-0012 (`spec-win-toolkit`): migra os relatórios HTML e o
+> portal de documentação de CSS artesanal para Tailwind CSS, compilado localmente via
+> Tailwind CLI standalone (sem Node.js como dependência de distribuição — só de build,
+> mesmo papel que pandoc/lualatex já ocupam para o manual PDF). Sem mudança de comportamento
+> funcional; ajuste visual/de manutenibilidade do CSS.
+
+### Adicionado
+- `tools/tailwind/input.css`: fonte do CSS dos relatórios (config CSS-first do Tailwind
+  v4 + `@layer base` para elementos sem classe explícita, ex. conteúdo Markdown convertido)
+- `tools/build-report-css.sh`: compila o CSS via Tailwind CLI standalone e o embute em
+  `ConvertTo-ConnectivityReportHtml.ps1`/`ConvertTo-StaticDocsHtml.ps1` entre marcadores
+  `TAILWIND-CSS:BEGIN`/`END`, com guarda contra caracteres que quebrariam o here-string
+- `tests/unit/WbaToolkit.Networking.Tests.ps1`: teste de sincronia entre as cores usadas
+  nos cards de resumo do relatório de conectividade e o mapeamento de classes Tailwind
+
+### Corrigido
+- `modules/WbaToolkit.Core/Private/New-PortalIndexHtml.ps1`: classe `.card-grid` morta
+  (nunca definida em nenhum `<style>`) fazia o grid de ferramentas do portal nunca aplicar
+  layout; corrigida para uma utility Tailwind real durante a migração
+- `modules/WbaToolkit.Networking/Private/ConvertTo-ConnectivityReportHtml.ps1`: `bg-white`
+  e a cor de status (`bg-slate-200`/`bg-green-100`/etc.) no mesmo elemento são utilities do
+  mesmo grupo com especificidade igual — o vencedor depende da ordem de declaração no CSS
+  compilado, não da ordem no atributo `class`; `bg-white` removido dos cards de resumo
+  (a cor de status sempre está presente, tornando-o redundante e conflitante)
+
+### Alterado
+- Todos os módulos alinhados para **ModuleVersion 2.0.3** (regra de alinhamento do
+  processo de release)
+
 ## [v2.0.2] — 2026-07-03
 
 > Versão PATCH. Revisão de código completa (análise estática com PSScriptAnalyzer + revisão

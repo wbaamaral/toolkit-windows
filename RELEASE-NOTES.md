@@ -1,6 +1,6 @@
-# WBA Windows Toolkit — v2.0.2
+# WBA Windows Toolkit — v2.0.3
 
-> **v2.0.2** · PowerShell 5.1 · Windows 10 / Server 2016+
+> **v2.0.3** · PowerShell 5.1 · Windows 10 / Server 2016+
 
 ---
 
@@ -8,12 +8,12 @@
 
 | Módulo | Versão | Funções | Descrição |
 |---|---|---|---|
-| `WbaToolkit.Core` | 2.0.2 | 26 | Funções base: saída padronizada, logging, sessão, relatórios, utilitários e documentação HTML |
-| `WbaToolkit.Networking` | 2.0.2 | 16 | Diagnóstico de conectividade TCP/UDP/ICMP/DNS, wizard e exportação de relatórios |
-| `WbaToolkit.Startup` | 2.0.2 | 7 | Gerenciamento de itens de inicialização do Windows |
-| `WbaToolkit.Maintenance` | 2.0.2 | 13 | Manutenção avançada: limpeza, WinSxS, sistema de arquivos e preparação de imagem (sysprep) |
-| `WbaToolkit.Identity` | 2.0.2 | 5 | Identidade e acesso local: logon automático (autologon) com senha protegida por segredo LSA |
-| `WbaToolkit.Inventory` | 2.0.2 | 1 | Mapa de cobertura para o inventário de hardware/software |
+| `WbaToolkit.Core` | 2.0.3 | 26 | Funções base: saída padronizada, logging, sessão, relatórios, utilitários e documentação HTML |
+| `WbaToolkit.Networking` | 2.0.3 | 16 | Diagnóstico de conectividade TCP/UDP/ICMP/DNS, wizard e exportação de relatórios |
+| `WbaToolkit.Startup` | 2.0.3 | 7 | Gerenciamento de itens de inicialização do Windows |
+| `WbaToolkit.Maintenance` | 2.0.3 | 13 | Manutenção avançada: limpeza, WinSxS, sistema de arquivos e preparação de imagem (sysprep) |
+| `WbaToolkit.Identity` | 2.0.3 | 5 | Identidade e acesso local: logon automático (autologon) com senha protegida por segredo LSA |
+| `WbaToolkit.Inventory` | 2.0.3 | 1 | Mapa de cobertura para o inventário de hardware/software |
 | **Total** | | **68** | |
 
 ---
@@ -68,6 +68,33 @@
 ---
 
 ## O que mudou nesta versão
+
+### v2.0.3 — Relatórios HTML migrados para Tailwind CSS local
+
+> Versão PATCH. Implementa a ADR-0012 (`spec-win-toolkit`): CSS artesanal dos relatórios e
+> do portal de documentação substituído por Tailwind CSS, compilado localmente via CLI
+> standalone (sem Node.js na distribuição — só de build, mesmo papel do pandoc/lualatex
+> para o manual PDF). Sem mudança de comportamento funcional.
+
+**Adicionado:**
+
+| Artefato | Descrição |
+|---|---|
+| `tools/tailwind/input.css` | Fonte do CSS dos relatórios (Tailwind v4 CSS-first + `@layer base`) |
+| `tools/build-report-css.sh` | Compila e embute o CSS nos geradores de HTML |
+
+**Corrigido:**
+
+| Componente | Correção |
+|---|---|
+| `New-PortalIndexHtml.ps1` | Classe `.card-grid` morta (nunca definida) — grid do portal nunca aplicava layout |
+| `ConvertTo-ConnectivityReportHtml.ps1` | `bg-white` conflitava com a cor de status nos cards de resumo (utilities de mesmo grupo, especificidade igual) |
+
+**Alterado:**
+
+| Componente | Alteração |
+|---|---|
+| Todos os módulos | Alinhados para `ModuleVersion 2.0.3` |
 
 ### v2.0.2 — Revisão de código completa: relançamento elevado, segurança do autologon e robustez
 
