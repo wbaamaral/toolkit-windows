@@ -17,6 +17,11 @@ BeforeAll {
         'Set-Autologon'
         'Invoke-AutologonManager'
     )
+
+    $script:corePsd1 = Join-Path $script:repoRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
+    Import-Module $script:corePsd1 -Force -ErrorAction Stop
+    Import-Module $script:psd1     -Force -ErrorAction Stop
+    $script:fakePassword = ConvertTo-SecureString 'Teste123!' -AsPlainText -Force
 }
 
 Describe 'WbaToolkit.Identity - estrutura do modulo' {
@@ -78,6 +83,66 @@ Describe 'WbaToolkit.Identity - seguranca da senha (ADR 0005)' {
         $content = Get-Content -LiteralPath $script:scriptPath -Raw
         $content | Should -Not -Match '\[string\]\$Password'
         $content | Should -Match 'AsSecureString'
+    }
+}
+
+Describe 'WbaToolkit.Identity - salvaguardas de confirmacao (DEV-035)' {
+    Context 'Test-PrivilegedAccount - fail-closed quando a consulta CIM falha' {
+        It 'Retorna $true (trata como privilegiada) quando Get-CimInstance lanca excecao' {
+            InModuleScope WbaToolkit.Identity {
+                Mock -CommandName 'Get-CimInstance' -MockWith { throw 'WMI indisponivel (simulado)' }
+                Test-PrivilegedAccount -UserName 'contaqualquer' -Domain $env:COMPUTERNAME | Should -BeTrue
+            }
+        }
+    }
+
+    Context 'Enable-Autologon - conta de dominio exige confirmacao explicita' {
+        It 'Cancela quando a confirmacao nao e CONFIRMAR' {
+            Mock -CommandName 'Read-UserInput' -ModuleName 'WbaToolkit.Identity' -MockWith { 'nao' }
+            $result = Enable-Autologon -UserName 'usuario' -Domain 'OUTRODOMINIO' -Password $script:fakePassword -DryRun
+            $result.Success | Should -BeFalse
+            $result.Message | Should -Match 'Cancelada'
+            Should -Invoke -CommandName 'Read-UserInput' -ModuleName 'WbaToolkit.Identity' -Times 1 -Exactly
+        }
+
+        It 'Prossegue quando a confirmacao e CONFIRMAR' {
+            Mock -CommandName 'Read-UserInput' -ModuleName 'WbaToolkit.Identity' -MockWith { 'CONFIRMAR' }
+            $result = Enable-Autologon -UserName 'usuario' -Domain 'OUTRODOMINIO' -Password $script:fakePassword -DryRun
+            $result.Success | Should -BeTrue
+            Should -Invoke -CommandName 'Read-UserInput' -ModuleName 'WbaToolkit.Identity' -Times 1 -Exactly
+        }
+
+        It 'Nao pede confirmacao para conta local (mesmo nome da maquina)' {
+            Mock -CommandName 'Read-UserInput' -ModuleName 'WbaToolkit.Identity' -MockWith { 'nao' }
+            Mock -CommandName 'Test-PrivilegedAccount' -ModuleName 'WbaToolkit.Identity' -MockWith { $false }
+            $result = Enable-Autologon -UserName 'usuario' -Domain $env:COMPUTERNAME -Password $script:fakePassword -DryRun
+            $result.Success | Should -BeTrue
+            Should -Invoke -CommandName 'Read-UserInput' -ModuleName 'WbaToolkit.Identity' -Times 0 -Exactly
+        }
+
+        It 'Nao pede confirmacao com -Force mesmo para conta de dominio' {
+            Mock -CommandName 'Read-UserInput' -ModuleName 'WbaToolkit.Identity' -MockWith { 'nao' }
+            $result = Enable-Autologon -UserName 'usuario' -Domain 'OUTRODOMINIO' -Password $script:fakePassword -Force -DryRun
+            $result.Success | Should -BeTrue
+            Should -Invoke -CommandName 'Read-UserInput' -ModuleName 'WbaToolkit.Identity' -Times 0 -Exactly
+        }
+    }
+
+    Context 'Set-Autologon - conta de dominio exige confirmacao explicita' {
+        It 'Cancela quando a confirmacao nao e CONFIRMAR' {
+            Mock -CommandName 'Read-UserInput' -ModuleName 'WbaToolkit.Identity' -MockWith { 'nao' }
+            $result = Set-Autologon -UserName 'usuario' -Domain 'OUTRODOMINIO' -DryRun
+            $result.Success | Should -BeFalse
+            $result.Message | Should -Match 'Cancelada'
+            Should -Invoke -CommandName 'Read-UserInput' -ModuleName 'WbaToolkit.Identity' -Times 1 -Exactly
+        }
+
+        It 'Prossegue quando a confirmacao e CONFIRMAR' {
+            Mock -CommandName 'Read-UserInput' -ModuleName 'WbaToolkit.Identity' -MockWith { 'CONFIRMAR' }
+            $result = Set-Autologon -UserName 'usuario' -Domain 'OUTRODOMINIO' -DryRun
+            $result.Success | Should -BeTrue
+            Should -Invoke -CommandName 'Read-UserInput' -ModuleName 'WbaToolkit.Identity' -Times 1 -Exactly
+        }
     }
 }
 
