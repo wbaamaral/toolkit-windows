@@ -50,7 +50,7 @@
         $target = if ($result.Target) { ConvertTo-HtmlSafe -Value $result.Target } else { '&mdash;' }
         $port   = if ($null -ne $result.Port) { [string]$result.Port } else { '&mdash;' }
         $lat    = if ($null -ne $result.LatencyMs) { '{0:N1} ms' -f $result.LatencyMs } else { '&mdash;' }
-        $error  = if ($result.ErrorMessage) { ConvertTo-HtmlSafe -Value $result.ErrorMessage } else { '&mdash;' }
+        $errMsg = if ($result.ErrorMessage) { ConvertTo-HtmlSafe -Value $result.ErrorMessage } else { '&mdash;' }
         $rec    = if ($result.Recommendation) { ConvertTo-HtmlSafe -Value $result.Recommendation } else { '&mdash;' }
 
         @"
@@ -61,7 +61,7 @@
           <td class="border-b border-[#eef2f7] px-2 py-2.5 align-top">$target</td>
           <td class="border-b border-[#eef2f7] px-2 py-2.5 align-top">$port</td>
           <td class="border-b border-[#eef2f7] px-2 py-2.5 align-top">$lat</td>
-          <td class="border-b border-[#eef2f7] px-2 py-2.5 align-top">$error</td>
+          <td class="border-b border-[#eef2f7] px-2 py-2.5 align-top">$errMsg</td>
           <td class="border-b border-[#eef2f7] px-2 py-2.5 align-top">$rec</td>
         </tr>
 "@
