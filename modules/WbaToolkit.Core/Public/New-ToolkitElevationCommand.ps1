@@ -1,4 +1,4 @@
-function New-ToolkitElevationCommand {
+﻿function New-ToolkitElevationCommand {
     <#
     .SYNOPSIS
         Monta a linha de comando PowerShell para relancar um script com elevacao.
