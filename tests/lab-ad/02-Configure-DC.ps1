@@ -13,7 +13,8 @@
     SamAccountName do usuario de teste. Padrao: lab.operador
 
 .PARAMETER TestUserPassword
-    Senha do usuario de teste (texto). Use uma forte; padrao apenas para lab.
+    Senha do usuario de teste (texto). Se omitida, uma senha aleatoria e gerada
+    e exibida no console ao final da execucao.
 
 .EXAMPLE
     .\02-Configure-DC.ps1
@@ -24,12 +25,18 @@ param(
     [string]$DomainName       = 'wba.test',
     [string]$OuName           = 'WBA-Lab',
     [string]$TestUser         = 'lab.operador',
-    [string]$TestUserPassword = 'P@ssw0rd-Lab-2026!'
+    [string]$TestUserPassword = ''
 )
 
 $ErrorActionPreference = 'Stop'
 Import-Module ActiveDirectory
 Import-Module GroupPolicy
+
+if (-not $TestUserPassword) {
+    $charset = (48..57) + (65..90) + (97..122) + (33, 35, 36, 37, 42, 64)
+    $TestUserPassword = -join (1..20 | ForEach-Object { [char](Get-Random -InputObject $charset) })
+    Write-Host "Senha gerada para ${TestUser}: $TestUserPassword" -ForegroundColor Yellow
+}
 
 $domainDn = (Get-ADDomain -Identity $DomainName).DistinguishedName
 $ouDn     = "OU=$OuName,$domainDn"
