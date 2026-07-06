@@ -1,13 +1,20 @@
 ﻿#requires -version 5.1
 
-$ToolkitRoot  = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$CorePath     = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
-$ModulePath   = Join-Path $ToolkitRoot 'modules/WbaToolkit.Maintenance/WbaToolkit.Maintenance.psd1'
-
-Import-Module $CorePath    -Force -ErrorAction Stop
-Import-Module $ModulePath  -Force -ErrorAction Stop
-
 Describe 'WbaToolkit.Maintenance' {
+
+    BeforeAll {
+        # Reimportar aqui (fase de execucao), nao no topo do arquivo (fase de descoberta):
+        # se outro arquivo de teste reimportar WbaToolkit.Core com -Force entre a descoberta
+        # e a execucao (ex.: WbaToolkit.Identity.Tests.ps1), o vinculo RequiredModules deste
+        # modulo com a instancia antiga do Core fica invalido dentro de blocos InModuleScope
+        # (BCK-032). Reimportar por ultimo, logo antes dos testes deste arquivo, garante que
+        # o vinculo aponte para a instancia atual do Core. Caminhos recalculados aqui dentro
+        # (em vez de variavel de topo de arquivo) porque discovery e run sao fases separadas
+        # no Pester v5 e variaveis de topo nem sempre atravessam essa fronteira.
+        $toolkitRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+        Import-Module (Join-Path $toolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1')             -Force -ErrorAction Stop
+        Import-Module (Join-Path $toolkitRoot 'modules/WbaToolkit.Maintenance/WbaToolkit.Maintenance.psd1') -Force -ErrorAction Stop
+    }
 
     Context 'Exportacao do modulo' {
         It 'Deve exportar Get-DefaultUserHivePath' {
