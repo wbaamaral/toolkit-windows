@@ -81,6 +81,8 @@ $ScriptName = if ($MyInvocation.MyCommand.Name) {
 } else {
     Split-Path -Leaf $PSCommandPath
 }
+$ScriptPath = $PSCommandPath
+$ScriptDir  = $PSScriptRoot
 
 $ToolkitRoot = Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1') -Force -ErrorAction Stop

@@ -111,6 +111,8 @@ Import-Module $ToolkitModulePath -Force -ErrorAction Stop
 
 $ScriptVersion = "v1.0"
 $ScriptName    = $MyInvocation.MyCommand.Name
+$ScriptPath    = $PSCommandPath
+$ScriptDir     = $PSScriptRoot
 $ReportSession = $null
 $LogDir        = $null
 $LogFile       = $null

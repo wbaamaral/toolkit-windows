@@ -94,6 +94,8 @@ Import-Module $MaintenanceModulePath -Force -ErrorAction Stop
 
 $ScriptVersion = 'v1.0'
 $ScriptName    = $MyInvocation.MyCommand.Name
+$ScriptPath    = $PSCommandPath
+$ScriptDir     = $PSScriptRoot
 
 function Show-Help {
     [CmdletBinding()]
