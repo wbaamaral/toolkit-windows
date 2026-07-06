@@ -402,10 +402,10 @@ function Remove-Profiles {
 
     foreach ($p in $ToDelete) {
         $label = "$($p.UserName) [$($p.SizeDisplay)]"
-        Write-Host "  Removendo: $label..." -NoNewline -ForegroundColor Yellow
+        Write-Host "  Removendo: $label..." -ForegroundColor Yellow
 
         if ($script:DryRun) {
-            Write-Host " [SIMULACAO — nao removido]" -ForegroundColor Cyan
+            Write-Host "  [SIMULACAO — nao removido]" -ForegroundColor Cyan
             Write-ProfileLog -Message "SIMULACAO: perfil '$($p.UserName)' (SID $($p.SID)) nao removido (DryRun)."
             $results.Add([PSCustomObject]@{ Profile = $p; Success = $true; Error = $null })
             $freedBytes += $p.SizeBytes
@@ -415,13 +415,13 @@ function Remove-Profiles {
         try {
             $wmiObj = Get-CimInstance -ClassName Win32_UserProfile -Filter "SID='$($p.SID)'" -ErrorAction Stop
             Remove-CimInstance -InputObject $wmiObj -ErrorAction Stop
-            Write-Host " [OK]" -ForegroundColor Green
+            Write-Ok "  Removido: $label"
             Write-ProfileLog -Message "Perfil removido: '$($p.UserName)' (SID $($p.SID), $($p.SizeDisplay))."
             $results.Add([PSCustomObject]@{ Profile = $p; Success = $true; Error = $null })
             $freedBytes += $p.SizeBytes
         }
         catch {
-            Write-Host " [FALHOU: $($_.Exception.Message)]" -ForegroundColor Red
+            Write-Fail "  Falha ao remover ${label}: $($_.Exception.Message)"
             Write-ProfileLog -Level 'ERROR' -Message "ERRO ao remover '$($p.UserName)' (SID $($p.SID)): $($_.Exception.Message)"
             $results.Add([PSCustomObject]@{ Profile = $p; Success = $false; Error = $_.Exception.Message })
         }

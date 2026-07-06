@@ -803,7 +803,7 @@ function Invoke-UpgradeMain {
             -NoWindowsUpdate:$NoWindowsUpdate
     }
     catch {
-        Write-Host "[ERRO] $($_.Exception.Message)" -ForegroundColor Red
+        Write-Fail "$($_.Exception.Message)"
         exit 8
     }
 
@@ -836,7 +836,7 @@ function Invoke-UpgradeMain {
         Write-Info "Backend resolvido: $($resolution.Backend) — $($resolution.Reason)"
     }
     catch {
-        Write-Host "[ERRO] $($_.Exception.Message)" -ForegroundColor Red
+        Write-Fail "$($_.Exception.Message)"
         if ($transcriptActive) { Stop-Transcript }
         exit 2
     }
@@ -897,7 +897,7 @@ function Invoke-UpgradeMain {
                     -Cancelled             $false
             }
             catch {
-                Write-Host "[ERRO] $($_.Exception.Message)" -ForegroundColor Red
+                Write-Fail "$($_.Exception.Message)"
                 $summary.ExitCode = 3
             }
         }

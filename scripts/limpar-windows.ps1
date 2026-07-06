@@ -154,6 +154,8 @@ Import-Module $MaintenanceModulePath -Force -ErrorAction Stop
 
 $ScriptVersion = "v1.0"
 $ScriptName    = $MyInvocation.MyCommand.Name
+$ScriptPath    = $PSCommandPath
+$ScriptDir     = $PSScriptRoot
 $ReportSession = $null
 $LogDir = $null
 $LogFile = $null
@@ -220,7 +222,7 @@ function Invoke-DismComponentCleanupStep {
         Write-Host "    DISM: nao foi possivel obter o resultado da limpeza." -ForegroundColor Yellow
     }
     elseif ($dismResult.Success) {
-        Write-Host "    DISM concluido (codigo $($dismResult.ExitCode)). Espaco liberado: $($dismResult.SpaceFreedMB) MB." -ForegroundColor Green
+        Write-Ok "    DISM concluido (codigo $($dismResult.ExitCode)). Espaco liberado: $($dismResult.SpaceFreedMB) MB."
     }
     else {
         Write-Host "    DISM retornou codigo $($dismResult.ExitCode). Verifique o log para detalhes." -ForegroundColor Yellow
@@ -298,8 +300,8 @@ if ($RepararSistema) {
     }
     else {
         Write-Host ""
-        Write-Host "Verificacao de integridade concluida sem reinicializacao." -ForegroundColor Green
-        Write-Host "Log salvo em: $LogFile" -ForegroundColor Green
+        Write-Ok "Verificacao de integridade concluida sem reinicializacao."
+        Write-Ok "Log salvo em: $LogFile"
     }
 
     exit 0
@@ -494,7 +496,7 @@ $DiskAfter | Format-Table -AutoSize
 try {
     $FreedGB = [math]::Round(($DiskAfter.LivreGB - $DiskBefore.LivreGB), 2)
     Write-Host ""
-    Write-Host "Espaço aproximado liberado: $FreedGB GB" -ForegroundColor Green
+    Write-Ok "Espaço aproximado liberado: $FreedGB GB"
 }
 catch {
     Write-Host "Não foi possível calcular o espaço liberado." -ForegroundColor Yellow
@@ -511,6 +513,6 @@ if (-not $NoReboot) {
 }
 else {
     Write-Host ""
-    Write-Host "Limpeza concluída sem reinicialização." -ForegroundColor Green
-    Write-Host "Log salvo em: $LogFile" -ForegroundColor Green
+    Write-Ok "Limpeza concluída sem reinicialização."
+    Write-Ok "Log salvo em: $LogFile"
 }
