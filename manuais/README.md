@@ -10,7 +10,10 @@ manuais/
 ├── operador/                  — guias para operadores de campo
 ├── referencia/                — referência técnica de módulos e funções
 ├── manual-operador-wba-windows-toolkit.md  — manual completo do operador
-└── manual-operador-wba-windows-toolkit.pdf  — PDF do manual completo
+├── manual-operador-wba-windows-toolkit.pdf  — PDF do manual completo
+├── portal.pt-BR.json          — catálogo de ajuda (funções+scripts), gerado por -Mode Help
+├── categorias.pt-BR.json      — categorias do catálogo, gerado por -Mode Help
+└── glossario.pt-BR.md         — glossário do toolkit (editorial; -Mode Help só cria se ausente)
 ```
 
 ## Portal do operador
@@ -70,7 +73,7 @@ mantém apenas o registro de scripts ainda não validados operacionalmente
 
 | Módulo | Funções públicas | Uso |
 |---|---|---|
-| `WbaToolkit.Core` | 24 | Funções base compartilhadas por todos os scripts |
+| `WbaToolkit.Core` | 26 | Funções base compartilhadas por todos os scripts |
 | `WbaToolkit.Networking` | 16 | Diagnóstico de conectividade e relatórios de rede |
 | `WbaToolkit.Startup` | 7 | Gerenciamento de itens de inicialização do Windows |
 | `WbaToolkit.Maintenance` | 13 | Manutenção avançada: limpeza, WinSxS, sistema de arquivos e preparação de imagem |
@@ -90,4 +93,11 @@ Export-ToolkitDocumentation -Mode All -Force
 # Apenas referência técnica CBH:
 Export-ToolkitDocumentation -Mode TechnicalReference -Force
 # Resultado em: .\docs\portal\referencia\index.html
+
+# Apenas portal operacional (index.html e operador.html):
+Export-ToolkitDocumentation -Mode Portal -Force
+
+# Apenas catálogo de ajuda (ADR-0013): regrava portal.pt-BR.json e categorias.pt-BR.json
+# em manuais/; glossario.pt-BR.md só é criado se ainda não existir
+Export-ToolkitDocumentation -Mode Help
 ```

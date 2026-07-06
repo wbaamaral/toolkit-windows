@@ -2,6 +2,24 @@
 
 ## [Não lançado]
 
+### Adicionado
+- `Export-ToolkitDocumentation -Mode Help`: gera `manuais/portal.pt-BR.json` (catálogo de
+  funções e scripts com ajuda curta/longa) e `manuais/categorias.pt-BR.json`; cria
+  `manuais/glossario.pt-BR.md` se ainda não existir (ADR-0013)
+- `tools/lint-check.sh`: roda PSScriptAnalyzer sobre `modules/` e `scripts/`, bloqueando
+  em erros de severidade Error (ADR-0016)
+
+### Corrigido
+- Coluna de erro do relatório HTML de conectividade podia ficar em branco por colisão de
+  `$error` (variável automática do PowerShell) em `ConvertTo-ConnectivityReportHtml.ps1`
+- BOM UTF-8 ausente em `New-ToolkitElevationCommand.ps1` e em dois arquivos de teste com
+  acentuação (ADR-0007)
+
+### Alterado
+- Mensagens de sucesso/falha de `remover-perfis-inativos.ps1`, `limpar-windows.ps1` e
+  `atualizar-windows.ps1` padronizadas com `Write-Ok`/`Write-Fail` em vez de `Write-Host`
+  colorido cru (ADR-0021)
+
 ## [v2.0.3] — 2026-07-05
 
 > Versão PATCH. Implementa a ADR-0012 (`spec-win-toolkit`): migra os relatórios HTML e o
