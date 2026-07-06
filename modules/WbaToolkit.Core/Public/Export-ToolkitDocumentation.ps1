@@ -24,9 +24,11 @@
     Padrão: todos os 13 scripts do toolkit.
 
 .PARAMETER Mode
-    All     — portal + referência técnica (padrão)
+    All     — portal + referência técnica + catálogo de ajuda (padrão)
     Portal  — apenas portal operacional (index.html e operador.html)
     TechnicalReference — apenas referência técnica CBH (chama Export-ToolkitFunctionDocs)
+    Help    — apenas catálogo de ajuda (ADR-0013): portal.pt-BR.json, categorias.pt-BR.json
+              e glossario.pt-BR.md em ManualPath
 
 .PARAMETER IncludeChangelog
     Converte CHANGELOG.md em changelog.html no portal.
@@ -41,6 +43,11 @@
 .EXAMPLE
     Export-ToolkitDocumentation -Mode Portal -OutputPath C:\temp\portal -Force
     Gera apenas o portal operacional.
+
+.EXAMPLE
+    Export-ToolkitDocumentation -Mode Help
+    Regrava apenas portal.pt-BR.json e categorias.pt-BR.json em ManualPath (glossario.pt-BR.md
+    só é criado se ainda não existir).
 #>
     # WBA-DOCS: Category=Documentacao; Related=Export-ToolkitFunctionDocs
     [CmdletBinding()]
@@ -58,19 +65,20 @@
             Get-ChildItem -Path (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'scripts') -Filter '*.ps1' -ErrorAction SilentlyContinue |
                 Sort-Object Name | Select-Object -ExpandProperty FullName
         ),
-        [ValidateSet('All', 'Portal', 'TechnicalReference')]
+        [ValidateSet('All', 'Portal', 'TechnicalReference', 'Help')]
         [string]$Mode = 'All',
         [switch]$IncludeChangelog,
         [switch]$Force
     )
 
-    if ((Test-Path -LiteralPath $OutputPath) -and -not $Force) {
+    if ($Mode -ne 'Help' -and (Test-Path -LiteralPath $OutputPath) -and -not $Force) {
         throw "OutputPath '$OutputPath' já existe. Use -Force para sobrescrever."
     }
 
     $warningCount   = 0
     $portalIndex    = $null
     $technicalIndex = $null
+    $helpCatalog    = $null
     $enc            = [System.Text.UTF8Encoding]::new($true)
 
     if ($Mode -in ('Portal', 'All')) {
@@ -118,12 +126,17 @@
         $technicalIndex = $refResult.Path
     }
 
+    if ($Mode -in ('Help', 'All')) {
+        $helpCatalog = Export-ToolkitHelpCatalog -ModulePath $ModulePath -ScriptPath $ScriptPath -ManualPath $ManualPath
+    }
+
     [pscustomobject]@{
-        Success                = $true
-        Mode                   = $Mode
-        OutputPath             = $OutputPath
-        PortalIndex            = $portalIndex
+        Success                 = $true
+        Mode                    = $Mode
+        OutputPath              = $OutputPath
+        PortalIndex             = $portalIndex
         TechnicalReferenceIndex = $technicalIndex
-        WarningCount           = $warningCount
+        HelpCatalog             = $helpCatalog
+        WarningCount            = $warningCount
     }
 }
