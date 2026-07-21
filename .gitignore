@@ -462,4 +462,3 @@ tmtags
 # ---> TortoiseGit
 # Project-level settings
 /.tgitconfig
-.aider*
