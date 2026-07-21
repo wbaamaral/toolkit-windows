@@ -1,6 +1,3 @@
-.claude/*
-.claude-config/
-CLAUDE.md
 .env
 
 # Artefatos gerados pelo pipeline LaTeX (docs/latex/build/)
