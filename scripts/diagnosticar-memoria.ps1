@@ -111,7 +111,7 @@ $ToolkitRoot       = Split-Path -Parent $PSScriptRoot
 $ToolkitModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
 Import-Module $ToolkitModulePath -Force -ErrorAction Stop
 
-$ScriptVersion     = 'v0.1'
+$ScriptVersion = 'v1.0.0'
 $script:MemSession = $null
 
 # WBA-DOCS: Category=Diagnostics; Related=diagnosticar-grafico.ps1,diagnosticar-disco-100.ps1; Manual=Diagnostico de consumo de memoria
@@ -147,7 +147,7 @@ function Initialize-MemSession {
     [CmdletBinding()]
     param([string]$BasePath)
 
-    $s = Initialize-ScriptSession -ModuleName 'Diagnostics' -BasePath $BasePath -ExecutionMode 'Diagnostico'
+    $s = Initialize-ScriptSession -ModuleName 'diagnostico-memoria' -BasePath $BasePath -ExecutionMode 'Diagnostico'
     $s | Add-Member -MemberType NoteProperty -Name 'TextReportPath'  -Value (Join-Path $s.Path     'diagnostico-memoria.txt')
     $s | Add-Member -MemberType NoteProperty -Name 'HtmlReportPath'  -Value (Join-Path $s.Path     'diagnostico-memoria.html')
     $s | Add-Member -MemberType NoteProperty -Name 'TranscriptPath'  -Value (Join-Path $s.LogsPath 'memoria-transcript.log')
@@ -543,129 +543,93 @@ function New-MemoryHtmlReport {
 
     $htmlLinhaHtml = ''
     if ($Data.Output.HtmlReportPath) {
-        $htmlLinhaHtml = '<p><b>HTML:</b> <code>' + (ConvertTo-HtmlSafe $Data.Output.HtmlReportPath) + '</code></p>'
+        $htmlLinhaHtml = '<tr><th>HTML</th><td class="mono">' + (ConvertTo-HtmlSafe $Data.Output.HtmlReportPath) + '</td></tr>'
     }
 
-    $html = @"
-<!doctype html>
-<html lang="pt-BR">
-<head>
-<meta charset="utf-8">
-<title>Diagnostico de Memoria - $compNameSeg</title>
-<style>
-@page { size: A4 landscape; margin: 12mm; }
-* { box-sizing: border-box; }
-body { font-family: Segoe UI,Arial,sans-serif; margin: 0; background: #f3f4f6; color: #1f2937; line-height: 1.45; font-size: 14px; }
-.page { max-width: 1300px; margin: 24px auto; padding: 32px; background: #fff; box-shadow: 0 10px 15px rgba(0,0,0,.08); }
-.toolbar { max-width: 1300px; margin: 24px auto 0; text-align: right; }
-button { border: 0; border-radius: 4px; background: #2563eb; color: #fff; cursor: pointer; font: inherit; padding: 8px 14px; }
-button:hover { background: #1d4ed8; }
-h1 { margin-bottom: 4px; font-size: 22px; }
-h2 { border-bottom: 1px solid #d1d5db; padding-bottom: 6px; margin-top: 28px; font-size: 16px; }
-.muted { color: #6b7280; }
-.small { font-size: 11px; }
-.nowrap { white-space: nowrap; }
-.rank { text-align: center; font-weight: 700; color: #374151; }
-.path-cell { font-family: Consolas,monospace; font-size: 11px; word-break: break-all; }
-.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0; }
-.card { border-radius: 8px; padding: 16px; border: 1px solid #e5e7eb; }
-.card b { display: block; font-size: 11px; text-transform: uppercase; color: #6b7280; margin-bottom: 6px; }
-.card-val { font-size: 26px; font-weight: 700; color: #1f2937; }
-.card-ok     { background: #f0fdf4; border-color: #bbf7d0; }
-.card-warn   { background: #fffbeb; border-color: #fde68a; }
-.card-danger { background: #fef2f2; border-color: #fecaca; }
-.badge { display: inline-block; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600; }
-.nivel-ok     { background: #dcfce7; color: #166534; }
-.nivel-warn   { background: #fef3c7; color: #92400e; }
-.nivel-danger { background: #fee2e2; color: #991b1b; }
-.nivel-na     { background: #f3f4f6; color: #6b7280; }
-.sig-ok     { background: #dbeafe; color: #1e40af; }
-.sig-danger { background: #fee2e2; color: #991b1b; }
-.sig-na     { background: #f3f4f6; color: #6b7280; }
-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
-th, td { border: 1px solid #e5e7eb; padding: 6px 8px; vertical-align: top; }
-th { background: #f9fafb; text-align: left; font-size: 11px; text-transform: uppercase; color: #374151; }
-tr:nth-child(even) { background: #fafafa; }
-.link-btn { display: inline-block; font-size: 11px; font-weight: 600; border: 1px solid #d1d5db; border-radius: 4px; padding: 2px 5px; text-decoration: none; color: #374151; margin: 1px; }
-.link-btn:hover { background: #e5e7eb; }
-.link-vt { border-color: #bfdbfe; color: #1d4ed8; }
-.link-vt:hover { background: #dbeafe; }
-.link-na { color: #9ca3af; border-color: #e5e7eb; }
-.info-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; }
-code { font-family: Consolas,monospace; font-size: 12px; background: #f3f4f6; padding: 2px 5px; border-radius: 4px; }
-@media print {
-  body { background: #fff; }
-  .toolbar { display: none; }
-  .page { max-width: none; margin: 0; padding: 0; box-shadow: none; }
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-}
-</style>
-</head>
-<body>
-<div class="toolbar no-print"><button onclick="window.print()">Imprimir relatorio</button></div>
-<div class="page">
-<h1>Diagnostico de Consumo de Memoria</h1>
-<p class="muted">Computador: <b>$compNameSeg</b> &nbsp;|&nbsp; Usuario: $userNameSeg &nbsp;|&nbsp; $genAtSeg &nbsp;|&nbsp; Metrica: $metricaSeg &nbsp;|&nbsp; Top $($Data.Top)</p>
-
-<div class="cards">
-  <div class="card">
-    <b>RAM Total (Working Set dos analisados)</b>
-    <span class="card-val">$totalRamFmt</span>
+    # Montar corpo HTML
+    $bodyHtml = @"
+  <div class="cards">
+    <div class="card">
+      <div class="card-icon">&#128190;</div>
+      <div class="card-label">RAM Total</div>
+      <div class="card-value">$totalRamFmt</div>
+      <div class="card-sub">Working Set dos analisados</div>
+    </div>
+    <div class="card $cardNaoConfClass">
+      <div class="card-icon">&#9888;</div>
+      <div class="card-label">Processos Suspeito</div>
+      <div class="card-value">$naoConfiavel</div>
+      <div class="card-sub">verificar manualmente</div>
+    </div>
+    <div class="card $cardNaoAssinaClass">
+      <div class="card-icon">&#128274;</div>
+      <div class="card-label">Sem Assinatura</div>
+      <div class="card-value">$naoAssinado</div>
+      <div class="card-sub">ass invalida ou ausente</div>
+    </div>
   </div>
-  <div class="card $cardNaoConfClass">
-    <b>Processos Suspeito / Verificar</b>
-    <span class="card-val">$naoConfiavel</span>
+  <div class="section">
+    <div class="section-hdr">&#128187; Processos — top $($Data.Top) por $metricaSeg</div>
+    <div class="section-body">
+      <div class="info-box" style="margin-bottom:12px;font-size:12px;">
+        <b>Guia de metricas:</b>
+        &nbsp;<b>Working Set</b> = RAM fisica ocupada agora.
+        &nbsp;<b>Mem. Privada</b> = memoria exclusiva do processo.
+        &nbsp;<b>Mem. Paginada</b> = pool paginado do processo.
+        <span class="muted">&nbsp;Memoria Virtual omitida.</span>
+      </div>
+      <p class="muted small">
+        Links: <b>[G]</b> Google &nbsp; <b>[PL]</b> ProcessLibrary &nbsp; <b>[VT]</b> VirusTotal
+      </p>
+      <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead>
+        <tr>
+          <th>#</th>
+          <th>Processo / PID</th>
+          <th>Working Set</th>
+          <th>Mem. Privada</th>
+          <th>Mem. Paginada</th>
+          <th>Publisher / Descricao</th>
+          <th>Assinatura</th>
+          <th>Nivel</th>
+          <th>Caminho / Owner</th>
+          <th>Pesquisar</th>
+        </tr>
+        </thead>
+        <tbody>
+        $tableRowsHtml
+        </tbody>
+      </table>
+      </div>
+    </div>
   </div>
-  <div class="card $cardNaoAssinaClass">
-    <b>Sem assinatura valida</b>
-    <span class="card-val">$naoAssinado</span>
+  <div class="section">
+    <div class="section-hdr">&#128196; Arquivos Gerados</div>
+    <div class="section-body">
+      <table class="kv-table">
+        <tr><th>TXT</th><td class="mono">$txtPathSeg</td></tr>
+        $htmlLinhaHtml
+        <tr><th>Logs</th><td class="mono">$logsPathSeg</td></tr>
+      </table>
+    </div>
   </div>
-</div>
-
-<h2>Processos &mdash; top $($Data.Top) por $metricaSeg</h2>
-<div class="info-box" style="margin-bottom:12px;font-size:12px;">
-  <b>Guia de metricas:</b>
-  &nbsp;<b>Working Set</b> = RAM fisica ocupada agora (pressao imediata no sistema).
-  &nbsp;<b>Mem. Privada</b> = memoria exclusiva do processo — melhor indicador de <em>leak</em> (cresce sem cair = vazamento).
-  &nbsp;<b>Mem. Paginada</b> = pool paginado do processo, complementar ao Working Set.
-  <span class="muted">&nbsp;Memoria Virtual omitida: espaco de enderecamento reservado pode ser dezenas de TB em apps 64-bit sem refletir RAM real.</span>
-</div>
-<p class="muted small">
-  Links de pesquisa: <b>[G]</b> Google &nbsp;&nbsp;
-  <b>[PL]</b> ProcessLibrary.com &nbsp;&nbsp;
-  <b>[VT]</b> VirusTotal via hash SHA256 &nbsp;&mdash;&nbsp; todos abrem em nova aba.
-</p>
-<table>
-<thead>
-<tr>
-  <th>#</th>
-  <th>Processo / PID</th>
-  <th>Working Set</th>
-  <th>Mem. Privada</th>
-  <th>Mem. Paginada</th>
-  <th>Publisher / Descricao / Versao</th>
-  <th>Assinatura</th>
-  <th>Nivel</th>
-  <th>Caminho / Owner / Pai / Inicio</th>
-  <th>Pesquisar</th>
-</tr>
-</thead>
-<tbody>
-$tableRowsHtml
-</tbody>
-</table>
-
-<h2>Arquivos gerados</h2>
-<div class="info-box">
-<p><b>TXT:</b> <code>$txtPathSeg</code></p>
-$htmlLinhaHtml
-<p><b>Logs:</b> <code>$logsPathSeg</code></p>
-</div>
-
-</div>
-</body>
-</html>
 "@
+
+    # Gerar HTML usando template padronizado
+    $html = New-ToolkitHtmlReport -Title "Diagnostico de Consumo de Memoria" `
+        -Subtitle "$compNameSeg — $genAtSeg" `
+        -Icon "&#128190;" `
+        -MetaRight @(
+            "<strong>$compNameSeg</strong>",
+            "Usuario: $userNameSeg",
+            "Gerado em: $genAtSeg",
+            "Metrica: $metricaSeg",
+            "Top $($Data.Top)"
+        ) `
+        -Body $bodyHtml `
+        -ShowPrintButton `
+        -FooterText "Gerado por $($Data.Script) $($Data.ScriptVersion) em $genAtSeg"
 
     return $html
 }

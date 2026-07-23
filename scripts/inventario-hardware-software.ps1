@@ -830,7 +830,7 @@ $Timestamp = Get-Date -Format 'yyyy-MM-dd_HHmmss'
 $DataHora  = Get-Date -Format 'dd/MM/yyyy HH:mm:ss'
 $DataCurta = Get-Date -Format 'dd/MM/yyyy'
 
-$ReportSession = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'Inventory' -ExecutionName $Timestamp
+$ReportSession = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'inventario' -ExecutionName $Timestamp
 $Path = $ReportSession.Path
 
 $HtmlFile = Join-Path $Path "relatorio-inventario-$env:COMPUTERNAME-$Timestamp.html"
@@ -929,177 +929,71 @@ Write-Info 'Gerando relatorio HTML...'
 # --- CSS -------------------------------------------------------------------
 $css = @'
 <style>
-:root {
-    --primary:    #1e3a5f;
-    --primary-lt: #2d5986;
-    --accent:     #2563eb;
-    --success:    #16a34a;
-    --warning:    #d97706;
-    --danger:     #dc2626;
-    --bg:         #f0f4f8;
-    --surface:    #ffffff;
-    --border:     #e2e8f0;
-    --text:       #1e293b;
-    --muted:      #64748b;
-    --radius:     8px;
-}
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
-body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-       background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
-
-/* ---- Header ---- */
-header {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-lt) 100%);
-    color: white; padding: 2rem 2.5rem;
-    display: flex; justify-content: space-between; align-items: flex-end;
-    flex-wrap: wrap; gap: 1rem;
-}
-header .title-block h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
-header .title-block p  { opacity: .75; font-size: .85rem; margin-top: .25rem; }
-header .meta-block     { text-align: right; font-size: .8rem; opacity: .8; line-height: 1.8; }
-
-/* ---- Nav ---- */
-nav {
-    background: var(--surface); border-bottom: 2px solid var(--accent);
-    position: sticky; top: 0; z-index: 100;
-    box-shadow: 0 2px 8px rgba(0,0,0,.08);
-    overflow-x: auto; white-space: nowrap;
-}
-nav a {
-    display: inline-block; padding: .65rem 1rem;
-    color: var(--primary); text-decoration: none;
-    font-size: .8rem; font-weight: 600;
-    border-bottom: 2px solid transparent; transition: color .15s, border-color .15s;
-}
-nav a:hover { color: var(--accent); border-color: var(--accent); }
-
-/* ---- Layout ---- */
-main { max-width: 1400px; margin: 1.5rem auto; padding: 0 1.5rem; }
-
-/* ---- Cards de resumo ---- */
-.cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-    gap: 1rem; margin-bottom: 1.5rem;
-}
-.card {
-    background: var(--surface); border-radius: var(--radius);
-    padding: 1.1rem 1.25rem;
-    box-shadow: 0 1px 6px rgba(0,0,0,.07);
-    border-left: 4px solid var(--accent);
-    transition: box-shadow .15s;
-}
-.card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.12); }
-.card-icon  { font-size: 1.4rem; margin-bottom: .4rem; }
-.card-label { font-size: .7rem; text-transform: uppercase;
-              letter-spacing: .06em; color: var(--muted); font-weight: 600; }
-.card-value { font-size: 1.05rem; font-weight: 700; color: var(--primary); margin-top: .2rem; }
-.card-sub   { font-size: .75rem; color: var(--muted); margin-top: .15rem; }
-
-/* ---- Secoes ---- */
-.section {
-    background: var(--surface); border-radius: var(--radius);
-    box-shadow: 0 1px 6px rgba(0,0,0,.07);
-    margin-bottom: 1.25rem; overflow: hidden;
-}
-.section-hdr {
-    background: var(--primary); color: white;
-    padding: .75rem 1.5rem; font-size: .9rem; font-weight: 700;
-    display: flex; align-items: center; gap: .5rem;
-}
-.section-body { padding: 1.25rem 1.5rem; }
-
-/* ---- Sub-titulo ---- */
-.sub { font-weight: 700; color: var(--primary); font-size: .85rem;
-       border-bottom: 1px solid var(--border); padding-bottom: .35rem;
-       margin: 1.1rem 0 .6rem; }
-.sub:first-child { margin-top: 0; }
-
-/* ---- Tabelas de kv (propriedades) ---- */
-.kv-table { width: 100%; border-collapse: collapse; }
-.kv-table th {
-    width: 220px; font-weight: 600; font-size: .8rem;
-    color: var(--muted); text-align: left; padding: .4rem .75rem .4rem 0;
-    border-bottom: 1px solid var(--border); vertical-align: top;
-}
-.kv-table td {
-    font-size: .85rem; padding: .4rem 0;
-    border-bottom: 1px solid var(--border);
-}
-.kv-table tr:last-child th, .kv-table tr:last-child td { border-bottom: none; }
-
-/* ---- Grid de kv em 2 colunas ---- */
-.kv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 2rem; }
-
-/* ---- Tabelas de dados ---- */
-.data-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
-.data-table thead th {
-    background: #f8fafc; color: var(--primary); font-weight: 700;
-    padding: .55rem 1rem; text-align: left;
-    border-bottom: 2px solid var(--border); white-space: nowrap;
-}
-.data-table tbody td { padding: .5rem 1rem; border-bottom: 1px solid #f1f5f9; }
-.data-table tbody tr:last-child td { border-bottom: none; }
-.data-table tbody tr:hover td { background: #f8faff; }
-
-/* ---- Scroll container p/ tabelas longas ---- */
-.scroll-wrap { overflow-x: auto; }
-.tall-wrap   { max-height: 420px; overflow-y: auto; }
-
-/* ---- Barra de disco ---- */
-.disk-bar { background: #e2e8f0; border-radius: 4px; height: 8px; min-width: 80px; overflow: hidden; }
-.disk-fill { height: 100%; border-radius: 4px; transition: width .3s; }
-.bar-ok     { background: var(--success); }
-.bar-warn   { background: var(--warning); }
-.bar-danger { background: var(--danger);  }
-
-/* ---- Badges ---- */
-.badge {
-    display: inline-block; padding: .15em .55em;
-    border-radius: 4px; font-size: .72rem; font-weight: 700; white-space: nowrap;
-}
-.badge-green  { background: #dcfce7; color: #15803d; }
-.badge-yellow { background: #fef9c3; color: #92400e; }
-.badge-red    { background: #fee2e2; color: #991b1b; }
-.badge-blue   { background: #dbeafe; color: #1e40af; }
-.badge-gray   { background: #f1f5f9; color: #475569; }
-
-/* ---- Filtro de software ---- */
-.filter-wrap { margin-bottom: .75rem; display: flex; gap: .5rem; align-items: center; }
-.filter-input {
-    flex: 1; max-width: 400px; padding: .45rem .75rem;
-    border: 1px solid var(--border); border-radius: var(--radius);
-    font-size: .85rem; color: var(--text);
-    outline: none; transition: border-color .15s;
-}
-.filter-input:focus { border-color: var(--accent); }
-.filter-count { font-size: .78rem; color: var(--muted); }
-
-/* ---- Utilitarios ---- */
-.muted { color: var(--muted); }
-.mono  { font-family: 'Consolas', 'Cascadia Code', monospace; font-size: .8rem; }
-.nowrap { white-space: nowrap; }
-.right  { text-align: right; }
-
-/* ---- Footer ---- */
-footer { text-align: center; color: var(--muted);
-         font-size: .78rem; padding: 1.5rem; margin-top: .5rem; }
-
-/* ---- Print / PDF ---- */
-@page { size: A4; margin: 1.2cm 1.5cm; }
-@media print {
-    body  { background: white; font-size: 11px; }
-    nav   { display: none; }
-    .section { box-shadow: none; border: 1px solid var(--border);
-               break-inside: avoid; margin-bottom: .75rem; }
-    .tall-wrap { max-height: none; overflow: visible; }
-    .filter-wrap { display: none; }
-    header { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-    .section-hdr { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-}
+@font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:local('Inter Regular'),local('Segoe UI'),local('sans-serif')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:700;font-display:swap;src:local('Inter Bold'),local('Segoe UI Bold'),local('sans-serif')}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:swap;src:local('JetBrains Mono Regular'),local('Consolas'),local('monospace')}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:700;font-display:swap;src:local('JetBrains Mono Bold'),local('Consolas Bold'),local('monospace')}
+:root{--primary:#1e3a5f;--primary-lt:#2d5986;--accent:#2563eb;--success:#16a34a;--warning:#d97706;--danger:#dc2626;--bg:#f0f4f8;--surface:#fff;--border:#e2e8f0;--text:#1e293b;--muted:#64748b;--radius:8px;--font-sans:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;--font-mono:'JetBrains Mono','Consolas',ui-monospace,monospace}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-sans);background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+header{background:linear-gradient(135deg,var(--primary) 0%,var(--primary-lt) 100%);color:#fff;padding:2rem 2.5rem;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:1rem}
+header .title-block h1{font-size:1.6rem;font-weight:700;letter-spacing:-0.02em}
+header .title-block p{opacity:.75;font-size:.85rem;margin-top:.25rem}
+header .meta-block{text-align:right;font-size:.8rem;opacity:.8;line-height:1.8}
+nav{background:var(--surface);border-bottom:2px solid var(--accent);position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.08);overflow-x:auto;white-space:nowrap}
+nav a{display:inline-block;padding:.65rem 1rem;color:var(--primary);text-decoration:none;font-size:.8rem;font-weight:600;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+nav a:hover{color:var(--accent);border-color:var(--accent)}
+main{max-width:1400px;margin:1.5rem auto;padding:0 1.5rem}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1rem;margin-bottom:1.5rem}
+.card{background:var(--surface);border-radius:var(--radius);padding:1.1rem 1.25rem;box-shadow:0 1px 6px rgba(0,0,0,.07);border-left:4px solid var(--accent);transition:box-shadow .15s}
+.card:hover{box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.card-icon{font-size:1.4rem;margin-bottom:.4rem}
+.card-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.card-value{font-size:1.05rem;font-weight:700;color:var(--primary);margin-top:.2rem}
+.card-sub{font-size:.75rem;color:var(--muted);margin-top:.15rem}
+.section{background:var(--surface);border-radius:var(--radius);box-shadow:0 1px 6px rgba(0,0,0,.07);margin-bottom:1.25rem;overflow:hidden}
+.section-hdr{background:var(--primary);color:#fff;padding:.75rem 1.5rem;font-size:.9rem;font-weight:700;display:flex;align-items:center;gap:.5rem}
+.section-body{padding:1.25rem 1.5rem}
+.sub{font-weight:700;color:var(--primary);font-size:.85rem;border-bottom:1px solid var(--border);padding-bottom:.35rem;margin:1.1rem 0 .6rem}
+.sub:first-child{margin-top:0}
+.kv-table{width:100%;border-collapse:collapse}
+.kv-table th{width:220px;font-weight:600;font-size:.8rem;color:var(--muted);text-align:left;padding:.4rem .75rem .4rem 0;border-bottom:1px solid var(--border);vertical-align:top}
+.kv-table td{font-size:.85rem;padding:.4rem 0;border-bottom:1px solid var(--border)}
+.kv-table tr:last-child th,.kv-table tr:last-child td{border-bottom:none}
+.kv-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 2rem}
+.data-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.data-table thead th{background:#f8fafc;color:var(--primary);font-weight:700;padding:.55rem 1rem;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap}
+.data-table tbody td{padding:.5rem 1rem;border-bottom:1px solid #f1f5f9}
+.data-table tbody tr:last-child td{border-bottom:none}
+.data-table tbody tr:hover td{background:#f8faff}
+.scroll-wrap{overflow-x:auto}
+.tall-wrap{max-height:420px;overflow-y:auto}
+.disk-bar{background:#e2e8f0;border-radius:4px;height:8px;min-width:80px;overflow:hidden}
+.disk-fill{height:100%;border-radius:4px;transition:width .3s}
+.bar-ok{background:var(--success)}
+.bar-warn{background:var(--warning)}
+.bar-danger{background:var(--danger)}
+.badge{display:inline-block;padding:.15em .55em;border-radius:4px;font-size:.72rem;font-weight:700;white-space:nowrap}
+.badge-green{background:#dcfce7;color:#15803d}
+.badge-yellow{background:#fef9c3;color:#92400e}
+.badge-red{background:#fee2e2;color:#991b1b}
+.badge-blue{background:#dbeafe;color:#1e40af}
+.badge-gray{background:#f1f5f9;color:#475569}
+.filter-wrap{margin-bottom:.75rem;display:flex;gap:.5rem;align-items:center}
+.filter-input{flex:1;max-width:400px;padding:.45rem .75rem;border:1px solid var(--border);border-radius:var(--radius);font-size:.85rem;color:var(--text);outline:none;transition:border-color .15s}
+.filter-input:focus{border-color:var(--accent)}
+.filter-count{font-size:.78rem;color:var(--muted)}
+.muted{color:var(--muted)}
+.mono{font-family:var(--font-mono);font-size:.8rem;word-break:break-all}
+.nowrap{white-space:nowrap}
+.right{text-align:right}
+footer{text-align:center;color:var(--muted);font-size:.78rem;padding:1.5rem;margin-top:.5rem}
+@page{size:A4;margin:1.2cm 1.5cm}
+@media print{body{background:#fff;font-size:11px}nav{display:none}.section{box-shadow:none;border:1px solid var(--border);break-inside:avoid;margin-bottom:.75rem}.tall-wrap{max-height:none;overflow:visible}.filter-wrap{display:none}header,.section-hdr{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
 </style>
 '@
+
 
 # --- Header + nav ----------------------------------------------------------
 # Win32_ComputerSystem normalmente existe, mas resolver com guarda evita
@@ -1134,14 +1028,14 @@ $css
 <nav>
   <a href="#so">&#128196; Sistema</a>
   <a href="#cpu">&#9881; Processador</a>
-  <a href="#ram">&#128190; Memoria</a>
-  <a href="#placa-mae">&#128268; Placa-mae</a>
-  <a href="#storage">&#128009; Disco</a>
-  <a href="#gpu">&#127918; Video</a>
+  <a href="#ram">&#9889; Memoria</a>
+  <a href="#placa-mae">&#129521; Placa-mae</a>
+  <a href="#storage">&#128190; Disco</a>
+  <a href="#gpu">&#127912; Video</a>
   <a href="#rede">&#127760; Rede</a>
-  <a href="#monitores">&#128247; Monitores</a>
+  <a href="#monitores">&#128424; Monitores</a>
   <a href="#software">&#128230; Software</a>
-  <a href="#hotfixes">&#128274; Atualizacoes</a>
+  <a href="#hotfixes">&#128260; Atualizacoes</a>
   <a href="#servicos">&#9881; Servicos</a>
 </nav>
 <main>
@@ -1178,13 +1072,13 @@ $htmlCards = @"
     <div class="card-sub">$cpuSub</div>
   </div>
   <div class="card">
-    <div class="card-icon">&#128190;</div>
+    <div class="card-icon">&#9889;</div>
     <div class="card-label">Memoria RAM</div>
     <div class="card-value">$ramCard</div>
     <div class="card-sub">$ramSub</div>
   </div>
   <div class="card">
-    <div class="card-icon">&#128009;</div>
+    <div class="card-icon">&#128190;</div>
     <div class="card-label">Armazenamento Total</div>
     <div class="card-value">$diskCard</div>
     <div class="card-sub">$($logDisk.Count) particao(oes)</div>
@@ -1287,7 +1181,7 @@ $ramRows = ($ramMods | ForEach-Object {
 
 $htmlRAM = @"
 <div class="section" id="ram">
-  <div class="section-hdr">&#128190; Memoria RAM &mdash; Total: ${totalRamGB} GB</div>
+  <div class="section-hdr">&#9889; Memoria RAM &mdash; Total: ${totalRamGB} GB</div>
   <div class="section-body">
     <div class="scroll-wrap">
       <table class="data-table">
@@ -1314,7 +1208,7 @@ $biosSerial     = if ($bios) { $bios.SerialNumber }     else { $null }
 
 $htmlMB = @"
 <div class="section" id="placa-mae">
-  <div class="section-hdr">&#128268; Placa-mae e BIOS</div>
+  <div class="section-hdr">&#129521; Placa-mae e BIOS</div>
   <div class="section-body">
     <div class="kv-grid">
       <div>
@@ -1372,7 +1266,7 @@ $logRows = ($logDisk | ForEach-Object {
 
 $htmlStorage = @"
 <div class="section" id="storage">
-  <div class="section-hdr">&#128009; Armazenamento</div>
+  <div class="section-hdr">&#128190; Armazenamento</div>
   <div class="section-body">
     <div class="sub">Discos Fisicos</div>
     <div class="scroll-wrap">
@@ -1409,7 +1303,7 @@ $gpuRows = ($gpus | ForEach-Object {
 
 $htmlGPU = @"
 <div class="section" id="gpu">
-  <div class="section-hdr">&#127918; Placa(s) de Video</div>
+  <div class="section-hdr">&#127912; Placa(s) de Video</div>
   <div class="section-body">$gpuRows</div>
 </div>
 "@
@@ -1460,7 +1354,7 @@ if ($mons.Count -gt 0) {
 
 $htmlMonitors = @"
 <div class="section" id="monitores">
-  <div class="section-hdr">&#128247; Monitores</div>
+  <div class="section-hdr">&#128424; Monitores</div>
   <div class="section-body">$monBody</div>
 </div>
 "@
@@ -1497,7 +1391,7 @@ $hfRows = ($hotfixes | ForEach-Object {
 
 $htmlHotfixes = @"
 <div class="section" id="hotfixes">
-  <div class="section-hdr">&#128274; Atualizacoes / Hotfixes &mdash; $($hotfixes.Count) instalados</div>
+  <div class="section-hdr">&#128260; Atualizacoes / Hotfixes &mdash; $($hotfixes.Count) instalados</div>
   <div class="section-body">
     <div class="scroll-wrap tall-wrap">
       <table class="data-table">

@@ -87,7 +87,7 @@ $ScriptDir  = $PSScriptRoot
 $ToolkitRoot = Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1') -Force -ErrorAction Stop
 
-$ScriptVersion   = 'v1.0'
+$ScriptVersion = 'v1.0.0'
 $script:HwSession = $null
 
 # WBA-DOCS: Category=Diagnostics; Related=inventario-hardware-software.ps1,gerenciar-drivers.ps1; Manual=Diagnostico de atualizacoes de BIOS e drivers
@@ -113,7 +113,7 @@ function Initialize-HwSession {
     [CmdletBinding()]
     param([string]$BasePath)
 
-    $session = Initialize-ScriptSession -ModuleName 'Diagnostics' -BasePath $BasePath -ExecutionMode 'Diagnostico'
+    $session = Initialize-ScriptSession -ModuleName 'diagnostico-hardware' -BasePath $BasePath -ExecutionMode 'Diagnostico'
     $session | Add-Member -MemberType NoteProperty -Name 'InternalLogPath' -Value (Join-Path $session.LogsPath 'hardware-updates.log')
     $session | Add-Member -MemberType NoteProperty -Name 'TranscriptPath'  -Value (Join-Path $session.LogsPath 'hardware-updates-transcript.log')
     $session | Add-Member -MemberType NoteProperty -Name 'HtmlReportPath'  -Value (Join-Path $session.Path    'hardware-updates.html')
@@ -231,6 +231,43 @@ function Get-AvailableDriversWU {
     }
 }
 
+function Get-InstalledUpdatesHistory {
+    [CmdletBinding()]
+    param(
+        [int]$MaxResults = 20
+    )
+
+    try {
+        $wuSession = New-Object -ComObject 'Microsoft.Update.Session'
+        $searcher  = $wuSession.CreateUpdateSearcher()
+        $history   = $searcher.GetTotalHistoryCount()
+
+        if ($history -eq 0) {
+            return @()
+        }
+
+        $records = $searcher.QueryHistory(0, $MaxResults)
+
+        $parsed = foreach ($rec in $records) {
+            $kb = ($rec.KBArticleIDs | Select-Object -First 1)
+            $date = if ($rec.Date) { $rec.Date.ToString('dd/MM/yyyy HH:mm') } else { 'N/I' }
+            [pscustomobject]@{
+                Titulo     = [string]$rec.Title
+                KB         = if ($kb) { "KB$kb" } else { 'N/I' }
+                Data       = $date
+                Resultado  = [string]$rec.ResultCode
+                Classe     = [string]$rec.Categories | Select-Object -First 1
+            }
+        }
+
+        return @($parsed)
+    }
+    catch {
+        Write-HwLog -Level 'WARN' -Message "Historico WU indisponivel: $($_.Exception.Message)"
+        return @()
+    }
+}
+
 function ConvertTo-HwHtmlReport {
     [CmdletBinding()]
     param([Parameter(Mandatory = $true)]$Data)
@@ -276,86 +313,125 @@ function ConvertTo-HwHtmlReport {
         '<tr><td colspan="3" class="muted">Nenhum driver pendente encontrado no Windows Update.</td></tr>'
     }
 
+    $historyRows = if ($Data.HistoricoWU.Count -gt 0) {
+        ($Data.HistoricoWU | ForEach-Object {
+            '<tr><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td></tr>' -f `
+                (ConvertTo-HtmlSafe $_.Data),
+                (ConvertTo-HtmlSafe $_.Titulo),
+                (ConvertTo-HtmlSafe $_.KB),
+                (ConvertTo-HtmlSafe $_.Resultado)
+        }) -join "`n"
+    } else {
+        '<tr><td colspan="4" class="muted">Nenhum historico de atualizacao encontrado.</td></tr>'
+    }
+
     $ferramentaBios = if ($Data.Bios) { (ConvertTo-HtmlSafe $Data.Bios.FerramentaSugerida) } else { 'ferramenta do fabricante' }
 
-    return @"
-<!doctype html>
-<html lang="pt-BR">
-<head>
-<meta charset="utf-8">
-<title>Atualizacoes de Hardware - $(ConvertTo-HtmlSafe $Data.ComputerName)</title>
-<style>
-* { box-sizing: border-box; }
-body { font-family: Segoe UI, Arial, sans-serif; margin: 0; background: #f5f7fb; color: #1f2937; line-height: 1.45; }
-.page { max-width: 1120px; margin: 24px auto; padding: 32px; background: #fff; box-shadow: 0 10px 15px rgba(0,0,0,.08); }
-h1 { margin-bottom: 4px; }
-h2 { border-bottom: 1px solid #d1d5db; padding-bottom: 6px; margin-top: 28px; }
-.card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin: 12px 0; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
-.metric { background: #f9fafb; border-radius: 8px; padding: 12px; border: 1px solid #e5e7eb; }
-.metric b { display: block; color: #4b5563; font-size: 12px; text-transform: uppercase; margin-bottom: 6px; }
-.badge { display: inline-block; border-radius: 999px; padding: 4px 10px; font-weight: 600; }
-.ok { background: #dcfce7; color: #166534; }
-.warn { background: #fef3c7; color: #92400e; }
-.danger { background: #fee2e2; color: #991b1b; }
-.muted { color: #6b7280; }
-.alert { background: #fef3c7; border: 1px solid #fcd34d; padding: 12px 16px; border-radius: 6px; margin: 12px 0; }
-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-th, td { border: 1px solid #e5e7eb; padding: 8px; vertical-align: top; }
-th { background: #f3f4f6; text-align: left; }
-tr.warn td { background: #fffbeb; }
-tr.danger td { background: #fff1f2; }
-</style>
-</head>
-<body>
-<div class="page">
-<h1>Verificar Atualizacoes de BIOS e Drivers</h1>
-<p class="muted">Computador: <b>$(ConvertTo-HtmlSafe $Data.ComputerName)</b> | Execucao: $(ConvertTo-HtmlSafe $Data.GeneratedAt) | Script: $(ConvertTo-HtmlSafe $Data.ScriptVersion)</p>
-<div class="card">
-  <div class="grid">
-    <div class="metric"><b>Status geral</b><span class="badge $statusClass">$(ConvertTo-HtmlSafe $Data.StatusGeral)</span></div>
-    <div class="metric"><b>Total drivers</b>$($Data.Sumario.TotalDrivers)</div>
-    <div class="metric"><b>Sem assinatura</b>$($Data.Sumario.SemAssinatura)</div>
-    <div class="metric"><b>Antigos (&gt;2 anos)</b>$($Data.Sumario.Antigos)</div>
-    <div class="metric"><b>Disponiveis (WU)</b>$($Data.Sumario.DisponivelWU)</div>
+    # Status geral para badge
+    $statusClass = switch ($Data.StatusGeral) {
+        'OK'        { 'badge-green' }
+        'Atencao'   { 'badge-yellow' }
+        'Critico'   { 'badge-red' }
+        default     { 'badge-gray' }
+    }
+
+    # Montar corpo HTML
+    $bodyHtml = @"
+  <div class="cards">
+    <div class="card" style="border-left-color: $(if ($Data.StatusGeral -eq 'OK') { 'var(--success)' } elseif ($Data.StatusGeral -eq 'Atencao') { 'var(--warning)' } else { 'var(--danger)' })">
+      <div class="card-icon">&#128187;</div>
+      <div class="card-label">Status Geral</div>
+      <div class="card-value"><span class="badge $statusClass">$(ConvertTo-HtmlSafe $Data.StatusGeral)</span></div>
+      <div class="card-sub">Analise de hardware</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">&#128187;</div>
+      <div class="card-label">Total Drivers</div>
+      <div class="card-value">$($Data.Sumario.TotalDrivers)</div>
+      <div class="card-sub">instalados no sistema</div>
+    </div>
+    <div class="card" style="border-left-color: var(--warning)">
+      <div class="card-icon">&#9888;</div>
+      <div class="card-label">Sem Assinatura</div>
+      <div class="card-value" style="color: var(--warning)">$($Data.Sumario.SemAssinatura)</div>
+      <div class="card-sub">drivers nao assinados</div>
+    </div>
+    <div class="card" style="border-left-color: var(--danger)">
+      <div class="card-icon">&#128336;</div>
+      <div class="card-label">Antigos (>2 anos)</div>
+      <div class="card-value" style="color: var(--danger)">$($Data.Sumario.Antigos)</div>
+      <div class="card-sub">drivers desatualizados</div>
+    </div>
+    <div class="card" style="border-left-color: var(--success)">
+      <div class="card-icon">&#128260;</div>
+      <div class="card-label">Disponiveis (WU)</div>
+      <div class="card-value" style="color: var(--success)">$($Data.Sumario.DisponivelWU)</div>
+      <div class="card-sub">atualizacoes pendentes</div>
+    </div>
   </div>
-</div>
-<div class="alert">
-<b>Somente leitura</b> — nenhuma atualizacao foi instalada.<br>
-Para atualizar o BIOS, utilize <b>$ferramentaBios</b> e siga as instrucoes do fabricante.
-Atualizacoes incorretas de BIOS podem tornar o hardware inutilizavel.
-</div>
-
-<h2>BIOS</h2>
-<div class="card">
-<table><tbody>
-$biosRows
-</tbody></table>
-</div>
-
-<h2>Drivers Instalados ($($Data.Drivers.Count))</h2>
-<div class="card">
-<table>
-<thead><tr><th>Classe</th><th>Dispositivo</th><th>Versao</th><th>Data</th><th>Assinado</th><th>Fabricante</th></tr></thead>
-<tbody>
-$driverRows
-</tbody>
-</table>
-</div>
-
-<h2>Atualizacoes de Drivers via Windows Update ($($Data.DriversWU.Count))</h2>
-<div class="card">
-<table>
-<thead><tr><th>Titulo</th><th>KB</th><th>Severidade</th></tr></thead>
-<tbody>
-$wuRows
-</tbody>
-</table>
-</div>
-</div>
-</body>
-</html>
+  <div class="section">
+    <div class="section-body" style="background:#fffbeb">
+      <strong>&#9888; Atencao:</strong> Este relatorio e somente leitura — nenhuma atualizacao foi instalada.<br>
+      Para atualizar o BIOS, utilize <strong>$ferramentaBios</strong> e siga as instrucoes do fabricante.
+      Atualizacoes incorretas de BIOS podem tornar o hardware inutilizavel.
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-hdr">&#128187; BIOS</div>
+    <div class="section-body">
+      <table class="data-table"><tbody>
+      $biosRows
+      </tbody></table>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-hdr">&#128187; Drivers Instalados ($($Data.Drivers.Count))</div>
+    <div class="section-body">
+      <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead><tr><th>Classe</th><th>Dispositivo</th><th>Versao</th><th>Data</th><th>Assinado</th><th>Fabricante</th></tr></thead>
+        <tbody>$driverRows</tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-hdr">&#128260; Atualizacoes via Windows Update ($($Data.DriversWU.Count))</div>
+    <div class="section-body">
+      <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead><tr><th>Titulo</th><th>KB</th><th>Severidade</th></tr></thead>
+        <tbody>$wuRows</tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-hdr">&#128203; Historico de Atualizacoes ($($Data.HistoricoWU.Count))</div>
+    <div class="section-body">
+      <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead><tr><th>Data</th><th>Titulo</th><th>KB</th><th>Resultado</th></tr></thead>
+        <tbody>$historyRows</tbody>
+      </table>
+      </div>
+    </div>
+  </div>
 "@
+
+    # Gerar HTML usando template padronizado
+    $html = New-ToolkitHtmlReport -Title "Verificacao de Atualizacoes de Hardware" `
+        -Subtitle "$($Data.ComputerName) — $($Data.GeneratedAt)" `
+        -Icon "&#128187;" `
+        -MetaRight @(
+            "<strong>$($Data.ComputerName)</strong>",
+            "Execucao: $($Data.GeneratedAt)",
+            "Script: $($Data.ScriptVersion)"
+        ) `
+        -Body $bodyHtml `
+        -FooterText "Gerado por $($Data.Script) $($Data.ScriptVersion) em $($Data.GeneratedAt) — somente leitura"
+
+    return $html
 }
 
 function Show-Help {
@@ -464,6 +540,20 @@ try {
     }
     Write-HwLog -Message "Windows Update: $($wuDrivers.Count) drivers disponiveis"
 
+    Write-HwSection 'Historico de atualizacoes do Windows'
+    Write-Info "Consultando historico de atualizacoes (ultimas 20)..."
+    $wuHistory = @(Get-InstalledUpdatesHistory -MaxResults 20)
+
+    if ($wuHistory.Count -eq 0) {
+        Write-Info "Nenhum historico de atualizacao encontrado."
+    } else {
+        Write-Ok "$($wuHistory.Count) atualizacoes encontradas no historico:"
+        foreach ($upd in $wuHistory) {
+            Write-Info "  [$($upd.Data)] [$($upd.KB)] $($upd.Titulo)"
+        }
+    }
+    Write-HwLog -Message "Historico WU: $($wuHistory.Count) registros"
+
     Write-HwSection 'Resumo'
     $statusGeral = 'OK'
     if ($naoAssinados.Count -gt 0 -or $wuDrivers.Count -gt 0) { $statusGeral = 'ATENCAO' }
@@ -487,11 +577,13 @@ try {
         Bios          = $biosStatus
         Drivers       = @($driverInventory)
         DriversWU     = @($wuDrivers)
+        HistoricoWU   = @($wuHistory)
         Sumario       = [pscustomobject]@{
             TotalDrivers  = $driverInventory.Count
             SemAssinatura = $naoAssinados.Count
             Antigos       = $antigos.Count
             DisponivelWU  = $wuDrivers.Count
+            HistoricoWU   = $wuHistory.Count
         }
     }
 

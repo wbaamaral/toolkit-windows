@@ -90,7 +90,7 @@ $ToolkitRoot = Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1') -Force -ErrorAction Stop
 Import-Module (Join-Path $ToolkitRoot 'modules/WbaToolkit.Startup/WbaToolkit.Startup.psd1') -Force -ErrorAction Stop
 
-$ScriptVersion = 'v1.0'
+$ScriptVersion = 'v1.0.0'
 $script:Checks = New-Object 'System.Collections.Generic.List[object]'
 $script:ReportSession = $null
 $script:TextReportPath = $null
@@ -547,15 +547,88 @@ function ConvertTo-AdHtml {
 <meta charset="utf-8">
 <title>Diagnóstico AD - $([System.Net.WebUtility]::HtmlEncode($script:ComputerName))</title>
 <style>
-body { font-family: Segoe UI, Arial, sans-serif; margin: 24px; color: #111827; }
-h1, h2 { margin-bottom: 0.2rem; }
-.summary { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin: 16px 0 24px; }
-.card { border: 1px solid #d1d5db; border-radius: 10px; padding: 12px 14px; background: #f9fafb; }
-.label { color: #6b7280; font-size: 0.9rem; }
-.value { font-size: 1.3rem; font-weight: 700; }
-table { width: 100%; border-collapse: collapse; }
-th, td { border: 1px solid #e5e7eb; padding: 8px; vertical-align: top; }
-th { background: #f3f4f6; text-align: left; }
+@font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:local('Inter Regular'),local('Segoe UI'),local('sans-serif')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:700;font-display:swap;src:local('Inter Bold'),local('Segoe UI Bold'),local('sans-serif')}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:swap;src:local('JetBrains Mono Regular'),local('Consolas'),local('monospace')}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:700;font-display:swap;src:local('JetBrains Mono Bold'),local('Consolas Bold'),local('monospace')}
+:root{--primary:#1e3a5f;--primary-lt:#2d5986;--accent:#2563eb;--success:#16a34a;--warning:#d97706;--danger:#dc2626;--bg:#f0f4f8;--surface:#fff;--border:#e2e8f0;--text:#1e293b;--muted:#64748b;--radius:8px;--font-sans:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;--font-mono:'JetBrains Mono','Consolas',ui-monospace,monospace}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+h1{margin-bottom:4px;font-size:22px;font-weight:700;color:var(--text)}
+h2{border-bottom:1px solid var(--border);padding-bottom:6px;margin-top:28px;font-size:16px;font-weight:700;color:var(--text)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{border:1px solid var(--border);padding:8px;vertical-align:top}
+th{background:#f8fafc;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;color:var(--muted)}
+tr:nth-child(even){background:#fafafa}
+code{font-family:var(--font-mono);font-size:12px;background:#f3f4f6;padding:2px 5px;border-radius:4px}
+.muted{color:var(--muted)}
+.small{font-size:11px}
+.nowrap{white-space:nowrap}
+.page{max-width:1120px;margin:24px auto;padding:32px;background:var(--surface);box-shadow:0 10px 15px rgba(0,0,0,.08);border-radius:var(--radius)}
+.toolbar{max-width:1120px;margin:24px auto 0;text-align:right}
+button{border:0;border-radius:4px;background:var(--accent);color:#fff;cursor:pointer;font:inherit;padding:8px 14px}
+button:hover{background:#1d4ed8}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1rem;margin-bottom:1.5rem}
+.card{background:var(--surface);border-radius:var(--radius);padding:1.1rem 1.25rem;box-shadow:0 1px 6px rgba(0,0,0,.07);border-left:4px solid var(--accent);transition:box-shadow .15s}
+.card:hover{box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.card-icon{font-size:1.4rem;margin-bottom:.4rem}
+.card-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.card-value{font-size:1.05rem;font-weight:700;color:var(--primary);margin-top:.2rem}
+.card-sub{font-size:.75rem;color:var(--muted);margin-top:.15rem}
+.card-val{font-size:26px;font-weight:700;color:var(--text)}
+.card-ok{background:#f0fdf4;border-left-color:var(--success)}
+.card-warn{background:#fffbeb;border-left-color:var(--warning)}
+.card-danger{background:#fef2f2;border-left-color:var(--danger)}
+.section{background:var(--surface);border-radius:var(--radius);box-shadow:0 1px 6px rgba(0,0,0,.07);margin-bottom:1.25rem;overflow:hidden}
+.section-hdr{background:var(--primary);color:#fff;padding:.75rem 1.5rem;font-size:.9rem;font-weight:700;display:flex;align-items:center;gap:.5rem}
+.section-body{padding:1.25rem 1.5rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.metric{background:#f9fafb;border-radius:8px;padding:12px;border:1px solid var(--border)}
+.metric b{display:block;color:var(--muted);font-size:12px;text-transform:uppercase;margin-bottom:6px}
+.badge{display:inline-block;border-radius:4px;padding:.15em .55em;font-size:.72rem;font-weight:700;white-space:nowrap}
+.badge-green,.ok{background:#dcfce7;color:#166534}
+.badge-yellow,.warn{background:#fef3c7;color:#92400e}
+.badge-red,.danger{background:#fee2e2;color:#991b1b}
+.badge-blue{background:#dbeafe;color:#1e40af}
+.badge-gray{background:#f1f5f9;color:#475569}
+.nivel-ok{background:#dcfce7;color:#166534}
+.nivel-warn{background:#fef3c7;color:#92400e}
+.nivel-danger{background:#fee2e2;color:#991b1b}
+.nivel-na{background:#f3f4f6;color:var(--muted)}
+.sig-ok{background:#dbeafe;color:#1e40af}
+.sig-danger{background:#fee2e2;color:#991b1b}
+.sig-na{background:#f3f4f6;color:var(--muted)}
+.alert{background:#fffbeb;border:1px solid #fcd34d;padding:12px 16px;border-radius:6px;margin:12px 0}
+.info-box{background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:16px}
+.disk-bar{background:#e2e8f0;border-radius:4px;height:8px;min-width:80px;overflow:hidden}
+.disk-fill{height:100%;border-radius:4px;transition:width .3s}
+.bar-ok{background:var(--success)}
+.bar-warn{background:var(--warning)}
+.bar-danger{background:var(--danger)}
+.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0 24px}
+.label{color:var(--muted);font-size:.9rem}
+.value{font-size:1.3rem;font-weight:700}
+.link-btn{display:inline-block;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:4px;padding:2px 5px;text-decoration:none;color:var(--text);margin:1px}
+.link-btn:hover{background:#e5e7eb}
+.link-vt{border-color:#bfdbfe;color:var(--accent)}
+.link-vt:hover{background:#dbeafe}
+.link-na{color:#9ca3af;border-color:var(--border)}
+.rank{text-align:center;font-weight:700;color:var(--text)}
+.path-cell{font-family:var(--font-mono);font-size:11px;word-break:break-all}
+.meta{background:#f0f4f8;padding:12px 16px;border-radius:4px;margin-bottom:16px;font-size:12px}
+tr.ok td{background:#e8f5e9}
+tr.fail td{background:#ffebee}
+tr.dryrun td{background:#fff9c4}
+tr.ignored td{background:#f5f5f5;color:#888}
+tr.warn td{background:#fffbeb}
+tr.danger td{background:#fff1f2}
+.filter-wrap{margin-bottom:.75rem;display:flex;gap:.5rem;align-items:center}
+.filter-input{flex:1;max-width:400px;padding:.45rem .75rem;border:1px solid var(--border);border-radius:var(--radius);font-size:.85rem;color:var(--text);outline:none;transition:border-color .15s}
+.filter-input:focus{border-color:var(--accent)}
+.filter-count{font-size:.78rem;color:var(--muted)}
+footer{text-align:center;color:var(--muted);font-size:.78rem;padding:1.5rem;margin-top:.5rem}
+@page{size:A4;margin:15mm}
+@media print{body{background:#fff;color:#000;font-size:11px}.toolbar,.filter-wrap{display:none}.page{max-width:none;margin:0;padding:0;box-shadow:none}header,.section-hdr{print-color-adjust:exact;-webkit-print-color-adjust:exact}*{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
 </style>
 </head>
 <body>
@@ -621,7 +694,7 @@ if (-not (Test-IsAdministrator)) {
     exit
 }
 
-$script:ReportSession = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'ActiveDirectory'
+$script:ReportSession = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'diagnostico-ad'
 $script:TextReportPath = Join-Path $script:ReportSession.Path 'diagnostico-ad-cliente.txt'
 $script:HtmlReportPath = Join-Path $script:ReportSession.Path 'diagnostico-ad-cliente.html'
 

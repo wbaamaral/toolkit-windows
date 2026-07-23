@@ -21,6 +21,7 @@ Export-ModuleMember -Function @(
     'Test-UdpPortConnectivity',
     'Test-LocalTcpListener',
     'Test-LocalUdpListener',
+    'Test-DownloadSpeed',
     'New-ConnectivityTestPlan',
     'Invoke-ConnectivityTest',
     'Invoke-ConnectivityWizard',

@@ -152,7 +152,7 @@ Import-Module $MaintenanceModulePath -Force -ErrorAction Stop
 
 # WBA-DOCS: Category=Maintenance; Related=limpar-winsxs.ps1; Manual=Limpeza de arquivos temporarios e logs do Windows
 
-$ScriptVersion = "v1.0"
+$ScriptVersion = 'v1.0.0'
 $ScriptName    = $MyInvocation.MyCommand.Name
 $ScriptPath    = $PSCommandPath
 $ScriptDir     = $PSScriptRoot
@@ -245,7 +245,7 @@ if (-not (Test-IsAdministrator)) {
     exit
 }
 
-$ReportSession = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'Maintenance'
+$ReportSession = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'limpeza'
 $LogDir = $ReportSession.LogsPath
 $LogFile = Join-Path $LogDir "$((Get-Date).ToString('yyyy-MM-dd_HHmmss'))-$([System.IO.Path]::GetFileNameWithoutExtension($ScriptName)).log"
 

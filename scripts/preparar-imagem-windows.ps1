@@ -80,7 +80,7 @@ else {
 $ScriptPath = $PSCommandPath
 $ScriptDir  = $PSScriptRoot
 
-$ScriptVersion       = 'v1.0'
+$ScriptVersion = 'v1.0.0'
 $ToolkitRoot         = Split-Path -Parent $PSScriptRoot
 $coreModulePath      = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
 $maintenancePath     = Join-Path $ToolkitRoot 'modules/WbaToolkit.Maintenance/WbaToolkit.Maintenance.psd1'
@@ -183,7 +183,7 @@ if ($ApenasDryRun) {
 }
 
 $script:Session = Initialize-ScriptSession `
-    -ModuleName 'WbaToolkit.Maintenance' `
+    -ModuleName 'preparar-imagem' `
     -BasePath $Path `
     -ExecutionMode 'Preparacao'
 

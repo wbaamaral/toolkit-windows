@@ -101,7 +101,7 @@ else {
 $ScriptPath = $PSCommandPath
 $ScriptDir  = $PSScriptRoot
 
-$ScriptVersion = 'v1.0'
+$ScriptVersion = 'v1.0.0'
 $ToolkitRoot   = Split-Path -Parent $PSScriptRoot
 $CoreModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
 Import-Module $CoreModulePath -Force -ErrorAction Stop
@@ -565,7 +565,7 @@ if (-not (Test-IsAdministrator)) {
 
 $transcriptActive = $false
 if (-not $NoLog) {
-    $script:Session = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'Utilities'
+    $script:Session = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'utilidades'
     $LogDir         = $script:Session.LogsPath
     $LogFile        = Join-Path $LogDir "$((Get-Date).ToString('yyyy-MM-dd_HHmmss'))-$([System.IO.Path]::GetFileNameWithoutExtension($ScriptName)).log"
 

@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock — Relatório de Validação do Design System</title>
+<style>
+/* ================================================================
+   CSS compilado de tools/tailwind/input.css (versão de teste)
+   Para validação visual — não inclui fontes base64 completas
+   ================================================================ */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Inter Regular'), local('Segoe UI'), local('sans-serif');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Inter Bold'), local('Segoe UI Bold'), local('sans-serif');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('JetBrains Mono Regular'), local('Consolas'), local('monospace');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('JetBrains Mono Bold'), local('Consolas Bold'), local('monospace');
+}
+
+:root {
+  --primary: #1e3a5f;
+  --primary-lt: #2d5986;
+  --accent: #2563eb;
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --bg: #f0f4f8;
+  --surface: #ffffff;
+  --border: #e2e8f0;
+  --text: #1e293b;
+  --muted: #64748b;
+  --radius: 8px;
+  --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Consolas', ui-monospace, monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--font-sans); background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+
+/* Header */
+header {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-lt) 100%);
+  color: white; padding: 2rem 2.5rem;
+  display: flex; justify-content: space-between; align-items: flex-end;
+  flex-wrap: wrap; gap: 1rem;
+}
+header .title-block h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+header .title-block p  { opacity: .75; font-size: .85rem; margin-top: .25rem; }
+header .meta-block     { text-align: right; font-size: .8rem; opacity: .8; line-height: 1.8; }
+
+/* Nav */
+nav {
+  background: var(--surface); border-bottom: 2px solid var(--accent);
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  overflow-x: auto; white-space: nowrap;
+}
+nav a {
+  display: inline-block; padding: .65rem 1rem;
+  color: var(--primary); text-decoration: none;
+  font-size: .8rem; font-weight: 600;
+  border-bottom: 2px solid transparent; transition: color .15s, border-color .15s;
+}
+nav a:hover { color: var(--accent); border-color: var(--accent); }
+
+/* Layout */
+main { max-width: 1400px; margin: 1.5rem auto; padding: 0 1.5rem; }
+
+/* Cards */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.card { background: var(--surface); border-radius: var(--radius); padding: 1.1rem 1.25rem; box-shadow: 0 1px 6px rgba(0,0,0,.07); border-left: 4px solid var(--accent); transition: box-shadow .15s; }
+.card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.12); }
+.card-icon  { font-size: 1.4rem; margin-bottom: .4rem; }
+.card-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+.card-value { font-size: 1.05rem; font-weight: 700; color: var(--primary); margin-top: .2rem; }
+.card-sub   { font-size: .75rem; color: var(--muted); margin-top: .15rem; }
+.card-val   { font-size: 1.5rem; font-weight: 700; color: var(--text); }
+.card-ok    { background: #f0fdf4; border-left-color: var(--success); }
+.card-warn  { background: #fffbeb; border-left-color: var(--warning); }
+.card-danger { background: #fef2f2; border-left-color: var(--danger); }
+
+/* Sections */
+.section { background: var(--surface); border-radius: var(--radius); box-shadow: 0 1px 6px rgba(0,0,0,.07); margin-bottom: 1.25rem; overflow: hidden; }
+.section-hdr { background: var(--primary); color: white; padding: .75rem 1.5rem; font-size: .9rem; font-weight: 700; display: flex; align-items: center; gap: .5rem; }
+.section-body { padding: 1.25rem 1.5rem; }
+
+/* Tables */
+.data-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.data-table thead th { background: #f8fafc; color: var(--primary); font-weight: 700; padding: .55rem 1rem; text-align: left; border-bottom: 2px solid var(--border); white-space: nowrap; }
+.data-table tbody td { padding: .5rem 1rem; border-bottom: 1px solid #f1f5f9; }
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr:hover td { background: #f0f7ff; }
+
+/* KV Table */
+.kv-table { width: 100%; border-collapse: collapse; }
+.kv-table th { width: 220px; font-weight: 600; font-size: .8rem; color: var(--muted); text-align: left; padding: .4rem .75rem .4rem 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+.kv-table td { font-size: .85rem; padding: .4rem 0; border-bottom: 1px solid var(--border); }
+.kv-table tr:last-child th, .kv-table tr:last-child td { border-bottom: none; }
+
+/* Badges */
+.badge { display: inline-block; padding: .15em .55em; border-radius: 4px; font-size: .72rem; font-weight: 700; white-space: nowrap; }
+.badge-green  { background: #dcfce7; color: #15803d; }
+.badge-yellow { background: #fef9c3; color: #92400e; }
+.badge-red    { background: #fee2e2; color: #991b1b; }
+.badge-blue   { background: #dbeafe; color: #1e40af; }
+.badge-gray   { background: #f1f5f9; color: #475569; }
+.badge-ok     { background: #dcfce7; color: #15803d; }
+.badge-warn   { background: #fef9c3; color: #92400e; }
+.badge-danger { background: #fee2e2; color: #991b1b; }
+
+/* Bars */
+.disk-bar  { background: #e2e8f0; border-radius: 4px; height: 10px; overflow: hidden; }
+.disk-fill { height: 100%; border-radius: 4px; transition: width .3s; }
+.bar-ok     { background: var(--success); }
+.bar-warn   { background: var(--warning); }
+.bar-danger { background: var(--danger); }
+
+/* Utilities */
+.sz   { font-weight: 600; color: var(--accent); white-space: nowrap; }
+.pct  { color: var(--muted); font-size: .78rem; }
+.note { font-size: .78rem; color: var(--muted); }
+.mono { font-family: var(--font-mono); font-size: .8rem; word-break: break-all; }
+.muted { color: var(--muted); }
+.small { font-size: .75rem; }
+
+/* Alert / Info */
+.alert { background: #fffbeb; border: 1px solid #fbbf24; border-radius: var(--radius); padding: 1rem; color: #92400e; font-size: .85rem; }
+.info-box { background: #eff6ff; border: 1px solid #93c5fd; border-radius: var(--radius); padding: 1rem; color: #1e40af; font-size: .85rem; }
+
+/* Metric */
+.metric { background: var(--surface); border-radius: var(--radius); padding: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,.05); border: 1px solid var(--border); }
+.metric-value { font-size: 1.5rem; font-weight: 700; color: var(--text); }
+.metric-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-top: .25rem; }
+
+/* Link button */
+.link-btn { display: inline-block; padding: .4rem .75rem; background: var(--accent); color: white; font-size: .75rem; font-weight: 600; border-radius: 4px; text-decoration: none; transition: background .15s; }
+.link-btn:hover { background: #1d4ed8; }
+
+/* Footer */
+footer { text-align: center; color: var(--muted); font-size: .78rem; padding: 1.5rem; margin-top: .5rem; }
+
+/* Print */
+@page { size: A4; margin: 1.2cm 1.5cm; }
+@media print {
+  body { background: white; font-size: 11px; }
+  nav { display: none; }
+  .section { box-shadow: none; border: 1px solid var(--border); break-inside: avoid; margin-bottom: .75rem; }
+  header, .section-hdr { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+
+<!-- ==================== HEADER ==================== -->
+<header>
+  <div class="title-block">
+    <h1>&#128187; Mock de Validação — Design System</h1>
+    <p>WBA Windows Toolkit — Todos os componentes visuais em uma página</p>
+  </div>
+  <div class="meta-block">
+    <div><strong>MOCK-VALIDATION</strong></div>
+    <div>Gerado em: 22/07/2026</div>
+    <div>Versão: design-system-v1</div>
+    <div>Fontes: Inter + JetBrains Mono</div>
+  </div>
+</header>
+
+<!-- ==================== NAV ==================== -->
+<nav>
+  <a href="#cards">&#128202; Cards</a>
+  <a href="#sections">&#128196; Secoes</a>
+  <a href="#tables">&#128203; Tabelas</a>
+  <a href="#badges">&#127919; Badges</a>
+  <a href="#bars">&#128200; Barras</a>
+  <a href="#alerts">&#9888; Alertas</a>
+  <a href="#fonts">&#9997; Fontes</a>
+</nav>
+
+<!-- ==================== MAIN ==================== -->
+<main>
+
+<!-- ===== CARDS DE RESUMO ===== -->
+<div class="cards" id="cards">
+  <div class="card">
+    <div class="card-icon">&#128190;</div>
+    <div class="card-label">Espaco Total</div>
+    <div class="card-value">476,94 GB</div>
+    <div class="card-sub">2 volume(s)</div>
+  </div>
+  <div class="card" style="border-left-color: var(--success)">
+    <div class="card-icon">&#9989;</div>
+    <div class="card-label">Espaco Livre</div>
+    <div class="card-value" style="color: var(--success)">184,21 GB</div>
+    <div class="card-sub">39% livre</div>
+  </div>
+  <div class="card" style="border-left-color: var(--danger)">
+    <div class="card-icon">&#9888;</div>
+    <div class="card-label">Espaco Usado</div>
+    <div class="card-value" style="color: var(--danger)">292,73 GB</div>
+    <div class="card-sub">61% ocupado</div>
+  </div>
+  <div class="card" style="border-left-color: var(--warning)">
+    <div class="card-icon">&#128465;</div>
+    <div class="card-label">Desperdicio</div>
+    <div class="card-value" style="color: var(--warning)">12,38 GB</div>
+    <div class="card-sub">5 categorias</div>
+  </div>
+  <div class="card card-ok">
+    <div class="card-icon">&#9989;</div>
+    <div class="card-label">Status Geral</div>
+    <div class="card-value" style="color: var(--success)">Saudavel</div>
+    <div class="card-sub">Nenhum critico</div>
+  </div>
+  <div class="card card-warn">
+    <div class="card-icon">&#9888;</div>
+    <div class="card-label">Atencao</div>
+    <div class="card-value" style="color: var(--warning)">2 itens</div>
+    <div class="card-sub">Revisar em 30 dias</div>
+  </div>
+  <div class="card card-danger">
+    <div class="card-icon">&#10060;</div>
+    <div class="card-label">Critico</div>
+    <div class="card-value" style="color: var(--danger)">0 itens</div>
+    <div class="card-sub">Tudo OK</div>
+  </div>
+</div>
+
+<!-- ===== SECOES ===== -->
+<div class="section" id="sections">
+  <div class="section-hdr">&#128196; Secao de Exemplo — Propriedades</div>
+  <div class="section-body">
+    <table class="kv-table">
+      <tr><th>Computador</th><td><strong>DESKTOP-TEST</strong></td></tr>
+      <tr><th>Sistema Operacional</th><td>Windows 10 Pro 22H2</td></tr>
+      <tr><th>Processador</th><td>Intel Core i7-12700K</td></tr>
+      <tr><th>Memoria RAM</th><td>32,0 GB DDR5</td></tr>
+      <tr><th>Ultimo Boot</th><td>22/07/2026 08:15</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ===== TABELAS ===== -->
+<div class="section" id="tables">
+  <div class="section-hdr">&#128203; Tabela de Dados — Top Pastas</div>
+  <div class="section-body">
+    <div style="overflow-x: auto">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Tamanho</th>
+          <th>% Disco</th>
+          <th>Barra</th>
+          <th>Estado</th>
+          <th>Caminho</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td class="sz">15,2 GB</td>
+          <td class="pct">3,2%</td>
+          <td><div class="disk-bar" style="width:100px;display:inline-block"><div class="disk-fill bar-danger" style="width:100%"></div></div></td>
+          <td><span class="badge badge-red">Grande</span></td>
+          <td class="mono">C:\Windows\WinSxS</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td class="sz">8,7 GB</td>
+          <td class="pct">1,8%</td>
+          <td><div class="disk-bar" style="width:100px;display:inline-block"><div class="disk-fill bar-warn" style="width:57%"></div></div></td>
+          <td><span class="badge badge-yellow">Medio</span></td>
+          <td class="mono">C:\Users\dev0\AppData\Local</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td class="sz">4,1 GB</td>
+          <td class="pct">0,9%</td>
+          <td><div class="disk-bar" style="width:100px;display:inline-block"><div class="disk-fill bar-ok" style="width:27%"></div></div></td>
+          <td><span class="badge badge-green">Normal</span></td>
+          <td class="mono">C:\Program Files\Microsoft Office</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td class="sz">2,3 GB</td>
+          <td class="pct">0,5%</td>
+          <td><div class="disk-bar" style="width:100px;display:inline-block"><div class="disk-fill bar-ok" style="width:15%"></div></div></td>
+          <td><span class="badge badge-green">Normal</span></td>
+          <td class="mono">C:\ProgramData\chocolatey</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td class="sz">1,8 GB</td>
+          <td class="pct">0,4%</td>
+          <td><div class="disk-bar" style="width:100px;display:inline-block"><div class="disk-fill bar-ok" style="width:12%"></div></div></td>
+          <td><span class="badge badge-blue">Oculto</span></td>
+          <td class="mono">C:\$Recycle.Bin</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== BADGES ===== -->
+<div class="section" id="badges">
+  <div class="section-hdr">&#127919; Paleta de Badges</div>
+  <div class="section-body">
+    <p class="note" style="margin-bottom: 1rem">Todas as variantes de badges disponíveis no design system:</p>
+    <div style="display: flex; gap: .5rem; flex-wrap: wrap; align-items: center;">
+      <span class="badge badge-green">badge-green</span>
+      <span class="badge badge-yellow">badge-yellow</span>
+      <span class="badge badge-red">badge-red</span>
+      <span class="badge badge-blue">badge-blue</span>
+      <span class="badge badge-gray">badge-gray</span>
+      <span class="badge badge-ok">badge-ok</span>
+      <span class="badge badge-warn">badge-warn</span>
+      <span class="badge badge-danger">badge-danger</span>
+    </div>
+    <p class="note" style="margin-top: 1rem">Uso em contexto:</p>
+    <div style="display: flex; gap: .5rem; flex-wrap: wrap; align-items: center;">
+      <span class="badge badge-green">&#9989; Sucesso</span>
+      <span class="badge badge-yellow">&#9888; Atencao</span>
+      <span class="badge badge-red">&#10060; Falha</span>
+      <span class="badge badge-blue">&#128274; Protegido</span>
+      <span class="badge badge-gray">&#8212; N/A</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== BARRAS DE DISCO ===== -->
+<div class="section" id="bars">
+  <div class="section-hdr">&#128200; Barras de Progresso</div>
+  <div class="section-body">
+    <div style="display: grid; gap: 1.5rem;">
+      <div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: .25rem;">
+          <span class="note">Volume C: — 61% ocupado</span>
+          <span class="sz">292,73 GB / 476,94 GB</span>
+        </div>
+        <div class="disk-bar"><div class="disk-fill bar-warn" style="width: 61%"></div></div>
+      </div>
+      <div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: .25rem;">
+          <span class="note">Volume D: — 23% ocupado</span>
+          <span class="sz">46,00 GB / 200,00 GB</span>
+        </div>
+        <div class="disk-bar"><div class="disk-fill bar-ok" style="width: 23%"></div></div>
+      </div>
+      <div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: .25rem;">
+          <span class="note">Volume E: — 92% ocupado</span>
+          <span class="sz">460,00 GB / 500,00 GB</span>
+        </div>
+        <div class="disk-bar"><div class="disk-fill bar-danger" style="width: 92%"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ALERTAS ===== -->
+<div class="section" id="alerts">
+  <div class="section-hdr">&#9888; Alertas e Callouts</div>
+  <div class="section-body">
+    <div class="alert" style="margin-bottom: 1rem;">
+      <strong>&#9888; Atencao:</strong> Reboot pendente detectado. Algumas atualizacoes podem falhar ate que a maquina seja reiniciada.
+    </div>
+    <div class="info-box">
+      <strong>&#8505; Informacao:</strong> Este relatorio e somente leitura. Nenhuma alteracao foi realizada no sistema.
+    </div>
+  </div>
+</div>
+
+<!-- ===== FONTES ===== -->
+<div class="section" id="fonts">
+  <div class="section-hdr">&#9997; Amostra de Fontes</div>
+  <div class="section-body">
+    <h3 style="margin-bottom: .5rem; font-size: 1rem;">Inter — Fonte Corpo (Sans-serif)</h3>
+    <p style="margin-bottom: 1rem;">
+      <strong>Bold:</strong> A B C D E F G H I J K L M N O P Q R S T U V W X Y Z<br>
+      <strong>Regular:</strong> a b c d e f g h i j k l m n o p q r s t u v w x y z<br>
+      <strong>Numeros:</strong> 0 1 2 3 4 5 6 7 8 9<br>
+      <strong>Acentos PT-BR:</strong> a a a a a a e e e i i o o o u u c c n y<br>
+      <strong>Especiais:</strong> @ # $ % & * ( ) [ ] { } / \ | - _ + = ~ ^ ` ' " . , ; : ! ?
+    </p>
+    
+    <h3 style="margin-bottom: .5rem; font-size: 1rem;">JetBrains Mono — Fonte Codigo (Monospace)</h3>
+    <p class="mono" style="margin-bottom: 1rem;">
+      <strong>Regular:</strong> C:\Users\dev0\AppData\Local\Temp\logfile_2026-07-22.log<br>
+      <strong>Path:</strong> \\192.168.5.101\shared\documents\relatorio.pdf<br>
+      <strong>Code:</strong> Get-Process | Where-Object { $_.CPU -gt 100 }<br>
+      <strong>Numbers:</strong> 0Oo lI1| 5Ss 2Zz 8B<br>
+      <strong>Symbols:</strong> => >= <= <> != == === !== && || ?? ??=
+    </p>
+
+    <h3 style="margin-bottom: .5rem; font-size: 1rem;">Comparacao de Tamanhos</h3>
+    <div style="display: grid; gap: .5rem;">
+      <div><span class="small">small (0.75rem)</span> — Texto reduzido para notas de rodape</div>
+      <div><span style="font-size: .82rem;">data-table (0.82rem)</span> — Tamanho padrao de tabelas</div>
+      <div><span style="font-size: .85rem;">body (0.85rem)</span> — Texto corpo do relatorio</div>
+      <div><span style="font-size: 1rem;">default (1rem)</span> — Texto normal</div>
+      <div><span style="font-size: 1.05rem; font-weight: 700;">card-value (1.05rem bold)</span> — Valores em cards</div>
+      <div><span style="font-size: 1.5rem; font-weight: 700;">section-hdr (1.5rem bold)</span> — Titulos de secao</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== METRICAS ===== -->
+<div class="section" id="metrics">
+  <div class="section-hdr">&#128200; Metricas</div>
+  <div class="section-body">
+    <div class="cards">
+      <div class="metric">
+        <div class="metric-value">184</div>
+        <div class="metric-label">Pastas Varridas</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value">1.247</div>
+        <div class="metric-label">Arquivos Encontrados</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value">12,38 GB</div>
+        <div class="metric-label">Desperdicio Estimado</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value">23s</div>
+        <div class="metric-label">Tempo de Varredura</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== UTILITARIOS ===== -->
+<div class="section">
+  <div class="section-hdr">&#128295; Utilitarios de Texto</div>
+  <div class="section-body">
+    <div style="display: grid; gap: .5rem;">
+      <div><span class="sz">sz — Valor destacado em azul</span></div>
+      <div><span class="pct">pct — Percentual em cinza</span></div>
+      <div><span class="note">note — Nota informativa pequena</span></div>
+      <div><span class="muted">muted — Texto reduzido</span></div>
+      <div><span class="mono">mono — Fonte monoespaçada para código</span></div>
+      <div><span class="small">small — Texto pequeno</span></div>
+      <div style="text-align: right;"><span class="right">right — Alinhado à direita</span></div>
+      <div><span class="nowrap">nowrap — Texto que não quebra linha nowrap nowrap nowrap nowrap</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== LINK BUTTON ===== -->
+<div class="section">
+  <div class="section-hdr">&#128279; Acoes</div>
+  <div class="section-body">
+    <div style="display: flex; gap: .75rem; flex-wrap: wrap;">
+      <a href="#" class="link-btn">Abrir Relatorio</a>
+      <a href="#" class="link-btn" style="background: var(--success);">Exportar PDF</a>
+      <a href="#" class="link-btn" style="background: var(--muted);">Cancelar</a>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- ==================== FOOTER ==================== -->
+<footer>
+  <p>Mock de validação do Design System — WBA Windows Toolkit</p>
+  <p>Fontes: Inter v4.1 (OFL-1.1) + JetBrains Mono v2.304 (OFL-1.1)</p>
+  <p>Gerado em 22/07/2026 — Todos os componentes visuais em uma única página</p>
+</footer>
+
+</body>
+</html>

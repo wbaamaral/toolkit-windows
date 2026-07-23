@@ -1,6 +1,6 @@
 ﻿@{
     RootModule        = 'WbaToolkit.Core.psm1'
-    ModuleVersion     = '2.0.3'
+    ModuleVersion     = '1.0.0'
     GUID              = '6b7a86d1-0d50-4d3a-88f3-25ad0f0f58bc'
     Author            = 'wbaamaral'
     CompanyName       = 'wbaamaral'
@@ -32,7 +32,12 @@
         'Initialize-ToolkitReportSession',
         'Export-ToolkitFunctionDocs',
         'Export-ToolkitDocumentation',
-        'New-ToolkitElevationCommand'
+        'New-ToolkitElevationCommand',
+        'Get-ReportLogoBase64',
+        'New-ToolkitHtmlReport',
+        'Get-FileHashSha256',
+        'New-ToolkitArchive',
+        'Show-Spinner'
     )
     CmdletsToExport   = @()
     VariablesToExport = @()

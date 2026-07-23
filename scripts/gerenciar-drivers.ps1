@@ -54,8 +54,11 @@ param(
     [Alias('DiretorioSaida')]
     [string]$Path,
 
+    [switch]$PacoteBackup,
+
     [switch]$Help
 )
+    [switch]$Version
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::InputEncoding  = [System.Text.Encoding]::UTF8
@@ -77,7 +80,7 @@ else {
 $ScriptPath = $PSCommandPath
 $ScriptDir  = $PSScriptRoot
 
-$ScriptVersion = 'v1.0'
+$ScriptVersion = 'v1.0.0'
 $ToolkitRoot   = Split-Path -Parent $PSScriptRoot
 
 $coreModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
@@ -121,12 +124,14 @@ function Show-Help {
     Write-Host "  -Modo <Backup|Restore>  Operacao a executar. Padrao: Backup."
     Write-Host "  -DryRun            Simula sem executar pnputil; exibe o que seria feito."
     Write-Host "  -GerarHtml         Gera relatorio HTML alem do TXT."
+    Write-Host "  -PacoteBackup      Cria pacote ZIP com drivers + hash SHA256."
     Write-Host "  -DiretorioSaida '<dir>' Raiz de relatorios/backup. Padrao: config do toolkit ou C:\WBA\Relatorios"
     Write-Host "  -Help              Esta ajuda."
     Write-Host ""
     Write-Host "Exemplos:"
     Write-Host "  .\$script:ScriptName"
     Write-Host "  .\$script:ScriptName -DryRun"
+    Write-Host "  .\$script:ScriptName -PacoteBackup"
     Write-Host "  .\$script:ScriptName -Modo Restore -GerarHtml"
     Write-Host ""
 }
@@ -372,7 +377,7 @@ function Read-DriverSelection {
     )
 
     Write-Host "Selecionar drivers para $ActionLabel" -ForegroundColor White
-    Write-Host '  [numeros]  ex: 1,3,5   Selecionar individualmente' -ForegroundColor Gray
+    Write-Host '  [numeros]  ex: 1,3,5   ou  1,7,18-20   Selecionar individualmente' -ForegroundColor Gray
     Write-Host '  [T]                    Todos' -ForegroundColor Gray
     Write-Host '  [N]                    Cancelar' -ForegroundColor Gray
     Write-Host ''
@@ -391,22 +396,45 @@ function Read-DriverSelection {
             $part = $part.Trim()
             if ($part -eq '') { continue }
 
-            $num = 0
-            if (-not [int]::TryParse($part, [ref]$num)) {
-                Write-Warn "Entrada invalida: '$part'. Use numeros separados por virgula, T ou N."
-                $valid = $false
-                break
+            # Suportar intervalos: 18-20 expande para 18,19,20
+            if ($part -match '^(\d+)-(\d+)$') {
+                $rangeStart = [int]$Matches[1]
+                $rangeEnd   = [int]$Matches[2]
+
+                if ($rangeStart -gt $rangeEnd) {
+                    Write-Warn "Intervalo invalido: $part (inicio > fim)."
+                    $valid = $false
+                    break
+                }
+                if ($rangeStart -lt 1 -or $rangeEnd -gt $Drivers.Count) {
+                    Write-Warn "Intervalo fora do alcance: $part (1 a $($Drivers.Count))."
+                    $valid = $false
+                    break
+                }
+
+                for ($i = $rangeStart; $i -le $rangeEnd; $i++) {
+                    $null = $selected.Add($Drivers[$i - 1])
+                }
             }
-            if ($num -lt 1 -or $num -gt $Drivers.Count) {
-                Write-Warn "Numero fora do intervalo: $num (1 a $($Drivers.Count))."
-                $valid = $false
-                break
+            else {
+                # Numero individual
+                $num = 0
+                if (-not [int]::TryParse($part, [ref]$num)) {
+                    Write-Warn "Entrada invalida: '$part'. Use numeros, intervalos (ex: 18-20), T ou N."
+                    $valid = $false
+                    break
+                }
+                if ($num -lt 1 -or $num -gt $Drivers.Count) {
+                    Write-Warn "Numero fora do intervalo: $num (1 a $($Drivers.Count))."
+                    $valid = $false
+                    break
+                }
+                $null = $selected.Add($Drivers[$num - 1])
             }
-            $null = $selected.Add($Drivers[$num - 1])
         }
 
         if ($valid -and $selected.Count -gt 0) { return @($selected) }
-        if ($valid -and $selected.Count -eq 0) { Write-Warn 'Nenhum driver selecionado. Digite numeros, T ou N.' }
+        if ($valid -and $selected.Count -eq 0) { Write-Warn 'Nenhum driver selecionado. Digite numeros, intervalos, T ou N.' }
     }
 }
 
@@ -653,6 +681,10 @@ function New-DrvTextReport {
     if ($Snapshot.Modo -eq 'Backup') {
         $lines.Add("BACKUP — $($Snapshot.SelectedCount) de $($Snapshot.TotalFound) drivers exportados")
         $lines.Add("Pasta  : $($Snapshot.BackupPath)")
+        if ($Snapshot.ZipPath) {
+            $lines.Add("Pacote : $($Snapshot.ZipPath)")
+            $lines.Add("Hash   : $($Snapshot.ZipHash)")
+        }
     }
     else {
         $lines.Add("RESTORE — $($Snapshot.SelectedCount) de $($Snapshot.TotalFound) drivers processados")
@@ -690,22 +722,21 @@ function New-DrvHtmlReport {
         [Parameter(Mandatory = $true)][string]$OutPath
     )
 
-    $sb = [System.Text.StringBuilder]::new()
-    foreach ($r in $Snapshot.Results) {
+    # Status das linhas da tabela
+    $rowHtml = foreach ($r in $Snapshot.Results) {
         $device = if ($r.Driver.DeviceNames -and $r.Driver.DeviceNames.Count -gt 0) {
             ConvertTo-HtmlSafe -Value $r.Driver.DeviceNames[0]
         } else { '-' }
 
-        $rowClass = switch ($r.Status) {
-            'OK'      { 'ok' }
-            'Falha'   { 'fail' }
-            'DryRun'  { 'dryrun' }
-            default   { 'ignored' }
+        $badgeClass = switch ($r.Status) {
+            'OK'      { 'badge-green' }
+            'Falha'   { 'badge-red' }
+            'DryRun'  { 'badge-yellow' }
+            default   { 'badge-gray' }
         }
 
-        $null = $sb.AppendLine((
-            '<tr class="{0}"><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td><td>{5}</td><td>{6}</td><td>{7}</td></tr>' -f
-            $rowClass,
+        '<tr><td><span class="badge {0}">{1}</span></td><td>{2}</td><td>{3}</td><td>{4}</td><td>{5}</td><td class="mono">{6}</td><td class="mono">{7}</td></tr>' -f
+            $badgeClass,
             (ConvertTo-HtmlSafe -Value $r.Status),
             (ConvertTo-HtmlSafe -Value $r.Driver.ClassName),
             (ConvertTo-HtmlSafe -Value $r.Driver.Provider),
@@ -713,45 +744,97 @@ function New-DrvHtmlReport {
             (ConvertTo-HtmlSafe -Value $r.Driver.Date),
             $device,
             (ConvertTo-HtmlSafe -Value $r.Driver.InfOriginal)
-        ))
     }
 
-    $html = @"
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<title>WBA - Backup de Drivers</title>
-<style>
-body { font-family: Arial, sans-serif; font-size: 13px; margin: 20px; color: #222; }
-h1 { color: #005a9e; border-bottom: 2px solid #005a9e; padding-bottom: 4px; }
-.meta { background: #f0f4f8; padding: 12px 16px; border-radius: 4px; margin-bottom: 16px; font-size: 12px; }
-table { border-collapse: collapse; width: 100%; margin-top: 12px; }
-th { background: #005a9e; color: #fff; padding: 7px 10px; text-align: left; font-size: 12px; }
-td { padding: 5px 10px; border-bottom: 1px solid #ddd; font-size: 12px; }
-tr.ok td { background: #e8f5e9; }
-tr.fail td { background: #ffebee; }
-tr.dryrun td { background: #fff9c4; }
-tr.ignored td { background: #f5f5f5; color: #888; }
-@media print { body { margin: 0; } .meta { page-break-inside: avoid; } }
-</style>
-</head>
-<body>
-<h1>WBA Windows Toolkit — Backup e Restauracao de Drivers</h1>
-<div class="meta">
-  <b>Modo:</b> $($Snapshot.Modo) &nbsp;&nbsp;
-  <b>Data:</b> $($Snapshot.StartedAt) &nbsp;&nbsp;
-  <b>Host:</b> $($Snapshot.ComputerName) &nbsp;&nbsp;
-  <b>DryRun:</b> $($Snapshot.DryRun) &nbsp;&nbsp;
-  <b>Selecionados:</b> $($Snapshot.SelectedCount) de $($Snapshot.TotalFound)
-</div>
-<table>
-<tr><th>Status</th><th>Classe</th><th>Provider</th><th>Versao</th><th>Data</th><th>Dispositivo</th><th>INF</th></tr>
-$($sb.ToString())
-</table>
-</body>
-</html>
+    # Resumo para cards
+    $okCount     = @($Snapshot.Results | Where-Object { $_.Status -eq 'OK' }).Count
+    $failCount   = @($Snapshot.Results | Where-Object { $_.Status -eq 'Falha' }).Count
+    $dryrunCount = @($Snapshot.Results | Where-Object { $_.Status -eq 'DryRun' }).Count
+
+    # Montar corpo HTML
+    $bodyHtml = @"
+  <div class="cards">
+    <div class="card">
+      <div class="card-icon">&#128187;</div>
+      <div class="card-label">Computador</div>
+      <div class="card-value">$($Snapshot.ComputerName)</div>
+      <div class="card-sub">Host de origem</div>
+    </div>
+    <div class="card" style="border-left-color:var(--accent)">
+      <div class="card-icon">&#128230;</div>
+      <div class="card-label">Total Encontrados</div>
+      <div class="card-value">$($Snapshot.TotalFound)</div>
+      <div class="card-sub">drivers no sistema</div>
+    </div>
+    <div class="card card-ok">
+      <div class="card-icon">&#9989;</div>
+      <div class="card-label">OK</div>
+      <div class="card-value" style="color:var(--success)">$okCount</div>
+      <div class="card-sub">copiados com sucesso</div>
+    </div>
+    <div class="card card-danger">
+      <div class="card-icon">&#10060;</div>
+      <div class="card-label">Falhas</div>
+      <div class="card-value" style="color:var(--danger)">$failCount</div>
+      <div class="card-sub">erros na copia</div>
+    </div>
+    <div class="card" style="border-left-color:var(--warning)">
+      <div class="card-icon">&#128260;</div>
+      <div class="card-label">DryRun</div>
+      <div class="card-value" style="color:var(--warning)">$dryrunCount</div>
+      <div class="card-sub">simulados</div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-hdr">&#128187; Detalhes da Operacao</div>
+    <div class="section-body">
+      <table class="kv-table">
+        <tr><th>Modo</th><td>$($Snapshot.Modo)</td></tr>
+        <tr><th>Data/Hora</th><td>$($Snapshot.StartedAt)</td></tr>
+        <tr><th>Host</th><td>$($Snapshot.ComputerName)</td></tr>
+        <tr><th>DryRun</th><td>$($Snapshot.DryRun)</td></tr>
+        <tr><th>Selecionados</th><td>$($Snapshot.SelectedCount) de $($Snapshot.TotalFound)</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-hdr">&#128203; Drivers Processados</div>
+    <div class="section-body">
+      <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead><tr><th>Status</th><th>Classe</th><th>Provider</th><th>Versao</th><th>Data</th><th>Dispositivo</th><th>INF</th></tr></thead>
+        <tbody>$($rowHtml -join "`n")</tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-hdr">&#128193; Localizacao do Backup</div>
+    <div class="section-body">
+      <table class="kv-table">
+        <tr><th>Arquivos soltos</th><td class="mono">$($Snapshot.BackupPath)</td></tr>
+        $(if ($Snapshot.ZipPath) {
+        "<tr><th>Pacote ZIP</th><td class='mono'>$($Snapshot.ZipPath)</td></tr>"
+        "<tr><th>Hash SHA256</th><td class='mono'>$($Snapshot.ZipHash)</td></tr>"
+        })
+      </table>
+    </div>
+  </div>
 "@
+
+    # Gerar HTML usando template padronizado
+    $html = New-ToolkitHtmlReport -Title "Backup e Restauracao de Drivers" `
+        -Subtitle "$($Snapshot.Modo) — $($Snapshot.ComputerName)" `
+        -Icon "&#128187;" `
+        -MetaRight @(
+            "Modo: $($Snapshot.Modo)",
+            "Data: $($Snapshot.StartedAt)",
+            "Host: $($Snapshot.ComputerName)",
+            "DryRun: $($Snapshot.DryRun)",
+            "Selecionados: $($Snapshot.SelectedCount) de $($Snapshot.TotalFound)"
+        ) `
+        -Body $bodyHtml `
+        -FooterText "Gerado por WBA Windows Toolkit em $($Snapshot.StartedAt)"
 
     [System.IO.File]::WriteAllText(
         $OutPath,
@@ -765,6 +848,7 @@ $($sb.ToString())
 # ─── execucao principal ───────────────────────────────────────────────────────
 
 if ($Help) { Show-Help; exit 0 }
+if ($Version) { Write-Host "Script: $ScriptName — $ScriptVersion" -ForegroundColor Green; exit 0 }
 
 Write-Title "WBA Windows Toolkit - Backup e Restauracao de Drivers $ScriptVersion"
 
@@ -781,7 +865,7 @@ if (-not (Test-IsAdministrator)) {
     return
 }
 
-$script:Session = Initialize-ToolkitReportSession -ModuleName 'WbaToolkit.Maintenance' -ReportsRoot $Path
+$script:Session = Initialize-ToolkitReportSession -ModuleName 'drivers' -ReportsRoot $Path -CreateBackups
 $script:LogPath = Join-Path $script:Session.LogsPath 'drivers.log'
 
 $transcriptPath = Join-Path $script:Session.LogsPath 'drivers-transcript.log'
@@ -794,6 +878,8 @@ $startTime   = Get-Date
 $results     = @()
 $totalFound  = 0
 $backupPath  = $script:Session.Path
+$zipPath     = $null
+$zipHash     = $null
 
 # ─── modo backup ──────────────────────────────────────────────────────────────
 
@@ -835,6 +921,42 @@ if ($Modo -eq 'Backup') {
     Write-Info "Metadados: $metaPath"
 
     $backupPath = $script:Session.Path
+
+    # ─── Empacotamento ZIP + SHA256 ──────────────────────────────────────────
+    if ($PacoteBackup -and -not $DryRun) {
+        Write-DrvSection 'Empacotando backup em ZIP'
+
+        # Gerar nome do pacote: drv_hostname-ddmmyyyy-vxx.zip
+        $hostname  = $env:COMPUTERNAME.ToLower()
+        $dateStr   = Get-Date -Format 'ddMMyyyy'
+        $baseName  = "drv_$hostname-$dateStr"
+
+        # Determinar versao (v01, v02, ...)
+        $version = 1
+        $reportsRoot = if (-not [string]::IsNullOrEmpty($Path)) { $Path } else { Get-ToolkitReportsRoot }
+        $existingPackages = Get-ChildItem -Path $reportsRoot -Filter "$baseName-v*.zip" -ErrorAction SilentlyContinue |
+            Sort-Object Name -Descending | Select-Object -First 1
+
+        if ($existingPackages) {
+            if ($existingPackages.Name -match 'v(\d+)\.zip$') {
+                $version = [int]$Matches[1] + 1
+            }
+        }
+
+        $versionStr = "v{0:D2}" -f $version
+        $zipName    = "$baseName-$versionStr.zip"
+        $zipPath    = Join-Path $reportsRoot $zipName
+
+        # Criar pacote ZIP com hash
+        $archiveResult = New-ToolkitArchive -SourcePath $driversRoot -DestinationPath $zipPath -GenerateHash
+
+        $zipPath = $archiveResult.ZipPath
+        $zipHash = $archiveResult.Hash
+
+        Write-Ok "Pacote ZIP: $($archiveResult.ZipPath) ($($archiveResult.ZipSize) KB)"
+        Write-Ok "Hash SHA256: $($archiveResult.Hash)"
+        Write-DrvLog -Message "Pacote ZIP criado: $($archiveResult.ZipPath) | Hash: $($archiveResult.Hash)"
+    }
 }
 
 # ─── modo restore ─────────────────────────────────────────────────────────────
@@ -906,6 +1028,8 @@ $snapshot = [pscustomobject]@{
     TotalFound    = $totalFound
     SelectedCount = $results.Count
     BackupPath    = $backupPath
+    ZipPath       = $zipPath
+    ZipHash       = $zipHash
     Results       = @($results)
 }
 

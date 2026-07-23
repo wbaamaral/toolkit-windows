@@ -109,7 +109,7 @@ Import-Module $ToolkitModulePath -Force -ErrorAction Stop
 # WBA-DOCS: Category=Configuration; Manual=Configuracao de idioma e regiao do Windows
 
 
-$ScriptVersion = "v1.0"
+$ScriptVersion = 'v1.0.0'
 $ScriptName    = $MyInvocation.MyCommand.Name
 $ScriptPath    = $PSCommandPath
 $ScriptDir     = $PSScriptRoot
@@ -410,7 +410,7 @@ if (-not (Test-IsAdministrator)) {
     exit
 }
 
-$ReportSession = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'Configuration'
+$ReportSession = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'configuracao'
 $LogDir        = $ReportSession.LogsPath
 $LogFile       = Join-Path $LogDir "$((Get-Date).ToString('yyyy-MM-dd_HHmmss'))-$([System.IO.Path]::GetFileNameWithoutExtension($ScriptName)).log"
 

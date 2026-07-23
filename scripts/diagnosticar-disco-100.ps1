@@ -87,6 +87,7 @@ param(
 
     [switch]$Help
 )
+    [switch]$Version
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::InputEncoding  = [System.Text.Encoding]::UTF8
@@ -113,7 +114,7 @@ $ToolkitStartupModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Startup/W
 Import-Module $ToolkitModulePath        -Force -ErrorAction Stop
 Import-Module $ToolkitStartupModulePath -Force -ErrorAction Stop
 
-$ScriptVersion = 'v0.1'
+$ScriptVersion = 'v1.0.0'
 $script:HD100Session = $null
 $script:HD100Changes = [System.Collections.ArrayList]::new()
 
@@ -138,7 +139,7 @@ function Initialize-HD100Session {
         [Parameter(Mandatory = $true)][string]$ExecutionMode
     )
 
-    $s = Initialize-ScriptSession -ModuleName 'HD100' -BasePath $BasePath -ExecutionMode $ExecutionMode
+    $s = Initialize-ScriptSession -ModuleName 'diagnostico-hd100' -BasePath $BasePath -ExecutionMode $ExecutionMode
     $s | Add-Member -MemberType NoteProperty -Name 'TextReportPath'     -Value (Join-Path $s.Path 'relatorio-hd100.txt')
     $s | Add-Member -MemberType NoteProperty -Name 'HtmlReportPath'     -Value (Join-Path $s.Path 'relatorio-hd100.html')
     $s | Add-Member -MemberType NoteProperty -Name 'DiagnosticJsonPath' -Value (Join-Path $s.Path 'diagnostico.json')
@@ -1529,12 +1530,12 @@ function Export-HD100ReportHtml {
         @('Tempo do ultimo boot', $bootDuration),
         @('Eventos criticos', $Diagnostic.Events.CriticalCount)
     ) | ForEach-Object {
-        '<tr class="border-b border-gray-200"><td class="py-2 px-3 font-medium">{0}</td><td class="py-2 px-3">{1}</td></tr>' -f
+        '<tr><th>{0}</th><td>{1}</td></tr>' -f
             (ConvertTo-HtmlSafe -Value $_[0]), (ConvertTo-HtmlSafe -Value $_[1])
     }
 
     $diskRows = @($Diagnostic.DiskHealth.RelevantDisks | Select-Object -First 8 | ForEach-Object {
-        '<tr class="border-b border-gray-200 break-inside-avoid"><td class="py-2 px-3 font-medium">{0}</td><td class="py-2 px-3">{1}</td><td class="py-2 px-3">{2}</td><td class="py-2 px-3 text-right">{3}</td><td class="py-2 px-3">{4}</td><td class="py-2 px-3 text-right">{5}</td><td class="py-2 px-3 text-right">{6}</td></tr>' -f
+        '<tr><td><strong>{0}</strong></td><td>{1}</td><td>{2}</td><td style="text-align:right">{3}</td><td>{4}</td><td style="text-align:right">{5}</td><td style="text-align:right">{6}</td></tr>' -f
             (ConvertTo-HtmlSafe -Value $_.Nome),
             (ConvertTo-HtmlSafe -Value $_.Tipo),
             (ConvertTo-HtmlSafe -Value $_.Barramento),
@@ -1544,7 +1545,7 @@ function Export-HD100ReportHtml {
             (ConvertTo-HtmlSafe -Value $(if ($null -ne $_.TemperaturaC) { "$($_.TemperaturaC) C" } else { 'N/I' }))
     }) -join "`r`n"
     if ([string]::IsNullOrWhiteSpace($diskRows)) {
-        $diskRows = '<tr><td colspan="7" class="py-3 px-4 text-gray-500">Dados detalhados de disco nao disponiveis.</td></tr>'
+        $diskRows = '<tr><td colspan="7" class="muted">Dados detalhados de disco nao disponiveis.</td></tr>'
     }
 
     $healthNotes = @($Diagnostic.DiskHealth.Summary.Notes | Select-Object -First 6 | ForEach-Object {
@@ -1555,9 +1556,9 @@ function Export-HD100ReportHtml {
     }
 
     $startupRows = @($startupItems | Select-Object -First 50 | ForEach-Object {
-        $badgeClass = if ($_.Enabled) { 'bg-green-100 text-green-700' } else { 'bg-gray-200 text-gray-600' }
+        $badgeClass = if ($_.Enabled) { 'badge-green' } else { 'badge-gray' }
         $stateText = if ($_.Enabled) { 'ON' } else { 'OFF' }
-        '<tr class="border-b border-gray-200 break-inside-avoid"><td class="py-2 px-3"><span class="inline-block min-w-12 text-center px-2 py-1 rounded text-xs font-bold {0}">{1}</span></td><td class="py-2 px-3">{2}</td><td class="py-2 px-3">{3}</td><td class="py-2 px-3 font-medium">{4}</td><td class="py-2 px-3 text-xs text-gray-600 break-all">{5}</td></tr>' -f
+        '<tr><td><span class="badge {0}" style="min-width:3rem;text-align:center">{1}</span></td><td>{2}</td><td>{3}</td><td><strong>{4}</strong></td><td class="mono">{5}</td></tr>' -f
             $badgeClass,
             $stateText,
             (ConvertTo-HtmlSafe -Value $_.SourceType),
@@ -1566,11 +1567,11 @@ function Export-HD100ReportHtml {
             (ConvertTo-HtmlSafe -Value $_.Command)
     }) -join "`r`n"
     if ([string]::IsNullOrWhiteSpace($startupRows)) {
-        $startupRows = '<tr><td colspan="5" class="py-3 px-4 text-gray-500">Nenhuma entrada de inicializacao encontrada nas fontes consultadas.</td></tr>'
+        $startupRows = '<tr><td colspan="5" class="muted">Nenhuma entrada de inicializacao encontrada nas fontes consultadas.</td></tr>'
     }
 
     $topRows = @($Diagnostic.TopIOProcesses | Select-Object -First 10 | ForEach-Object {
-        '<tr class="border-b border-gray-200"><td class="py-2 px-3">{0}</td><td class="py-2 px-3">{1}</td><td class="py-2 px-3 text-right">{2}</td></tr>' -f
+        '<tr><td>{0}</td><td>{1}</td><td style="text-align:right">{2}</td></tr>' -f
             (ConvertTo-HtmlSafe -Value $_.Name), (ConvertTo-HtmlSafe -Value $_.Id), (ConvertTo-HtmlSafe -Value $_.IOTotalMB)
     }) -join "`r`n"
 
@@ -1587,7 +1588,7 @@ function Export-HD100ReportHtml {
         [pscustomobject]@{ Nome = 'Logs'; Caminho = $script:HD100Session.LogsPath }
         [pscustomobject]@{ Nome = 'Backups'; Caminho = $script:HD100Session.BackupsPath }
     ) | ForEach-Object {
-        '<tr class="border-b border-gray-200"><td class="py-2 px-3 font-medium">{0}</td><td class="py-2 px-3 text-xs text-gray-600 break-all">{1}</td></tr>' -f
+        '<tr><th>{0}</th><td class="mono">{1}</td></tr>' -f
             (ConvertTo-HtmlSafe -Value $_.Nome),
             (ConvertTo-HtmlSafe -Value $_.Caminho)
     }
@@ -1601,183 +1602,146 @@ function Export-HD100ReportHtml {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Relatorio HD100</title>
     <style>
-        @page { size: A4; margin: 15mm; }
-        * { box-sizing: border-box; }
-        body {
-            margin: 0;
-            background-color: #f3f4f6;
-            color: #1f2937;
-            font-family: Arial, Helvetica, sans-serif;
-            line-height: 1.45;
-        }
-        button {
-            border: 0;
-            cursor: pointer;
-            font: inherit;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            vertical-align: top;
-        }
-        .max-w-4xl { max-width: 56rem; }
-        .mx-auto { margin-left: auto; margin-right: auto; }
-        .mt-1 { margin-top: .25rem; }
-        .mt-2 { margin-top: .5rem; }
-        .mt-6 { margin-top: 1.5rem; }
-        .mt-10 { margin-top: 2.5rem; }
-        .mb-2 { margin-bottom: .5rem; }
-        .mb-3 { margin-bottom: .75rem; }
-        .mb-4 { margin-bottom: 1rem; }
-        .mb-6 { margin-bottom: 1.5rem; }
-        .mb-8 { margin-bottom: 2rem; }
-        .p-4 { padding: 1rem; }
-        .p-10 { padding: 2.5rem; }
-        .px-2 { padding-left: .5rem; padding-right: .5rem; }
-        .px-3 { padding-left: .75rem; padding-right: .75rem; }
-        .px-4 { padding-left: 1rem; padding-right: 1rem; }
-        .py-1 { padding-top: .25rem; padding-bottom: .25rem; }
-        .py-2 { padding-top: .5rem; padding-bottom: .5rem; }
-        .py-3 { padding-top: .75rem; padding-bottom: .75rem; }
-        .pt-4 { padding-top: 1rem; }
-        .pb-4 { padding-bottom: 1rem; }
-        .pl-6 { padding-left: 1.5rem; }
-        .flex { display: flex; }
-        .inline-block { display: inline-block; }
-        .justify-between { justify-content: space-between; }
-        .items-center { align-items: center; }
-        .items-end { align-items: flex-end; }
-        .w-full { width: 100%; }
-        .h-4 { height: 1rem; }
-        .min-w-12 { min-width: 3rem; }
-        .overflow-hidden { overflow: hidden; }
-        .break-all { word-break: break-all; }
-        .break-inside-avoid { break-inside: avoid; page-break-inside: avoid; }
-        .text-left { text-align: left; }
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
-        .text-xs { font-size: .75rem; }
-        .text-sm { font-size: .875rem; }
-        .text-xl { font-size: 1.25rem; }
-        .text-2xl { font-size: 1.5rem; }
-        .text-3xl { font-size: 1.875rem; }
-        .font-sans { font-family: Arial, Helvetica, sans-serif; }
-        .font-medium { font-weight: 500; }
-        .font-semibold { font-weight: 600; }
-        .font-bold { font-weight: 700; }
-        .uppercase { text-transform: uppercase; }
-        .text-white { color: #fff; }
-        .text-gray-500 { color: #6b7280; }
-        .text-gray-600 { color: #4b5563; }
-        .text-gray-700 { color: #374151; }
-        .text-gray-800 { color: #1f2937; }
-        .text-gray-900 { color: #111827; }
-        .text-green-700 { color: #15803d; }
-        .bg-white { background-color: #fff; }
-        .bg-blue-600 { background-color: #2563eb; }
-        .bg-gray-100 { background-color: #f3f4f6; }
-        .bg-gray-200 { background-color: #e5e7eb; }
-        .bg-green-100 { background-color: #dcfce7; }
-        .border { border: 1px solid #e5e7eb; }
-        .border-b { border-bottom: 1px solid #e5e7eb; }
-        .border-t { border-top: 1px solid #d1d5db; }
-        .border-b-2 { border-bottom: 2px solid #d1d5db; }
-        .border-gray-200 { border-color: #e5e7eb; }
-        .border-gray-300 { border-color: #d1d5db; }
-        .rounded { border-radius: .25rem; }
-        .shadow { box-shadow: 0 1px 3px rgba(0,0,0,.14); }
-        .shadow-lg { box-shadow: 0 10px 15px rgba(0,0,0,.12); }
-        .transition { transition: background-color .15s ease-in-out; }
-        .hover\:bg-blue-700:hover { background-color: #1d4ed8; }
-        .list-disc { list-style-type: disc; }
-        .list-decimal { list-style-type: decimal; }
-        .space-y-1 > * + * { margin-top: .25rem; }
-        @media print {
-            body {
-                background-color: white;
-                color: #000;
-            }
-            .print\:hidden { display: none !important; }
-            .print\:shadow-none { box-shadow: none !important; }
-            .print\:m-0 { margin: 0 !important; }
-            .print\:p-0 { padding: 0 !important; }
-            .print\:max-w-full { max-width: none !important; }
-            .print\:text-black { color: #000 !important; }
-            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        }
-    </style>
+@font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:local('Inter Regular'),local('Segoe UI'),local('sans-serif')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:700;font-display:swap;src:local('Inter Bold'),local('Segoe UI Bold'),local('sans-serif')}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:swap;src:local('JetBrains Mono Regular'),local('Consolas'),local('monospace')}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:700;font-display:swap;src:local('JetBrains Mono Bold'),local('Consolas Bold'),local('monospace')}
+:root{--primary:#1e3a5f;--primary-lt:#2d5986;--accent:#2563eb;--success:#16a34a;--warning:#d97706;--danger:#dc2626;--bg:#f0f4f8;--surface:#fff;--border:#e2e8f0;--text:#1e293b;--muted:#64748b;--radius:8px;--font-sans:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;--font-mono:'JetBrains Mono','Consolas',ui-monospace,monospace}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-sans);background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+header{background:linear-gradient(135deg,var(--primary) 0%,var(--primary-lt) 100%);color:#fff;padding:2rem 2.5rem;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:1rem}
+header .title-block h1{font-size:1.6rem;font-weight:700;letter-spacing:-0.02em}
+header .title-block p{opacity:.75;font-size:.85rem;margin-top:.25rem}
+header .meta-block{text-align:right;font-size:.8rem;opacity:.8;line-height:1.8}
+main{max-width:1100px;margin:1.5rem auto;padding:0 1.5rem}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1rem;margin-bottom:1.5rem}
+.card{background:var(--surface);border-radius:var(--radius);padding:1.1rem 1.25rem;box-shadow:0 1px 6px rgba(0,0,0,.07);border-left:4px solid var(--accent);transition:box-shadow .15s}
+.card:hover{box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.card-icon{font-size:1.4rem;margin-bottom:.4rem}
+.card-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.card-value{font-size:1.05rem;font-weight:700;color:var(--primary);margin-top:.2rem}
+.card-sub{font-size:.75rem;color:var(--muted);margin-top:.15rem}
+.section{background:var(--surface);border-radius:var(--radius);box-shadow:0 1px 6px rgba(0,0,0,.07);margin-bottom:1.25rem;overflow:hidden}
+.section-hdr{background:var(--primary);color:#fff;padding:.75rem 1.5rem;font-size:.9rem;font-weight:700;display:flex;align-items:center;gap:.5rem}
+.section-body{padding:1.25rem 1.5rem}
+h2{font-size:1rem;font-weight:700;color:var(--text);margin:1.5rem 0 .75rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
+.data-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.data-table thead th{background:#f8fafc;color:var(--primary);font-weight:700;padding:.55rem 1rem;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap}
+.data-table tbody td{padding:.5rem 1rem;border-bottom:1px solid #f1f5f9}
+.data-table tbody tr:last-child td{border-bottom:none}
+.data-table tbody tr:hover td{background:#f8faff}
+.kv-table{width:100%;border-collapse:collapse}
+.kv-table th{width:220px;font-weight:600;font-size:.8rem;color:var(--muted);text-align:left;padding:.4rem .75rem .4rem 0;border-bottom:1px solid var(--border);vertical-align:top}
+.kv-table td{font-size:.85rem;padding:.4rem 0;border-bottom:1px solid var(--border)}
+.kv-table tr:last-child th,.kv-table tr:last-child td{border-bottom:none}
+.badge{display:inline-block;padding:.15em .55em;border-radius:4px;font-size:.72rem;font-weight:700;white-space:nowrap}
+.badge-green{background:#dcfce7;color:#15803d}
+.badge-yellow{background:#fef9c3;color:#92400e}
+.badge-red{background:#fee2e2;color:#991b1b}
+.badge-blue{background:#dbeafe;color:#1e40af}
+.badge-gray{background:#f1f5f9;color:#475569}
+.disk-bar{background:#e2e8f0;border-radius:4px;height:10px;overflow:hidden}
+.disk-fill{height:100%;border-radius:4px;transition:width .3s}
+.bar-ok{background:var(--success)}
+.bar-warn{background:var(--warning)}
+.bar-danger{background:var(--danger)}
+.muted{color:var(--muted)}
+.small{font-size:11px}
+.mono{font-family:var(--font-mono);font-size:.8rem;word-break:break-all}
+.link-btn{display:inline-block;padding:.4rem .75rem;background:var(--accent);color:#fff;font-size:.75rem;font-weight:600;border-radius:4px;text-decoration:none;transition:background .15s}
+.link-btn:hover{background:#1d4ed8}
+.toolbar{max-width:1100px;margin:0 auto;padding:0 1.5rem;text-align:right}
+button{border:0;border-radius:4px;background:var(--accent);color:#fff;cursor:pointer;font:inherit;padding:8px 14px;transition:background .15s}
+button:hover{background:#1d4ed8}
+footer{text-align:center;color:var(--muted);font-size:.78rem;padding:1.5rem;margin-top:.5rem}
+@page{size:A4;margin:15mm}
+@media print{body{background:#fff;font-size:11px}header,.section-hdr{print-color-adjust:exact;-webkit-print-color-adjust:exact}.toolbar{display:none}*{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+</style>
 </head>
-<body class="text-gray-800 font-sans print:text-black">
-    <div class="max-w-4xl mx-auto mt-6 mb-2 text-right print:hidden">
-        <button onclick="window.print()" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 transition">Imprimir Relatorio</button>
+<body>
+    <div class="toolbar">
+        <button onclick="window.print()">Imprimir Relatorio</button>
     </div>
-    <div class="max-w-4xl mx-auto p-10 bg-white shadow-lg print:shadow-none print:m-0 print:p-0 print:max-w-full">
-        <header class="flex justify-between items-center border-b-2 border-gray-300 pb-4 mb-6">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-900">Diagnostico HD100</h1>
-                <p class="text-sm text-gray-500 mt-1">Gerado em: $((Get-Date).ToString('dd/MM/yyyy HH:mm:ss'))</p>
-            </div>
-            <div class="text-right">
-                <p class="font-bold">WBA Windows Toolkit</p>
-                <p class="text-sm text-gray-500">Disco 100%</p>
-            </div>
-        </header>
-
-        <main>
-            <h2 class="text-xl font-bold mb-3">Resumo executivo</h2>
-            <table class="w-full text-left border-collapse mb-8">
-                <tbody>
+    <header>
+        <div class="title-block">
+            <h1>&#128190; Diagnostico HD100</h1>
+            <p>Gerado em: $((Get-Date).ToString('dd/MM/yyyy HH:mm:ss'))</p>
+        </div>
+        <div class="meta-block">
+            <div><strong>WBA Windows Toolkit</strong></div>
+            <div>Disco 100%</div>
+        </div>
+    </header>
+    <main>
+        <div class="section">
+            <div class="section-hdr">&#128203; Resumo Executivo</div>
+            <div class="section-body">
+                <table class="kv-table">
                     $($summaryRows -join "`r`n")
-                </tbody>
-            </table>
-
-            <h2 class="text-xl font-bold mb-3">Saude dos discos</h2>
-            <div class="mb-4 border border-gray-200 rounded p-4 break-inside-avoid">
-                <div class="flex justify-between items-end mb-2">
-                    <div>
-                        <p class="text-sm text-gray-500">Vida util aproximada</p>
-                        <p class="text-2xl font-bold text-gray-900">$healthPercent%</p>
-                    </div>
-                    <p class="font-semibold" style="color: $healthColor">$((ConvertTo-HtmlSafe -Value $healthStatus))</p>
-                </div>
-                <div class="w-full h-4 bg-gray-200 rounded overflow-hidden">
-                    <div class="h-4" style="width: $healthPercent%; background-color: $healthColor"></div>
-                </div>
-                <p class="text-xs text-gray-500 mt-2">Estimativa baseada nos dados que o Windows expôs: SMART, HealthStatus, Status CIM e contadores de confiabilidade.</p>
+                </table>
             </div>
-            <table class="w-full text-left border-collapse mb-4">
-                <thead><tr class="bg-gray-100 text-gray-700 uppercase text-sm border-b-2 border-gray-300"><th class="py-3 px-4">Disco</th><th class="py-3 px-4">Tipo</th><th class="py-3 px-4">Barramento</th><th class="py-3 px-4 text-right">GB</th><th class="py-3 px-4">Saude</th><th class="py-3 px-4 text-right">Desgaste</th><th class="py-3 px-4 text-right">Temp.</th></tr></thead>
-                <tbody>$diskRows</tbody>
-            </table>
-            <ul class="list-disc pl-6 mb-8 text-sm text-gray-600">$healthNotes</ul>
+        </div>
 
-            <h2 class="text-xl font-bold mb-3">Programas na inicializacao</h2>
-            <table class="w-full text-left border-collapse mb-8">
-                <thead><tr class="bg-gray-100 text-gray-700 uppercase text-sm border-b-2 border-gray-300"><th class="py-3 px-4">Estado</th><th class="py-3 px-4">Origem</th><th class="py-3 px-4">Escopo</th><th class="py-3 px-4">Nome</th><th class="py-3 px-4">Comando</th></tr></thead>
-                <tbody>$startupRows</tbody>
-            </table>
+        <div class="section">
+            <div class="section-hdr">&#128190; Saude dos Discos</div>
+            <div class="section-body">
+                <div class="cards" style="margin-bottom:1rem">
+                    <div class="card" style="border-left-color:$healthColor">
+                        <div class="card-label">Vida Util Aproximada</div>
+                        <div class="card-value" style="color:$healthColor">$healthPercent%</div>
+                        <div class="card-sub">$((ConvertTo-HtmlSafe -Value $healthStatus))</div>
+                    </div>
+                </div>
+                <div class="disk-bar" style="margin-bottom:1rem"><div class="disk-fill" style="width:$healthPercent%;background:$healthColor"></div></div>
+                <p class="muted small" style="margin-bottom:1rem">Estimativa baseada nos dados que o Windows expos: SMART, HealthStatus, Status CIM e contadores de confiabilidade.</p>
+                <table class="data-table">
+                    <thead><tr><th>Disco</th><th>Tipo</th><th>Barramento</th><th style="text-align:right">GB</th><th>Saude</th><th style="text-align:right">Desgaste</th><th style="text-align:right">Temp.</th></tr></thead>
+                    <tbody>$diskRows</tbody>
+                </table>
+                <ul style="margin-top:1rem;padding-left:1.2rem;color:var(--muted);font-size:.82rem">$healthNotes</ul>
+            </div>
+        </div>
 
-            <h2 class="text-xl font-bold mb-3">Top processos por I/O</h2>
-            <table class="w-full text-left border-collapse mb-8">
-                <thead><tr class="bg-gray-100 text-gray-700 uppercase text-sm border-b-2 border-gray-300"><th class="py-3 px-4">Processo</th><th class="py-3 px-4">PID</th><th class="py-3 px-4 text-right">I/O MB</th></tr></thead>
-                <tbody>$topRows</tbody>
-            </table>
+        <div class="section">
+            <div class="section-hdr">&#128187; Programas na Inicializacao</div>
+            <div class="section-body">
+                <table class="data-table">
+                    <thead><tr><th>Estado</th><th>Origem</th><th>Escopo</th><th>Nome</th><th>Comando</th></tr></thead>
+                    <tbody>$startupRows</tbody>
+                </table>
+            </div>
+        </div>
 
-            <h2 class="text-xl font-bold mb-3">Recomendacoes</h2>
-            <ol class="list-decimal pl-6 space-y-1">$recommendationRows</ol>
+        <div class="section">
+            <div class="section-hdr">&#9881; Top Processos por I/O</div>
+            <div class="section-body">
+                <table class="data-table">
+                    <thead><tr><th>Processo</th><th>PID</th><th style="text-align:right">I/O MB</th></tr></thead>
+                    <tbody>$topRows</tbody>
+                </table>
+            </div>
+        </div>
 
-            <h2 class="text-xl font-bold mt-10 mb-3">Arquivos gerados</h2>
-            <table class="w-full text-left border-collapse">
-                <tbody>$($generatedFileRows -join "`r`n")</tbody>
-            </table>
-        </main>
+        <div class="section">
+            <div class="section-hdr">&#128161; Recomendacoes</div>
+            <div class="section-body">
+                <ol style="margin:0;padding-left:1.2rem;line-height:1.8">$recommendationRows</ol>
+            </div>
+        </div>
 
-        <footer class="mt-10 pt-4 border-t border-gray-300 text-center text-sm text-gray-500">
-            <p>Documento gerado localmente pelo WBA Windows Toolkit.</p>
-        </footer>
-    </div>
+        <div class="section">
+            <div class="section-hdr">&#128196; Arquivos Gerados</div>
+            <div class="section-body">
+                <table class="kv-table">
+                    <tbody>$($generatedFileRows -join "`r`n")</tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+    <footer>
+        Documento gerado localmente pelo WBA Windows Toolkit.
+    </footer>
 </body>
 </html>
 "@
@@ -1818,7 +1782,7 @@ function Get-HD100LatestSessionPath {
     param([Parameter(Mandatory = $false)][string]$BasePath)
 
     $root = Get-ToolkitReportsRoot -Path $BasePath
-    $modulePath = Join-Path $root 'HD100'
+    $modulePath = Join-Path $root 'diagnostico-hd100'
 
     if (-not (Test-Path -LiteralPath $modulePath)) {
         return $null
@@ -1868,6 +1832,7 @@ function Invoke-HD100ReportMode {
 }
 
 if ($Help) { Show-Help; exit 0 }
+if ($Version) { Write-Host "Script: $ScriptName — $ScriptVersion" -ForegroundColor Green; exit 0 }
 
 if ($Modo -eq 'Relatorio') {
     Invoke-HD100ReportMode

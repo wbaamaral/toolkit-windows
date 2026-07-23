@@ -55,7 +55,7 @@
             $null = $results.Add((Test-IcmpConnectivity -TargetAddress $target))
         }
 
-        foreach ($target in @('1.1.1.1', '8.8.8.8')) {
+        foreach ($target in @('nic.br', 'registro.br')) {
             $null = $results.Add((Test-TcpPortConnectivity -TargetAddress $target -Port $TcpPort -Scope 'WAN' -Direction 'Outbound'))
         }
 
@@ -70,6 +70,25 @@
             if (-not $icmp.Success) {
                 $null = $results.Add((Test-TcpPortConnectivity -TargetAddress $name -Port $TcpPort -Scope 'WAN' -Direction 'Outbound'))
             }
+        }
+
+        # Teste de velocidade de download
+        if ($Detailed) {
+            Write-Host ''
+            Write-Host "  Testando velocidade de download..." -NoNewline -ForegroundColor Cyan
+            $speedResult = Test-DownloadSpeed
+            if ($speedResult.Status -eq 'OK') {
+                Write-Host " OK" -ForegroundColor Green
+            }
+            else {
+                Write-Host " Erro" -ForegroundColor Red
+            }
+            $null = $results.Add((New-ConnectivityResult -TestName 'Velocidade de download' -Category 'Velocidade' `
+                -Success ($speedResult.Status -eq 'OK') -Status $speedResult.Status `
+                -Classification $(if ($speedResult.Status -eq 'OK') { 'Success' } else { 'Failed' }) `
+                -Recommendation $speedResult.Message `
+                -StartedAt $startedAt -FinishedAt (Get-Date) `
+                -Details $speedResult))
         }
     }
 

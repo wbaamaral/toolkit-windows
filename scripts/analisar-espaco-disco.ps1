@@ -116,7 +116,7 @@ Import-Module $CoreModulePath -Force -ErrorAction Stop
 
 # WBA-DOCS: Category=Utilities; Manual=Analise de uso de espaco em disco com Top pastas/arquivos e estimativa de limpeza (somente leitura)
 
-$ScriptVersion = 'v1.0'
+$ScriptVersion = 'v1.0.0'
 $ScriptName    = $MyInvocation.MyCommand.Name
 $ScriptPath    = $PSCommandPath
 $ScriptDir     = $PSScriptRoot
@@ -464,47 +464,83 @@ function New-HtmlReport {
     [CmdletBinding()]
     param([object[]]$AllScans, [object[]]$AllWaste, [string]$ComputerName, [string]$ReportDate, [string]$OutputPath)
 
-    $css = @'
-:root{--primary:#0078d4;--success:#107c10;--warn:#d83b01;--text:#201f1e;--muted:#605e5c;--bg:#f3f3f3;--card:#fff;--border:#edebe9;--radius:4px}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',sans-serif;font-size:14px;background:var(--bg);color:var(--text)}
-header{background:var(--primary);color:#fff;padding:20px 32px}
-header h1{font-size:22px;font-weight:600}
-header p{font-size:12px;opacity:.85;margin-top:4px}
-main{max-width:1200px;margin:0 auto;padding:24px 16px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px}
-.card h2{font-size:15px;font-weight:600;color:var(--primary);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
-.drive-bar{height:18px;background:#edebe9;border-radius:9px;overflow:hidden;margin:6px 0}
-.drive-fill{height:100%;border-radius:9px;transition:width .4s}
-.fill-ok{background:#107c10}.fill-warn{background:#d83b01}.fill-mid{background:#e67e00}
-.stats{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px}
-.stat{flex:1;min-width:120px;background:#f0f6ff;border-radius:4px;padding:12px 16px;text-align:center}
-.stat-val{font-size:22px;font-weight:700;color:var(--primary)}
-.stat-lbl{font-size:11px;color:var(--muted);margin-top:2px}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{background:#f7f7f7;padding:8px 10px;text-align:left;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap}
-td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
-tr:hover td{background:#faf9f8}
-.mini-bar{display:inline-block;height:8px;border-radius:4px;background:var(--primary);vertical-align:middle;margin-right:6px}
-.sz{font-weight:600;color:var(--primary);white-space:nowrap}
-.pct{color:var(--muted);font-size:12px}
-.badge{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600}
-.badge-ok{background:#dff6dd;color:#107c10}
-.badge-hidden{background:#fff4ce;color:#835b00}
-.badge-system{background:#fde7e9;color:#c0392b}
-.waste-high{color:#d83b01;font-weight:600}
-.waste-mid{color:#e67e00}
-.waste-low{color:var(--muted)}
-.path{font-family:'Consolas',monospace;font-size:12px;word-break:break-all}
-.note{font-size:11px;color:var(--muted)}
-footer{text-align:center;padding:20px;font-size:11px;color:var(--muted)}
-@media print{header{background:var(--primary)!important;print-color-adjust:exact}th{background:#f7f7f7!important;print-color-adjust:exact}.mini-bar{print-color-adjust:exact}thead{display:table-header-group}}
+    # CSS artesanal com paleta Tailwind-inspired
+# --- CSS -------------------------------------------------------------------
+$css = @'
+<style>
+@font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:local('Inter Regular'),local('Segoe UI'),local('sans-serif')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:700;font-display:swap;src:local('Inter Bold'),local('Segoe UI Bold'),local('sans-serif')}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:swap;src:local('JetBrains Mono Regular'),local('Consolas'),local('monospace')}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:700;font-display:swap;src:local('JetBrains Mono Bold'),local('Consolas Bold'),local('monospace')}
+:root{--primary:#1e3a5f;--primary-lt:#2d5986;--accent:#2563eb;--success:#16a34a;--warning:#d97706;--danger:#dc2626;--bg:#f0f4f8;--surface:#fff;--border:#e2e8f0;--text:#1e293b;--muted:#64748b;--radius:8px;--font-sans:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;--font-mono:'JetBrains Mono','Consolas',ui-monospace,monospace}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-sans);background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+header{background:linear-gradient(135deg,var(--primary) 0%,var(--primary-lt) 100%);color:#fff;padding:2rem 2.5rem;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:1rem}
+header .title-block h1{font-size:1.6rem;font-weight:700;letter-spacing:-0.02em}
+header .title-block p{opacity:.75;font-size:.85rem;margin-top:.25rem}
+header .meta-block{text-align:right;font-size:.8rem;opacity:.8;line-height:1.8}
+nav{background:var(--surface);border-bottom:2px solid var(--accent);position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.08);overflow-x:auto;white-space:nowrap}
+nav a{display:inline-block;padding:.65rem 1rem;color:var(--primary);text-decoration:none;font-size:.8rem;font-weight:600;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+nav a:hover{color:var(--accent);border-color:var(--accent)}
+main{max-width:1400px;margin:1.5rem auto;padding:0 1.5rem}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1rem;margin-bottom:1.5rem}
+.card{background:var(--surface);border-radius:var(--radius);padding:1.1rem 1.25rem;box-shadow:0 1px 6px rgba(0,0,0,.07);border-left:4px solid var(--accent);transition:box-shadow .15s}
+.card:hover{box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.card-icon{font-size:1.4rem;margin-bottom:.4rem}
+.card-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.card-value{font-size:1.05rem;font-weight:700;color:var(--primary);margin-top:.2rem}
+.card-sub{font-size:.75rem;color:var(--muted);margin-top:.15rem}
+.section{background:var(--surface);border-radius:var(--radius);box-shadow:0 1px 6px rgba(0,0,0,.07);margin-bottom:1.25rem;overflow:hidden}
+.section-hdr{background:var(--primary);color:#fff;padding:.75rem 1.5rem;font-size:.9rem;font-weight:700;display:flex;align-items:center;gap:.5rem}
+.section-body{padding:1.25rem 1.5rem}
+.sub{font-weight:700;color:var(--primary);font-size:.85rem;border-bottom:1px solid var(--border);padding-bottom:.35rem;margin:1.1rem 0 .6rem}
+.sub:first-child{margin-top:0}
+.kv-table{width:100%;border-collapse:collapse}
+.kv-table th{width:220px;font-weight:600;font-size:.8rem;color:var(--muted);text-align:left;padding:.4rem .75rem .4rem 0;border-bottom:1px solid var(--border);vertical-align:top}
+.kv-table td{font-size:.85rem;padding:.4rem 0;border-bottom:1px solid var(--border)}
+.kv-table tr:last-child th,.kv-table tr:last-child td{border-bottom:none}
+.kv-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 2rem}
+.data-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.data-table thead th{background:#f8fafc;color:var(--primary);font-weight:700;padding:.55rem 1rem;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap}
+.data-table tbody td{padding:.5rem 1rem;border-bottom:1px solid #f1f5f9}
+.data-table tbody tr:last-child td{border-bottom:none}
+.data-table tbody tr:hover td{background:#f8faff}
+.scroll-wrap{overflow-x:auto}
+.tall-wrap{max-height:420px;overflow-y:auto}
+.disk-bar{background:#e2e8f0;border-radius:4px;height:8px;min-width:80px;overflow:hidden}
+.disk-fill{height:100%;border-radius:4px;transition:width .3s}
+.bar-ok{background:var(--success)}
+.bar-warn{background:var(--warning)}
+.bar-danger{background:var(--danger)}
+.badge{display:inline-block;padding:.15em .55em;border-radius:4px;font-size:.72rem;font-weight:700;white-space:nowrap}
+.badge-green{background:#dcfce7;color:#15803d}
+.badge-yellow{background:#fef9c3;color:#92400e}
+.badge-red{background:#fee2e2;color:#991b1b}
+.badge-blue{background:#dbeafe;color:#1e40af}
+.badge-gray{background:#f1f5f9;color:#475569}
+.filter-wrap{margin-bottom:.75rem;display:flex;gap:.5rem;align-items:center}
+.filter-input{flex:1;max-width:400px;padding:.45rem .75rem;border:1px solid var(--border);border-radius:var(--radius);font-size:.85rem;color:var(--text);outline:none;transition:border-color .15s}
+.filter-input:focus{border-color:var(--accent)}
+.filter-count{font-size:.78rem;color:var(--muted)}
+.muted{color:var(--muted)}
+.mono{font-family:var(--font-mono);font-size:.8rem;word-break:break-all}
+.nowrap{white-space:nowrap}
+.right{text-align:right}
+footer{text-align:center;color:var(--muted);font-size:.78rem;padding:1.5rem;margin-top:.5rem}
+@page{size:A4;margin:1.2cm 1.5cm}
+@media print{body{background:#fff;font-size:11px}nav{display:none}.section{box-shadow:none;border:1px solid var(--border);break-inside:avoid;margin-bottom:.75rem}.tall-wrap{max-height:none;overflow:visible}.filter-wrap{display:none}header,.section-hdr{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+</style>
 '@
 
-    $driveRows = ""
+
+    $driveCards = ""
+    $driveSections = ""
     $allFolderRows = ""
     $allFileRows = ""
     $totalScanned = [long]0
+    $totalAllDrives = [long]0
+    $freeAllDrives  = [long]0
 
     foreach ($scan in $AllScans) {
         $di    = $scan.DriveInfo
@@ -512,22 +548,55 @@ footer{text-align:center;padding:20px;font-size:11px;color:var(--muted)}
         $free  = $di.TotalFreeSpace
         $used  = $total - $free
         $pct   = if ($total -gt 0) { [int]($used / $total * 100) } else { 0 }
-        $fillClass = if ($pct -ge 85) { 'fill-warn' } elseif ($pct -ge 65) { 'fill-mid' } else { 'fill-ok' }
+        $fillClass = if ($pct -ge 85) { 'bar-danger' } elseif ($pct -ge 70) { 'bar-warn' } else { 'bar-ok' }
         $totalScanned += $scan.Result.TotalBytes
+        $totalAllDrives += $total
+        $freeAllDrives  += $free
 
-        $driveRows += @"
-<div class="card">
-<h2>Volume $($di.Name) — $($di.VolumeLabel)</h2>
-<div class="stats">
-  <div class="stat"><div class="stat-val">$(Format-FileSize $total)</div><div class="stat-lbl">Total</div></div>
-  <div class="stat"><div class="stat-val" style="color:#107c10">$(Format-FileSize $free)</div><div class="stat-lbl">Livre</div></div>
-  <div class="stat"><div class="stat-val" style="color:#d83b01">$(Format-FileSize $used)</div><div class="stat-lbl">Usado</div></div>
-  <div class="stat"><div class="stat-val">$pct%</div><div class="stat-lbl">Ocupacao</div></div>
-  <div class="stat"><div class="stat-val">$($scan.Result.TotalDirs)</div><div class="stat-lbl">Pastas varridas</div></div>
-  <div class="stat"><div class="stat-val">$($scan.Result.TotalFiles)</div><div class="stat-lbl">Arquivos</div></div>
-</div>
-<div class="drive-bar"><div class="drive-fill $fillClass" style="width:$pct%"></div></div>
-<p class="note">$pct% utilizado — $pct% de $(Format-FileSize $total)</p>
+        # Card de resumo do drive
+        $driveCards += @"
+  <div class="card">
+    <div class="card-icon">&#128190;</div>
+    <div class="card-label">Volume $($di.Name)</div>
+    <div class="card-value">$(Format-FileSize $total)</div>
+    <div class="card-sub">$pct% ocupado — Livre: $(Format-FileSize $free)</div>
+  </div>
+"@
+
+        # Secao detalhada do drive
+        $driveSections += @"
+<div class="section" id="drive-$($di.Name -replace ':','')">
+  <div class="section-hdr">&#128190; Volume $($di.Name) — $(ConvertTo-HtmlSafe $di.VolumeLabel)</div>
+  <div class="section-body">
+    <div class="cards" style="margin-bottom:1rem">
+      <div class="card" style="border-left-color:var(--accent)">
+        <div class="card-label">Total</div>
+        <div class="card-value">$(Format-FileSize $total)</div>
+      </div>
+      <div class="card" style="border-left-color:var(--success)">
+        <div class="card-label">Livre</div>
+        <div class="card-value" style="color:var(--success)">$(Format-FileSize $free)</div>
+      </div>
+      <div class="card" style="border-left-color:var(--danger)">
+        <div class="card-label">Usado</div>
+        <div class="card-value" style="color:var(--danger)">$(Format-FileSize $used)</div>
+      </div>
+      <div class="card" style="border-left-color:var(--warning)">
+        <div class="card-label">Ocupacao</div>
+        <div class="card-value">$pct%</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Pastas</div>
+        <div class="card-value">$($scan.Result.TotalDirs)</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Arquivos</div>
+        <div class="card-value">$($scan.Result.TotalFiles)</div>
+      </div>
+    </div>
+    <div class="disk-bar"><div class="disk-fill $fillClass" style="width:$pct%"></div></div>
+    <p class="note" style="margin-top:.4rem">$pct% utilizado — $(Format-FileSize $used) de $(Format-FileSize $total)</p>
+  </div>
 </div>
 "@
 
@@ -542,10 +611,10 @@ footer{text-align:center;padding:20px;font-size:11px;color:var(--muted)}
             $attrib  = $scan.Result.FolderAttribs[$entry.Key]
             $isHid   = ($attrib -band [System.IO.FileAttributes]::Hidden) -ne 0
             $isSys   = ($attrib -band [System.IO.FileAttributes]::System) -ne 0
-            $badge   = if ($isHid) { '<span class="badge badge-hidden">Oculto</span>' } `
-                       elseif ($isSys) { '<span class="badge badge-system">Sistema</span>' } `
-                       else { '<span class="badge badge-ok">Normal</span>' }
-            $allFolderRows += "<tr><td>$rank</td><td class='sz'>$(Format-FileSize $sz)</td><td class='pct'>$pctDisk%</td><td><div class='mini-bar' style='width:$([Math]::Max(2,$pctBar))px'></div></td><td>$badge</td><td class='path'>$(ConvertTo-HtmlSafe $entry.Key)</td></tr>"
+            $badge   = if ($isHid) { '<span class="badge badge-yellow">Oculto</span>' } `
+                       elseif ($isSys) { '<span class="badge badge-red">Sistema</span>' } `
+                       else { '<span class="badge badge-green">Normal</span>' }
+            $allFolderRows += "<tr><td>$rank</td><td class='sz'>$(Format-FileSize $sz)</td><td class='pct'>$pctDisk%</td><td><div class='disk-bar' style='width:80px;display:inline-block'><div class='disk-fill bar-ok' style='width:$pctBar%'></div></div></td><td>$badge</td><td class='mono'>$(ConvertTo-HtmlSafe $entry.Key)</td></tr>"
             $rank++
         }
     }
@@ -557,10 +626,10 @@ footer{text-align:center;padding:20px;font-size:11px;color:var(--muted)}
 
     $fileRank = 1
     foreach ($f in $finalTop10) {
-        $badge = if ($f.IsHidden) { '<span class="badge badge-hidden">Oculto</span>' } `
-                 elseif ($f.IsSystem) { '<span class="badge badge-system">Sistema</span>' } `
-                 else { '<span class="badge badge-ok">Normal</span>' }
-        $allFileRows += "<tr><td>$fileRank</td><td class='sz'>$(Format-FileSize $f.Size)</td><td>$(ConvertTo-HtmlSafe $f.Ext)</td><td>$badge</td><td class='path'>$(ConvertTo-HtmlSafe $f.Path)</td></tr>"
+        $badge = if ($f.IsHidden) { '<span class="badge badge-yellow">Oculto</span>' } `
+                 elseif ($f.IsSystem) { '<span class="badge badge-red">Sistema</span>' } `
+                 else { '<span class="badge badge-green">Normal</span>' }
+        $allFileRows += "<tr><td>$fileRank</td><td class='sz'>$(Format-FileSize $f.Size)</td><td>$(ConvertTo-HtmlSafe $f.Ext)</td><td>$badge</td><td class='mono'>$(ConvertTo-HtmlSafe $f.Path)</td></tr>"
         $fileRank++
     }
 
@@ -573,34 +642,120 @@ footer{text-align:center;padding:20px;font-size:11px;color:var(--muted)}
         $wasteRows += "<tr><td>$(ConvertTo-HtmlSafe $w.Categoria)</td><td class='sz $cls'>$($w.SizeDisp)</td><td class='note'>$(ConvertTo-HtmlSafe $w.Note)</td></tr>"
     }
 
+    # Cards de resumo global
+    $usedAllDrives = $totalAllDrives - $freeAllDrives
+    $pctGlobal = if ($totalAllDrives -gt 0) { [int]($usedAllDrives / $totalAllDrives * 100) } else { 0 }
+
     $html = @"
-<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Analise de Espaco — $ComputerName</title><style>$css</style></head>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Analise de Espaco — $ComputerName</title>
+$css
+</head>
 <body>
 <header>
-  <h1>Analise de Espaco em Disco</h1>
-  <p>Computador: <strong>$ComputerName</strong> &nbsp;|&nbsp; Data: <strong>$ReportDate</strong> &nbsp;|&nbsp; Script: $($script:ScriptVersion)</p>
+  <div class="title-block">
+    <h1>&#128190; Analise de Espaco em Disco</h1>
+    <p>$(ConvertTo-HtmlSafe $ComputerName) — $ReportDate</p>
+  </div>
+  <div class="meta-block">
+    <div><strong>$ComputerName</strong></div>
+    <div>Gerado em: $ReportDate</div>
+    <div>Versao: $($script:ScriptVersion)</div>
+    <div>Somente leitura — nenhuma alteracao realizada</div>
+  </div>
 </header>
+<nav>
+  <a href="#resumo">&#128202; Resumo</a>
+  <a href="#limpeza">&#128465; Desperdicio</a>
+  <a href="#pastas">&#128193; Pastas</a>
+  <a href="#arquivos">&#128196; Arquivos</a>
+</nav>
 <main>
-$driveRows
-<div class="card" id="limpeza">
-<h2>Estimativa de Espaco Desperdicado — Total estimado: $(Format-FileSize $wasteTotal)</h2>
-<p class="note" style="margin-bottom:12px">Somente leitura — nenhuma acao foi realizada. Use os scripts do modulo maintenance para remocao segura.</p>
-<table><thead><tr><th>Categoria</th><th>Tamanho Estimado</th><th>Observacao</th></tr></thead>
-<tbody>$wasteRows</tbody></table></div>
+<div class="cards" id="resumo">
+  <div class="card" style="border-left-color:var(--accent)">
+    <div class="card-icon">&#128190;</div>
+    <div class="card-label">Espaco Total</div>
+    <div class="card-value">$(Format-FileSize $totalAllDrives)</div>
+    <div class="card-sub">$($AllScans.Count) volume(s)</div>
+  </div>
+  <div class="card" style="border-left-color:var(--success)">
+    <div class="card-icon">&#9989;</div>
+    <div class="card-label">Espaco Livre</div>
+    <div class="card-value" style="color:var(--success)">$(Format-FileSize $freeAllDrives)</div>
+    <div class="card-sub">$([int](($freeAllDrives / [math]::Max(1,$totalAllDrives)) * 100))% livre</div>
+  </div>
+  <div class="card" style="border-left-color:var(--danger)">
+    <div class="card-icon">&#9888;</div>
+    <div class="card-label">Espaco Usado</div>
+    <div class="card-value" style="color:var(--danger)">$(Format-FileSize $usedAllDrives)</div>
+    <div class="card-sub">$pctGlobal% ocupado</div>
+  </div>
+  <div class="card" style="border-left-color:var(--warning)">
+    <div class="card-icon">&#128465;</div>
+    <div class="card-label">Desperdicio Estimado</div>
+    <div class="card-value" style="color:var(--warning)">$(Format-FileSize $wasteTotal)</div>
+    <div class="card-sub">$(@($AllWaste).Count) categorias</div>
+  </div>
+  <div class="card">
+    <div class="card-icon">&#128193;</div>
+    <div class="card-label">Pastas Varridas</div>
+    <div class="card-value">$("{0:N0}" -f $totalScanned)</div>
+    <div class="card-sub">Todos os volumes</div>
+  </div>
+  <div class="card">
+    <div class="card-icon">&#128196;</div>
+    <div class="card-label">Maior Arquivo</div>
+    <div class="card-value">$(if ($finalTop10.Count -gt 0) { Format-FileSize $finalTop10[0].Size } else { '&mdash;' })</div>
+    <div class="card-sub">$(if ($finalTop10.Count -gt 0) { ConvertTo-HtmlSafe $finalTop10[0].Path } else { '' })</div>
+  </div>
+</div>
 
-<div class="card" id="pastas">
-<h2>Top 20 Pastas por Tamanho Total</h2>
-<table><thead><tr><th>#</th><th>Tamanho</th><th>% Disco</th><th>Barra</th><th>Estado</th><th>Caminho</th></tr></thead>
-<tbody>$allFolderRows</tbody></table></div>
+$driveSections
 
-<div class="card" id="arquivos">
-<h2>Top 10 Arquivos por Tamanho</h2>
-<table><thead><tr><th>#</th><th>Tamanho</th><th>Extensao</th><th>Estado</th><th>Caminho completo</th></tr></thead>
-<tbody>$allFileRows</tbody></table></div>
+<div class="section" id="limpeza">
+  <div class="section-hdr">&#128465; Estimativa de Espaco Desperdicado — Total: $(Format-FileSize $wasteTotal)</div>
+  <div class="section-body">
+    <p class="note" style="margin-bottom:1rem">Somente leitura — nenhuma acao foi realizada. Use os scripts do modulo maintenance para remocao segura.</p>
+    <div style="overflow-x:auto">
+    <table class="data-table">
+      <thead><tr><th>Categoria</th><th>Tamanho Estimado</th><th>Observacao</th></tr></thead>
+      <tbody>$wasteRows</tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="pastas">
+  <div class="section-hdr">&#128193; Top 20 Pastas por Tamanho Total</div>
+  <div class="section-body">
+    <div style="overflow-x:auto">
+    <table class="data-table">
+      <thead><tr><th>#</th><th>Tamanho</th><th>% Disco</th><th>Barra</th><th>Estado</th><th>Caminho</th></tr></thead>
+      <tbody>$allFolderRows</tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="arquivos">
+  <div class="section-hdr">&#128196; Top 10 Arquivos por Tamanho</div>
+  <div class="section-body">
+    <div style="overflow-x:auto">
+    <table class="data-table">
+      <thead><tr><th>#</th><th>Tamanho</th><th>Extensao</th><th>Estado</th><th>Caminho completo</th></tr></thead>
+      <tbody>$allFileRows</tbody>
+    </table>
+    </div>
+  </div>
+</div>
 </main>
 <footer>Gerado por $($script:ScriptName) $($script:ScriptVersion) em $ReportDate — somente leitura, nenhuma alteracao foi realizada.</footer>
-</body></html>
+</body>
+</html>
 "@
 
     Write-TextFileUtf8 -Path $OutputPath -Content $html
@@ -643,7 +798,7 @@ if (-not (Test-IsAdministrator)) {
     exit
 }
 
-$ReportSession = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'Utilities'
+$ReportSession = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'utilidades'
 $Path          = $ReportSession.Path
 $LogDir        = $ReportSession.LogsPath
 $LogFile       = Join-Path $LogDir "$((Get-Date).ToString('yyyy-MM-dd_HHmmss'))-$([System.IO.Path]::GetFileNameWithoutExtension($ScriptName)).log"

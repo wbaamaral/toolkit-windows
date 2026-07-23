@@ -78,7 +78,7 @@ Import-Module $ToolkitModulePath -Force -ErrorAction Stop
     Salve este arquivo como UTF-8 BOM para uso com o Windows PowerShell 5.1.
 #>
 
-$ScriptVersion = 'v2.0-upgrade-backends'
+$ScriptVersion = 'v1.0.0'
 
 $ScriptName = if ($MyInvocation.MyCommand.Name) { $MyInvocation.MyCommand.Name }
               else { Split-Path -Leaf $PSCommandPath }
@@ -124,7 +124,31 @@ function Test-BackendAvailable {
         'WinGet'     { 'winget.exe' }
         'Chocolatey' { 'choco.exe' }
     }
-    return [bool](Get-Command $exe -ErrorAction SilentlyContinue)
+
+    if (-not (Get-Command $exe -ErrorAction SilentlyContinue)) {
+        return $false
+    }
+
+    # Testar funcionalidade, não só existência do executável
+    try {
+        switch ($Backend) {
+            'WinGet' {
+                # Usar --version que não depende de fontes e retorna 0 se instalado
+                $null = & winget --version 2>&1
+                # Aceitar exit code 0 (ok) ou -1 (fonte com problema, mas WinGet instalado)
+                return ($global:LASTEXITCODE -eq 0 -or $global:LASTEXITCODE -eq -1)
+            }
+            'Chocolatey' {
+                $null = & choco list --no-progress --limit-output 2>&1
+                return $global:LASTEXITCODE -eq 0
+            }
+        }
+    }
+    catch {
+        return $false
+    }
+
+    return $false
 }
 
 function Get-PreferredBackendForEnvironment {
@@ -231,24 +255,70 @@ function Test-PendingReboot {
 # ---------------------------------------------------------------------------
 
 function Invoke-WinGetList {
-    $raw = winget upgrade --include-unknown 2>&1
+    Write-Debug "Invoke-WinGetList: Starting..."
+    # Usar -s winget para evitar problemas com a fonte msstore (requer aceite interativo)
+    $raw = @(winget upgrade --upgrade-available --include-unknown --accept-source-agreements --disable-interactivity -s winget 2>&1)
+    Write-Debug "Invoke-WinGetList: Got $($raw.Count) lines"
     $updates = [System.Collections.Generic.List[PSCustomObject]]::new()
     $inTable = $false
+    $headerLine = $null
+    $columnPositions = @()
+    
     foreach ($line in $raw) {
-        if ($line -match '^-{10,}') { $inTable = $true; continue }
-        if (-not $inTable)          { continue }
+        if ($line -match '^-{10,}') { 
+            Write-Debug "Invoke-WinGetList: Found separator"
+            $inTable = $true; continue 
+        }
+        if (-not $inTable)          { 
+            # Capturar linha de cabecalho para determinar posicoes das colunas
+            if ($line -match '^Nome\s+') {
+                $headerLine = $line
+                Write-Debug "Invoke-WinGetList: Found header: $headerLine"
+            }
+            continue 
+        }
         if ($line -match '^\s*$')   { continue }
-        if ($line -match '(\d+)\s+upgrade(s?) available') { continue }
-        $parts = $line -split '\s{2,}'
-        if ($parts.Count -ge 4) {
-            $updates.Add([PSCustomObject]@{
-                Name             = $parts[0].Trim()
-                Id               = $parts[1].Trim()
-                CurrentVersion   = $parts[2].Trim()
-                AvailableVersion = $parts[3].Trim()
-            })
+        if ($line -match '(\d+)\s+upgrade(s?) available') { 
+            Write-Debug "Invoke-WinGetList: Found summary line"
+            continue 
+        }
+        
+        # Usar posicoes do cabecalho para extrair colunas
+        if ($headerLine) {
+            $nomePos = $headerLine.IndexOf('Nome')
+            $idPos = $headerLine.IndexOf('ID')
+            $versaoPos = $headerLine.IndexOf('Vers')
+            $dispPos = $headerLine.IndexOf('Dispon')
+            
+            if ($line.Length -gt $dispPos) {
+                $name = $line.Substring($nomePos, [Math]::Min($idPos - $nomePos, $line.Length - $nomePos)).Trim()
+                $id = $line.Substring($idPos, [Math]::Min($versaoPos - $idPos, $line.Length - $idPos)).Trim()
+                $currentVer = $line.Substring($versaoPos, [Math]::Min($dispPos - $versaoPos, $line.Length - $versaoPos)).Trim()
+                $availVer = $line.Substring($dispPos).Trim()
+                
+                Write-Debug "Invoke-WinGetList: Parsed - Name: $name, Id: $id"
+                $updates.Add([PSCustomObject]@{
+                    Name             = $name
+                    Id               = $id
+                    CurrentVersion   = $currentVer
+                    AvailableVersion = $availVer
+                })
+            }
+        }
+        else {
+            # Fallback: dividir por espacos (menos confiavel)
+            $parts = $line -split '\s{2,}'
+            if ($parts.Count -ge 4) {
+                $updates.Add([PSCustomObject]@{
+                    Name             = $parts[0].Trim()
+                    Id               = $parts[1].Trim()
+                    CurrentVersion   = $parts[2].Trim()
+                    AvailableVersion = $parts[3].Trim()
+                })
+            }
         }
     }
+    Write-Debug "Invoke-WinGetList: Returning $($updates.Count) updates"
     return $updates.ToArray()
 }
 
@@ -300,8 +370,9 @@ function Invoke-ProcessWithSpinner {
 function Invoke-WinGetUpgrade {
     $result = [PSCustomObject]@{ Success = $false; Partial = $false; ExitCode = 0; Message = '' }
     try {
+        # Usar -s winget para evitar problemas com a fonte msstore (requer aceite interativo)
         $exitCode = Invoke-ProcessWithSpinner -Label 'WinGet: trabalhando...' -FilePath 'winget' `
-            -ArgumentList @('upgrade', '--all', '--include-unknown', '--silent', '--accept-package-agreements', '--accept-source-agreements', '--disable-interactivity')
+            -ArgumentList @('upgrade', '--all', '--include-unknown', '--silent', '--accept-package-agreements', '--accept-source-agreements', '--disable-interactivity', '-s', 'winget')
         $result.ExitCode = $exitCode
         $result.Success  = ($exitCode -eq 0 -or $exitCode -eq 3010)
         $result.Partial  = ($exitCode -ne 0 -and $exitCode -ne 3010)
@@ -319,8 +390,9 @@ function Invoke-WinGetUpgradePackage {
 
     $result = [PSCustomObject]@{ PackageId = $PackageId; Success = $false; ExitCode = 0; Message = '' }
     try {
+        # Usar -s winget para evitar problemas com a fonte msstore (requer aceite interativo)
         $exitCode = Invoke-ProcessWithSpinner -Label "WinGet: atualizando $PackageId..." -FilePath 'winget' `
-            -ArgumentList @('upgrade', '--id', $PackageId, '--silent', '--accept-package-agreements', '--accept-source-agreements', '--disable-interactivity')
+            -ArgumentList @('upgrade', '--id', $PackageId, '--silent', '--accept-package-agreements', '--accept-source-agreements', '--disable-interactivity', '-s', 'winget')
         $result.ExitCode = $exitCode
         $result.Success  = ($exitCode -eq 0 -or $exitCode -eq 3010)
         $result.Message  = if ($result.Success) { "WinGet: $PackageId atualizado." } else { "WinGet: $PackageId exit code $exitCode." }
@@ -336,11 +408,17 @@ function Invoke-WinGetUpgradePackage {
 # ---------------------------------------------------------------------------
 
 function Invoke-ChocolateyList {
-    $raw = choco outdated --no-progress 2>&1
+    $raw = @(choco outdated --no-progress 2>&1)
     $updates = [System.Collections.Generic.List[PSCustomObject]]::new()
     foreach ($line in $raw) {
-        if ($line -match '^Chocolatey v') { continue }
-        $parts = $line -split '\|'
+        $trimmedLine = $line.TrimStart()
+        if ($trimmedLine -match '^Chocolatey v') { continue }
+        if ($trimmedLine -match '^Output is Id') { continue }
+        if ($trimmedLine -match '^Outdated Packages') { continue }
+        if ($trimmedLine -match '^Chocolatey has') { continue }
+        if ($trimmedLine -match '^$') { continue }
+        if ($trimmedLine -match '^\[') { continue }
+        $parts = $trimmedLine -split '\|'
         if ($parts.Count -ge 3) {
             $updates.Add([PSCustomObject]@{
                 Id               = $parts[0].Trim()
@@ -478,10 +556,13 @@ function Read-PackageSelection {
         return @()
     }
 
-    Write-Section 'Atualizacoes disponíveis'
+    Write-Host ''
+    Write-Host 'Pacotes disponiveis para atualizacao:' -ForegroundColor Cyan
+    Write-Host ''
     for ($i = 0; $i -lt $Packages.Count; $i++) {
         $pkg = $Packages[$i]
-        Write-Host "  [$($i + 1)] $($pkg.Name) — $($pkg.CurrentVersion) -> $($pkg.AvailableVersion)"
+        Write-Host ("  [{0,2}] {1}" -f ($i + 1), $pkg.Name) -ForegroundColor White
+        Write-Host ("       {0} -> {1}" -f $pkg.CurrentVersion, $pkg.AvailableVersion) -ForegroundColor Gray
     }
     Write-Host ''
 
@@ -490,17 +571,42 @@ function Read-PackageSelection {
         return @()
     }
 
-    $input = Read-Host 'Digite os numeros separados por virgula (ou ENTER para cancelar)'
-    if ([string]::IsNullOrWhiteSpace($input)) { return @() }
+    Write-Host '  Comandos:' -ForegroundColor Yellow
+    Write-Host '    [numeros]  ex: 1,3,5   Selecionar individualmente' -ForegroundColor Gray
+    Write-Host '    [T]                    Todos' -ForegroundColor Gray
+    Write-Host '    [N]                    Cancelar' -ForegroundColor Gray
+    Write-Host ''
 
-    $selected = [System.Collections.Generic.List[string]]::new()
-    foreach ($part in $input -split ',') {
-        $idx = 0
-        if ([int]::TryParse($part.Trim(), [ref]$idx) -and $idx -ge 1 -and $idx -le $Packages.Count) {
+    while ($true) {
+        $input = Read-Host '  Selecao'
+        if ([string]::IsNullOrWhiteSpace($input)) { return @() }
+        if ($input -ieq 'N') { return @() }
+        if ($input -ieq 'T') { return @($Packages | ForEach-Object { $_.Id }) }
+
+        $selected = [System.Collections.Generic.List[string]]::new()
+        $valid = $true
+        foreach ($part in ($input -split '[,\s]+')) {
+            $part = $part.Trim()
+            if ($part -eq '') { continue }
+            
+            $idx = 0
+            if (-not [int]::TryParse($part, [ref]$idx) -or $idx -lt 1 -or $idx -gt $Packages.Count) {
+                Write-Warn "Entrada invalida: '$part'. Use numeros de 1 a $($Packages.Count), T ou N."
+                $valid = $false
+                break
+            }
             $selected.Add($Packages[$idx - 1].Id)
         }
+        
+        if ($valid -and $selected.Count -gt 0) {
+            Write-Host ''
+            Write-Host "  $($selected.Count) pacote(s) selecionado(s) para atualizacao." -ForegroundColor Green
+            return $selected.ToArray()
+        }
+        if ($valid -and $selected.Count -eq 0) {
+            Write-Warn 'Nenhum pacote selecionado. Digite numeros, T ou N.'
+        }
     }
-    return $selected.ToArray()
 }
 
 # ---------------------------------------------------------------------------
@@ -807,7 +913,7 @@ function Invoke-UpgradeMain {
         exit 8
     }
 
-    $ReportSession = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'Updates'
+    $ReportSession = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'atualizacoes'
     $LogDir  = $ReportSession.LogsPath
     $LogFile = Join-Path $LogDir "$((Get-Date).ToString('yyyy-MM-dd_HHmmss'))-upgrade-windows.log"
 

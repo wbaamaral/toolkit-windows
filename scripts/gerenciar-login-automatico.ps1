@@ -87,6 +87,7 @@ param(
 
     [switch]$Help
 )
+    [switch]$Version
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::InputEncoding  = [System.Text.Encoding]::UTF8
@@ -100,7 +101,7 @@ $ScriptName = if ($MyInvocation.MyCommand.Name) { $MyInvocation.MyCommand.Name }
 $ScriptPath = $PSCommandPath
 $ScriptDir  = $PSScriptRoot
 
-$ScriptVersion = 'v1.0'
+$ScriptVersion = 'v1.0.0'
 $ToolkitRoot   = Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1')     -Force -ErrorAction Stop
 Import-Module (Join-Path $ToolkitRoot 'modules/WbaToolkit.Identity/WbaToolkit.Identity.psd1') -Force -ErrorAction Stop
@@ -134,6 +135,7 @@ function Show-Help {
 }
 
 if ($Help) { Show-Help; exit 0 }
+if ($Version) { Write-Host "Script: $ScriptName — $ScriptVersion" -ForegroundColor Green; exit 0 }
 
 # --- elevacao -----------------------------------------------------------------
 if (-not (Test-IsAdministrator)) {
@@ -144,7 +146,7 @@ if (-not (Test-IsAdministrator)) {
 }
 
 # --- sessao -------------------------------------------------------------------
-$session = Initialize-ScriptSession -ModuleName 'WbaToolkit.Identity' -BasePath $Path -ExecutionMode $Modo
+$session = Initialize-ScriptSession -ModuleName 'identidade' -BasePath $Path -ExecutionMode $Modo
 $logFile = Join-Path $session.LogsPath 'gerenciar-login-automatico.log'
 
 function Write-AutologonLog {

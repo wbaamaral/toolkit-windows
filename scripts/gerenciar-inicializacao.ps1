@@ -90,6 +90,7 @@ param(
 
     [switch]$Help
 )
+    [switch]$Version
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::InputEncoding  = [System.Text.Encoding]::UTF8
@@ -111,7 +112,7 @@ else {
 $ScriptPath = $PSCommandPath
 $ScriptDir  = $PSScriptRoot
 
-$ScriptVersion = 'v1.0'
+$ScriptVersion = 'v1.0.0'
 $ToolkitRoot   = Split-Path -Parent $PSScriptRoot
 
 $coreModulePath    = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
@@ -256,12 +257,13 @@ $changeRows
 # ─── execucao principal ───────────────────────────────────────────────────────
 
 if ($Help) { Show-Help; exit 0 }
+if ($Version) { Write-Host "Script: $ScriptName — $ScriptVersion" -ForegroundColor Green; exit 0 }
 
 Write-Title "WBA Windows Toolkit - Gerenciamento de Inicializacao $ScriptVersion"
 
 if ($DryRun) { Write-Warn 'MODO DRY-RUN: nenhuma alteracao sera feita no sistema.' }
 
-$script:Session = Initialize-ToolkitReportSession -ModuleName 'WbaToolkit.Startup' -ReportsRoot $Path
+$script:Session = Initialize-ToolkitReportSession -ModuleName 'inicializacao' -ReportsRoot $Path
 
 Write-WinStartupLog -Message "Sessao iniciada. Modo: $Modo. DryRun: $DryRun."
 Write-Info "Relatorios em: $($script:Session.Path)"

@@ -35,5 +35,10 @@ Export-ModuleMember -Function @(
     'Initialize-ToolkitReportSession',
     'Export-ToolkitFunctionDocs',
     'Export-ToolkitDocumentation',
-    'New-ToolkitElevationCommand'
+    'New-ToolkitElevationCommand',
+    'Get-ReportLogoBase64',
+    'New-ToolkitHtmlReport',
+    'Get-FileHashSha256',
+    'New-ToolkitArchive',
+    'Show-Spinner'
 )
