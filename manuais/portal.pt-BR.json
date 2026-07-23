@@ -1,0 +1,642 @@
+﻿[
+  {
+    "Nome": "ConvertTo-HtmlSafe",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Escapa texto para uso seguro em HTML.",
+    "AjudaLonga": "Converte caracteres especiais para entidades HTML e retorna um valor padronizado\npara relatorios HTML."
+  },
+  {
+    "Nome": "Disable-StartupItem",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Startup",
+    "Categoria": "Geral",
+    "AjudaCurta": "Desabilita um ou mais itens de inicializacao do Windows.",
+    "AjudaLonga": "Desabilita entradas de inicializacao preservando os dados originais no registro\nWBA para permitir reativacao. Suporta Registry (chaves Run), StartupFolder\n(atalhos movidos) e ScheduledTask (tarefas desabilitadas).\nAceita item unico ou lista de itens retornados por Get-StartupItem."
+  },
+  {
+    "Nome": "Enable-StartupItem",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Startup",
+    "Categoria": "Geral",
+    "AjudaCurta": "Reativa um ou mais itens de inicializacao gerenciados pelo toolkit.",
+    "AjudaLonga": "Restaura entradas de inicializacao previamente desabilitadas por Disable-StartupItem.\nRecupera os dados do registro WBA e desfaz a operacao original para cada tipo\nde fonte (Registry, StartupFolder, ScheduledTask).\nAceita item unico ou lista de itens retornados por Get-StartupItem."
+  },
+  {
+    "Nome": "Export-ConnectivityReport",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Networking",
+    "Categoria": "Geral",
+    "AjudaCurta": "Exporta o relatório de conectividade para HTML.",
+    "AjudaLonga": "Quando Path nao e informado, cria uma sessao padronizada em Networking\\<timestamp> usando OutputPath,\nReportsRoot persistente ou C:\\WBA\\Relatorios."
+  },
+  {
+    "Nome": "Export-ConnectivityReportPdf",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Networking",
+    "Categoria": "Geral",
+    "AjudaCurta": "Exporta o relatório HTML para PDF quando houver navegador compatível.",
+    "AjudaLonga": "Detecta msedge, chrome ou chromium — primeiro no PATH e, se ausente (caso comum no Windows),\nem caminhos de instalação conhecidos (Program Files / LocalAppData) — e usa o modo headless para\nimprimir o HTML em PDF. Retorna Success=$false com mensagem se nenhum navegador for encontrado\nou se o PDF não for efetivamente gerado."
+  },
+  {
+    "Nome": "Export-ToolkitDocumentation",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Documentacao",
+    "AjudaCurta": "Gera portal de documentação HTML unificado do WBA Windows Toolkit.",
+    "AjudaLonga": "Combina o portal operacional (index.html, operador.html) convertido de Markdown com\na referência técnica HTML gerada por Export-ToolkitFunctionDocs. Compatível com PS 5.1.\nO resultado é um conjunto de arquivos estáticos para uso offline via file://."
+  },
+  {
+    "Nome": "Export-ToolkitFunctionDocs",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Documentacao",
+    "AjudaCurta": "Gera documentacao HTML estatica das funcoes exportadas e scripts do toolkit.",
+    "AjudaLonga": "Importa os modulos informados, le o Comment-Based Help com Get-Help e gera paginas HTML locais com indice\nprincipal, paginas por modulo, paginas por funcao e paginas de documentacao dos scripts operacionais."
+  },
+  {
+    "Nome": "Format-FileSize",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Formata um valor em bytes para uma unidade legivel.",
+    "AjudaLonga": "Converte bytes em uma representacao legivel usando TB, GB, MB, KB ou B,\nmantendo uma saida previsivel para relatorios em console e HTML."
+  },
+  {
+    "Nome": "Get-CimInstanceSafe",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Consulta instancias CIM com tratamento de erro seguro.",
+    "AjudaLonga": "Encapsula Get-CimInstance com try/catch e retorna array vazio em caso\nde falha, em vez de propagar excecao. Erros sao emitidos via\nWrite-Verbose para nao interromper o fluxo do script chamador."
+  },
+  {
+    "Nome": "Get-ComponentStoreInfo",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Maintenance",
+    "Categoria": "Geral",
+    "AjudaCurta": "Analisa o Component Store (WinSxS) via DISM sem efetuar alteracoes.",
+    "AjudaLonga": "Executa dism /Online /Cleanup-Image /AnalyzeComponentStore e parseia a saida,\nretornando um objeto estruturado com tamanho do store, espaco recuperavel,\nrecomendacao de limpeza e data da ultima analise.\n\nOperacao somente leitura — segura para uso em modo diagnostico."
+  },
+  {
+    "Nome": "Get-DefaultUserHivePath",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Maintenance",
+    "Categoria": "Geral",
+    "AjudaCurta": "Retorna o caminho do arquivo de hive do perfil padrao do Windows.",
+    "AjudaLonga": "Localiza o arquivo NTUSER.DAT do perfil Default do Windows, que serve\ncomo template para todas as novas contas de usuario criadas no sistema.\nO diretorio de perfis e obtido do registro do sistema, garantindo\ncompatibilidade com instalacoes nao-padrao."
+  },
+  {
+    "Nome": "Get-DiskInfo",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Maintenance",
+    "Categoria": "Geral",
+    "AjudaCurta": "Retorna informacoes de espaco em disco da unidade do sistema.",
+    "AjudaLonga": "Consulta o disco correspondente ao SystemDrive via WMI e retorna tamanho\ntotal e espaco livre em gigabytes."
+  },
+  {
+    "Nome": "Get-FilesystemErrorEvent",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Maintenance",
+    "Categoria": "Geral",
+    "AjudaCurta": "Retorna eventos de erro ou falha relacionados ao sistema de arquivos.",
+    "AjudaLonga": "Consulta o log de eventos do Sistema buscando erros e falhas criticas nos\nprovedores de armazenamento e sistema de arquivos. Retorna array vazio quando\nnenhum evento e encontrado ou quando o log nao esta disponivel."
+  },
+  {
+    "Nome": "Get-InventoryCoverageMap",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Inventory",
+    "Categoria": "Inventory",
+    "AjudaCurta": "Retorna o mapa de cobertura do inventario do Xtudo.",
+    "AjudaLonga": "Entrega a lista dos blocos do inventario que o script oficial cobre hoje\ne, opcionalmente, as lacunas conhecidas para evolucao futura."
+  },
+  {
+    "Nome": "Get-NetworkContext",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Networking",
+    "Categoria": "Geral",
+    "AjudaCurta": "Coleta o contexto local de rede.",
+    "AjudaLonga": "Identifica adaptador ativo, IPv4 principal, gateway, DNS e dados básicos do ambiente para uso em\ndiagnósticos de conectividade."
+  },
+  {
+    "Nome": "Get-ServiceStartupState",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Startup",
+    "Categoria": "Geral",
+    "AjudaCurta": "Retorna o estado e o tipo de inicializacao de servicos do Windows.",
+    "AjudaLonga": "Consulta os servicos informados pelo nome e retorna um objeto com o estado\natual e o tipo de inicializacao (Auto, Manual, Disabled) de cada um.\nServicos nao encontrados sao incluidos no resultado com Status 'Nao encontrado'."
+  },
+  {
+    "Nome": "Get-StartupItem",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Startup",
+    "Categoria": "Geral",
+    "AjudaCurta": "Retorna todos os itens de inicializacao do Windows.",
+    "AjudaLonga": "Agrega entradas de inicializacao de tres fontes: chaves Run do Registro,\npasta Startup do usuario e do sistema, e tarefas agendadas com gatilho de\nlogon ou boot. Itens desabilitados gerenciados (armazenados no registro WBA)\nsubstituem suas entradas originais para refletir o estado real."
+  },
+  {
+    "Nome": "Get-ToolkitConfiguration",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Le a configuracao persistente do WBA Windows Toolkit.",
+    "AjudaLonga": "Carrega o arquivo config.json em ProgramData. Quando o arquivo nao existe, retorna uma configuracao vazia\ncom o caminho esperado para uso por outras funcoes."
+  },
+  {
+    "Nome": "Get-ToolkitReportsRoot",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Resolve a raiz global de relatorios do toolkit.",
+    "AjudaLonga": "Aplica a precedencia padronizada: caminho informado pelo usuario, configuracao persistente ReportsRoot e,\npor fim, C:\\WBA\\Relatorios."
+  },
+  {
+    "Nome": "Get-Utf8BomEncoding",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Retorna um objeto de encoding UTF-8 com BOM.",
+    "AjudaLonga": "Retorna System.Text.UTF8Encoding configurado para emitir BOM (byte order mark),\ncompativel com a convencao de arquivos PowerShell e relatórios do toolkit."
+  },
+  {
+    "Nome": "Import-RegistryTweakToDefaultProfile",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Maintenance",
+    "Categoria": "Geral",
+    "AjudaCurta": "Aplica um arquivo de tweak de registro ao perfil Default do Windows.",
+    "AjudaLonga": "Monta temporariamente o hive NTUSER.DAT do perfil Default, substitui\nas referencias de caminho no arquivo .reg para apontar ao ponto de\nmontagem correto e importa as entradas. O hive e desmontado ao final.\n\nEm modo DryRun, a operacao e simulada sem qualquer modificacao no registro.\n\nO arquivo .reg deve referenciar 'hkey_users\\default' (insensivel a maiusculas)\nnos caminhos de chave."
+  },
+  {
+    "Nome": "Initialize-ScriptSession",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Cria uma sessao padronizada de script com caminhos de saida resolvidos.",
+    "AjudaLonga": "Encapsula Initialize-ToolkitReportSession e retorna um objeto de sessao\ncom os campos basicos prontos para uso: StartedAt, Mode, ReportsRoot,\nBasePath, Path, LogsPath e BackupsPath.\n\nScripts que precisam de caminhos adicionais (ex.: TextReportPath,\nHtmlReportPath) devem acrescentar propriedades via Add-Member apos\nreceber o objeto:\n\n    $s = Initialize-ScriptSession -ModuleName 'HD100' -BasePath $dir -ExecutionMode $Modo\n    $s | Add-Member -MemberType NoteProperty -Name 'TextReportPath' `\n         -Value (Join-Path $s.Path 'relatorio.txt')"
+  },
+  {
+    "Nome": "Initialize-ToolkitReportSession",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Cria uma sessao padronizada de relatorio.",
+    "AjudaLonga": "Resolve a raiz de relatorios, cria a pasta agrupadora do modulo, cria a subpasta da execucao com timestamp\ne devolve caminhos padronizados para relatorios, logs e backups."
+  },
+  {
+    "Nome": "Invoke-ComponentStoreCleanup",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Maintenance",
+    "Categoria": "Geral",
+    "AjudaCurta": "Executa limpeza do Component Store (WinSxS) via DISM.",
+    "AjudaLonga": "Nivel Standard executa /StartComponentCleanup — seguro e reversivel.\nNivel Aggressive adiciona /ResetBase — IRREVERSIVEL: remove backups de updates\ninstalados e impossibilita rollback de Service Packs.\n\nSuporta -DryRun (simulacao sem execucao) e -WhatIf (SupportsShouldProcess).\nCaptura espaco liberado comparando disco antes e depois da execucao."
+  },
+  {
+    "Nome": "Invoke-ConnectivityTest",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Networking",
+    "Categoria": "Geral",
+    "AjudaCurta": "Executa a bateria de conectividade e retorna um relatório estruturado.",
+    "AjudaLonga": ""
+  },
+  {
+    "Nome": "Invoke-ConnectivityWizard",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Networking",
+    "Categoria": "Geral",
+    "AjudaCurta": "Executa um wizard simples para o diagnóstico de conectividade.",
+    "AjudaLonga": "Apresenta um menu mínimo no console permitindo ao operador iniciar a bateria completa de testes\nde conectividade via Invoke-ConnectivityTest e exibir o resultado com Show-ConnectivityReport.\nPara wizard interativo por alvo específico, use Invoke-TargetConnectivityWizard."
+  },
+  {
+    "Nome": "Invoke-EventLogMaintenance",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Maintenance",
+    "Categoria": "Geral",
+    "AjudaCurta": "Limpa logs do Visualizador de Eventos com opcoes de backup de erros.",
+    "AjudaLonga": "Processa os logs Application, System e Setup de acordo com a acao escolhida.\nEm modo ErrorOnly, exporta eventos de erro/falha para arquivo .evtx em\nBackupPath antes de limpar. Em modo All, limpa sem backup. Em modo None,\nnao efetua nenhuma alteracao."
+  },
+  {
+    "Nome": "Invoke-ExternalCommand",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Executa um comando externo e retorna codigo de saida e saida textual.",
+    "AjudaLonga": "Valida se o comando existe, executa o binario informado com argumentos e\nretorna um objeto com ExitCode e Output."
+  },
+  {
+    "Nome": "Invoke-FilesystemCheck",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Maintenance",
+    "Categoria": "Geral",
+    "AjudaCurta": "Verifica eventos de falha no sistema de arquivos e oferece agendamento de chkdsk.",
+    "AjudaLonga": "Consulta o log de eventos buscando falhas nos provedores de armazenamento\nnos ultimos 30 dias. Quando falhas sao detectadas, exibe um resumo e,\nconforme o parametro Action, agenda chkdsk no proximo boot ou apenas informa."
+  },
+  {
+    "Nome": "Invoke-Safe",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Executa um bloco de codigo com tratamento padronizado de erros.",
+    "AjudaLonga": "Executa um scriptblock, captura excecoes e padroniza a saida de erro sem\ninterromper o fluxo do chamador. Retorna $true quando a operacao conclui\ncom sucesso e $false quando ocorre falha."
+  },
+  {
+    "Nome": "Invoke-StartupManager",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Startup",
+    "Categoria": "Geral",
+    "AjudaCurta": "Gerenciador interativo de itens de inicializacao do Windows.",
+    "AjudaLonga": "Apresenta um loop interativo para o operador selecionar e modificar entradas\nde inicializacao. Suporta desabilitar, reativar e remover itens das fontes\nRegistry, StartupFolder e ScheduledTask.\n\nRetorna um array com o registro de todas as operacoes realizadas durante a sessao,\npermitindo que o chamador integre o historico ao seu proprio sistema de rastreamento."
+  },
+  {
+    "Nome": "Invoke-SysprepPreparation",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Maintenance",
+    "Categoria": "Geral",
+    "AjudaCurta": "Aplica o conjunto de tweaks de perfil ao Default user do Windows.",
+    "AjudaLonga": "Localiza todos os arquivos .reg no diretorio especificado e aplica-os\nao perfil Default do Windows via manipulacao offline do hive de registro\nNTUSER.DAT. O hive e montado uma unica vez, todos os tweaks sao importados\nem sequencia e o hive e desmontado ao final.\n\nAntes de qualquer modificacao, cria automaticamente um backup do arquivo\nNTUSER.DAT no diretorio de backups da sessao.\n\nEm modo DryRun, os tweaks sao apenas enumerados sem qualquer modificacao\nno sistema."
+  },
+  {
+    "Nome": "Invoke-TargetConnectivityTest",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Networking",
+    "Categoria": "Networking",
+    "AjudaCurta": "Executa teste de conectividade contra um alvo especifico.",
+    "AjudaLonga": "Testa ICMP, TCP, UDP ou todos os protocolos contra um endereco IP ou nome informado.\nPara TCP e UDP, aceita porta unica, lista de portas ou range."
+  },
+  {
+    "Nome": "Invoke-TargetConnectivityWizard",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Networking",
+    "Categoria": "Networking",
+    "AjudaCurta": "Executa wizard para teste de conectividade contra alvo informado pelo operador.",
+    "AjudaLonga": ""
+  },
+  {
+    "Nome": "Invoke-WithDefaultUserHive",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Maintenance",
+    "Categoria": "Geral",
+    "AjudaCurta": "Monta o hive do perfil Default e executa um bloco de codigo com acesso a ele.",
+    "AjudaLonga": "Carrega o arquivo NTUSER.DAT do perfil Default do Windows como chave\ntemporaria em HKEY_USERS\\WBA_DefaultProfile, executa o ScriptBlock\nfornecido e desmonta o hive ao final, mesmo que ocorra erro durante a\nexecucao.\n\nO ScriptBlock recebe o nome do ponto de montagem como primeiro argumento,\npermitindo que operacoes de registro usem o caminho correto."
+  },
+  {
+    "Nome": "New-ConnectivityTestPlan",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Networking",
+    "Categoria": "Geral",
+    "AjudaCurta": "Cria um plano de teste de conectividade estruturado.",
+    "AjudaLonga": "Retorna um objeto de configuração com os alvos e parâmetros usados por Invoke-ConnectivityTest.\nPermite customizar os IPs, domínios para DNS, domínios para ICMP/TCP e porta TCP."
+  },
+  {
+    "Nome": "New-ToolkitElevationCommand",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Core",
+    "AjudaCurta": "Monta a linha de comando PowerShell para relancar um script com elevacao.",
+    "AjudaLonga": "Converte $PSBoundParameters do script chamador em uma string de comando\nsegura para uso com 'powershell.exe -Command', preservando parametros\ncom espacos, aspas e arrays (ex.: [string[]]$Drive) intactos no processo\nelevado. Usa -Command (nao -File) porque somente o parser da linguagem\nPowerShell reconstroi um array a partir de 'valor1','valor2' — passar\narray via -File colapsa os valores em um unico argumento."
+  },
+  {
+    "Nome": "Read-UserInput",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Solicita entrada do operador com suporte a valor padrao.",
+    "AjudaLonga": "Exibe um prompt de leitura para o operador. Quando DefaultValue for\ninformado, ele e exibido entre colchetes ao lado da pergunta e adotado\ncaso o operador pressione ENTER sem digitar nada."
+  },
+  {
+    "Nome": "Read-YesNo",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Faz uma pergunta de confirmacao simples e retorna um valor booleano.",
+    "AjudaLonga": "Exibe uma pergunta no console e interpreta respostas comuns em pt-BR e en-US.\nResposta vazia retorna o valor padrao informado."
+  },
+  {
+    "Nome": "Remove-SafePath",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Maintenance",
+    "Categoria": "Geral",
+    "AjudaCurta": "Remove com seguranca arquivos de um caminho, opcionalmente filtrando por idade.",
+    "AjudaLonga": "Remove arquivos e subdiretorios do caminho especificado. Quando OlderThanDays\nfor informado, remove apenas arquivos com LastWriteTime anterior ao numero de\ndias indicado. Nao lanca excecao se o caminho nao existir."
+  },
+  {
+    "Nome": "Remove-StartupItem",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Startup",
+    "Categoria": "Geral",
+    "AjudaCurta": "Remove definitivamente um ou mais itens de inicializacao do Windows.",
+    "AjudaLonga": "Remove entradas de inicializacao de forma permanente e irreversivel.\nExige confirmacao textual antes de prosseguir. Suporta Registry,\nStartupFolder e ScheduledTask. Itens gerenciados (ManagedDisabled) tem\nseus backups e registros WBA limpos junto com a remocao.\nAceita item unico ou lista."
+  },
+  {
+    "Nome": "Set-ToolkitReportsRoot",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Salva o diretorio preferido para relatorios do WBA Windows Toolkit.",
+    "AjudaLonga": "Grava a chave ReportsRoot no arquivo de configuracao persistente do toolkit. Scripts e funcoes que nao\nreceberem um caminho explicitamente devem consultar esta configuracao antes de usar o padrao global."
+  },
+  {
+    "Nome": "Show-ConnectivityReport",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Networking",
+    "Categoria": "Geral",
+    "AjudaCurta": "Exibe o relatório de conectividade em tela.",
+    "AjudaLonga": "Formata e imprime no console o objeto de relatório retornado por Invoke-ConnectivityTest ou\nInvoke-TargetConnectivityTest, incluindo contexto de rede, resumo de classificações e detalhe\nde cada teste executado."
+  },
+  {
+    "Nome": "Show-StartupItem",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Startup",
+    "Categoria": "Geral",
+    "AjudaCurta": "Exibe a lista de itens de inicializacao no console.",
+    "AjudaLonga": "Apresenta os itens de inicializacao formatados em tabela numerada com\nindicacao visual do estado (ON/OFF), tipo de fonte e escopo."
+  },
+  {
+    "Nome": "Test-DnsResolution",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Networking",
+    "Categoria": "Geral",
+    "AjudaCurta": "Valida resolução DNS para um nome informado.",
+    "AjudaLonga": "Executa Resolve-DnsName para o nome e tipo de registro informados e retorna um objeto de resultado\npadronizado com os registros obtidos em Details."
+  },
+  {
+    "Nome": "Test-GatewayConnectivity",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Networking",
+    "Categoria": "Geral",
+    "AjudaCurta": "Executa teste de conectividade com o gateway padrão.",
+    "AjudaLonga": "Executa Test-IcmpConnectivity no endereço de gateway informado e retorna um resultado com\ncategoria e recomendação específicas de gateway."
+  },
+  {
+    "Nome": "Test-IcmpConnectivity",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Networking",
+    "Categoria": "Geral",
+    "AjudaCurta": "Executa teste ICMP contra um destino informado.",
+    "AjudaLonga": "Usa Test-Connection para enviar pacotes ICMP ao endereço informado e calcula a latência média.\nRetorna um objeto de resultado padronizado com classificação Success ou Failed."
+  },
+  {
+    "Nome": "Test-IsAdministrator",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Verifica se o processo atual possui elevacao administrativa.",
+    "AjudaLonga": "Retorna $true quando o token atual esta no grupo de Administradores e $false\nquando o contexto nao estiver elevado ou quando a verificacao nao puder ser\nexecutada no ambiente atual."
+  },
+  {
+    "Nome": "Test-LocalTcpListener",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Networking",
+    "Categoria": "Geral",
+    "AjudaCurta": "Verifica se há listener TCP local em uma porta.",
+    "AjudaLonga": "Consulta os listeners TCP ativos do sistema usando IPGlobalProperties e verifica se a porta\nespecificada está em escuta. Não requer conexão de rede."
+  },
+  {
+    "Nome": "Test-LocalUdpListener",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Networking",
+    "Categoria": "Geral",
+    "AjudaCurta": "Verifica se há endpoint UDP local em uma porta.",
+    "AjudaLonga": "Consulta os endpoints UDP ativos do sistema usando IPGlobalProperties e verifica se a porta\nespecificada está registrada. Não realiza tráfego de rede."
+  },
+  {
+    "Nome": "Test-SysprepEnvironment",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Maintenance",
+    "Categoria": "Geral",
+    "AjudaCurta": "Verifica os pre-requisitos para executar a preparacao de imagem.",
+    "AjudaLonga": "Realiza verificacoes de pre-voo para garantir que o sistema esta em estado\nadequado para a preparacao de imagem:\n\n  - Sessao elevada com privilegios de Administrador\n  - Windows 10 Pro (build 10240+) ou Windows 11 (build 22000+)\n  - Executavel sysprep.exe presente no sistema\n  - Sistema nao passou por sysprep anteriormente nesta instalacao\n\nRetorna objeto com IsValid = $false e lista de Errors quando alguma\ncondicao obrigatoria nao e atendida. Warnings sao informativos e nao\nimpedem a execucao."
+  },
+  {
+    "Nome": "Test-TcpPortConnectivity",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Networking",
+    "Categoria": "Geral",
+    "AjudaCurta": "Executa teste de conectividade TCP em porta informada.",
+    "AjudaLonga": "Tenta estabelecer conexão TCP assíncrona no destino e porta especificados, respeitando o timeout.\nRetorna resultado padronizado com status Aberta, Timeout ou Falha."
+  },
+  {
+    "Nome": "Test-UdpPortConnectivity",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Networking",
+    "Categoria": "Geral",
+    "AjudaCurta": "Executa teste UDP com deteccao de porta fechada via ICMP e classifica o resultado.",
+    "AjudaLonga": "Envia um datagrama UDP ao destino usando um socket \"conectado\" (que fixa o peer e habilita\na entrega de erros ICMP referentes a ele) e aguarda resposta ate TimeoutSeconds:\n\n  - Resposta recebida           -> Aberta      (Classification Success)\n  - ICMP porta inalcancavel     -> Fechada     (Classification Failed; SocketError ConnectionReset)\n  - Sem resposta dentro do timeout -> Sem resposta (Classification Inconclusive: aberta sem eco ou filtrada)\n\nUDP e sem conexao: a ausencia de resposta nao distingue \"aberta sem eco\" de \"filtrada\", por isso\nesse caso permanece inconclusivo."
+  },
+  {
+    "Nome": "Write-Fail",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Escreve uma mensagem de falha padronizada.",
+    "AjudaLonga": ""
+  },
+  {
+    "Nome": "Write-Info",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Escreve uma mensagem informativa padronizada.",
+    "AjudaLonga": ""
+  },
+  {
+    "Nome": "Write-MaintenanceEvent",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Maintenance",
+    "Categoria": "Geral",
+    "AjudaCurta": "Registra evento no Visualizador de Eventos do Windows.",
+    "AjudaLonga": "Registra automaticamente a fonte de eventos quando necessario e escreve o\nevento no log Application. Nao lanca excecao em caso de falha; emite aviso\nem vez disso."
+  },
+  {
+    "Nome": "Write-Ok",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Escreve uma mensagem de sucesso padronizada.",
+    "AjudaLonga": ""
+  },
+  {
+    "Nome": "Write-ScriptLog",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Registra uma mensagem de log com timestamp e nivel de severidade.",
+    "AjudaLonga": "Formata e emite uma entrada de log com timestamp no formato\n'yyyy-MM-dd HH:mm:ss [LEVEL] mensagem'. Quando LogPath for informado,\na entrada e gravada no arquivo de log. O nivel tambem controla a saida\nno console: WARN usa Write-Warn, ERROR usa Write-Fail, INFO usa Write-Info."
+  },
+  {
+    "Nome": "Write-Section",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Escreve um separador com titulo padronizado.",
+    "AjudaLonga": ""
+  },
+  {
+    "Nome": "Write-Step",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Emite um marcador de progresso textual no estilo [NN%] mensagem.",
+    "AjudaLonga": "Exibe uma linha em branco seguida de \"[Percent%] Message\" em ciano.\nNao usa Write-Progress para evitar que a barra de progresso cubra\nprompts interativos em scripts que intercalam etapas longas com\nperguntas ao operador (ADR 0021)."
+  },
+  {
+    "Nome": "Write-TextFileUtf8",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Grava ou acrescenta texto em arquivo com encoding UTF-8 com BOM.",
+    "AjudaLonga": "Escreve conteudo textual em um arquivo usando UTF-8 com BOM, garantindo\ncompatibilidade com a convencao do toolkit. Suporta criacao de arquivo novo\ne modo de append para arquivos existentes."
+  },
+  {
+    "Nome": "Write-Title",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Escreve um titulo de secao padronizado.",
+    "AjudaLonga": ""
+  },
+  {
+    "Nome": "Write-Warn",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Escreve uma mensagem de alerta padronizada.",
+    "AjudaLonga": ""
+  },
+  {
+    "Nome": "analisar-espaco-disco.ps1",
+    "Tipo": "Script",
+    "Modulo": null,
+    "Categoria": "Utilities",
+    "AjudaCurta": "Analisa o uso de espaco em disco, identifica potencial de limpeza e gera     relatorio com Top 20 pastas e Top 10 arquivos por tamanho.",
+    "AjudaLonga": "Varre os volumes locais do computador usando System.IO de alto desempenho,\n    calcula o tamanho total de cada pasta (incluindo subpastas), detecta arquivos\n    e pastas ocultos, estima categorias de espaco desperdicado e gera:\n\n    - Exibicao no console no estilo Baobab/Disk Usage Analyzer com barras ASCII.\n    - Relatorio HTML com Top 20 pastas, Top 10 arquivos e estimativa de limpeza.\n\n    NENHUMA acao destrutiva e realizada. O script e estritamente de leitura.\n\n    Funcionalidades:\n    - Varre todos os volumes locais fixos (ou drive especificado com -Drive).\n    - Ignora pontos de reparse (juncoes, links simbolicos) para evitar loops.\n    - Marca pastas e arquivos ocultos no relatorio.\n    - Detecta categorias de espaco desperdicado: temp, cache, dumps, logs antigos,\n      Windows.old, hiberfil.sys, lixeira, cache de browsers, WinSxS.\n    - Top 20 pastas por tamanho total com barra visual proporcional.\n    - Top 10 arquivos por tamanho individual.\n    - Relatorio HTML salvo na pasta padronizada do toolkit com conversao opcional para PDF.\n    - Log completo da execucao em logs da sessao.\n\n.PARAMETER Drive\n    Volume(s) a varrer (ex: C). Quando omitido, varre todos os volumes locais fixos.\n\n.PARAMETER Path\n    Raiz de relatorios escolhida pelo usuario (alias: -DiretorioSaida). Quando omitido,\n    usa ReportsRoot persistente do toolkit ou C:\\WBA\\Relatorios. O script cria\n    automaticamente Utilities\\<timestamp>.\n\n.PARAMETER NaoPDF\n    Gera apenas o relatorio HTML, sem tentar converter para PDF.\n\n.PARAMETER Silent\n    Suprime a barra de progresso da varredura no console.\n\n.PARAMETER Help\n    Exibe a ajuda resumida do script.\n\n.PARAMETER Version\n    Exibe a versao do script.\n\n.PARAMETER MaxDepth\n    Limita a profundidade da varredura (0 = ilimitado, padrao). Use um valor pequeno\n    (ex.: 2 ou 3) para um panorama rapido das maiores pastas de alto nivel; nesse caso\n    a varredura e parcial (subpastas alem do limite nao sao somadas)."
+  },
+  {
+    "Nome": "atualizar-windows.ps1",
+    "Tipo": "Script",
+    "Modulo": null,
+    "Categoria": "Updates",
+    "AjudaCurta": "",
+    "AjudaLonga": ""
+  },
+  {
+    "Nome": "configurar-idioma-regional.ps1",
+    "Tipo": "Script",
+    "Modulo": null,
+    "Categoria": "Configuration",
+    "AjudaCurta": "Padroniza idioma, locale regional e fuso horario de instalacoes Windows 10/11 Pro+ para pt-BR.",
+    "AjudaLonga": "Configura uma instalacao existente do Windows 10/11 (Pro ou superior) para o padrao\n    brasileiro (pt-BR): pacote de idioma, idioma de exibicao, locale regional, teclado ABNT2,\n    localizacao geografica e fuso horario.\n\n    As configuracoes sao aplicadas ao usuario atual, a conta do sistema e ao perfil padrao\n    de novos usuarios (via intl.cpl com propagacao automatica).\n\n    Requer acesso a internet para download do pacote de idioma quando nao instalado.\n    Requer reinicializacao para aplicar completamente o idioma de exibicao.\n\n    Funcionalidades:\n    - Instala pacote de idioma pt-BR (se ausente, via LanguagePackManagement ou DISM).\n    - Define pt-BR como idioma de exibicao do sistema.\n    - Configura locale regional pt-BR: data, hora, moeda, separadores numericos.\n    - Define teclado ABNT2 como layout principal.\n    - Define localizacao geografica como Brasil (GeoID 32).\n    - Propaga todas as configuracoes para conta do sistema e perfil de novos usuarios.\n    - Configura fuso horario (padrao UTC-4; parametrizavel para qualquer fuso do Brasil).\n    - Suporte a modo silencioso para automacao via GPO, SCCM ou scripts de implantacao.\n    - Salva log completo na pasta padronizada de relatorios do toolkit.\n\n.PARAMETER Help\n    Mostra a ajuda do script e encerra.\n\n.PARAMETER Version\n    Mostra a versao do script e encerra.\n\n.PARAMETER ListTimeZones\n    Lista os fusos horarios do Brasil aceitos pelo parametro -TimeZone e encerra.\n\n.PARAMETER NoReboot\n    Nao reinicia o sistema ao final da configuracao.\n\n.PARAMETER Silent\n    Modo silencioso, sem prompts de confirmacao. Util para automacao via GPO ou SCCM.\n\n.PARAMETER TimeZone\n    ID do fuso horario Windows a aplicar. Padrao: 'SA Western Standard Time' (UTC-4).\n\n.PARAMETER Path\n    Raiz de relatorios da sessao. Quando omitido, usa a configuracao persistente\n    do toolkit ou C:\\WBA\\Relatorios."
+  },
+  {
+    "Nome": "diagnosticar-ad-cliente.ps1",
+    "Tipo": "Script",
+    "Modulo": null,
+    "Categoria": "Scripts",
+    "AjudaCurta": "Diagnostica a saude do cliente Windows em relacao ao Active Directory.",
+    "AjudaLonga": "Consolida a leitura do estado do cliente em relacao ao AD: ingresso no dominio,\n    canal seguro, DNS, resolucao de registros SRV, acesso a SYSVOL/NETLOGON,\n    sincronizacao de hora, conectividade com o DC, servicos essenciais e situacao\n    da conta do computador no AD quando o modulo RSAT estiver disponivel.\n\n    No modo Diagnostico, o script e somente leitura. No modo Assistido, quando o\n    canal seguro ou a hora do cliente estiverem comprometidos, o operador pode\n    confirmar o reparo guiado.\n\n.PARAMETER Modo\n    Diagnostico ou Assistido. Assistido permite reparo guiado do canal seguro.\n\n.PARAMETER Hora\n    Habilita o reparo guiado da sincronização de hora em modo Assistido.\n\n.PARAMETER Canal\n    Habilita o reparo guiado do canal seguro em modo Assistido.\n\n.PARAMETER DomainFQDN\n    FQDN do dominio. Quando omitido, o script tenta inferir do ambiente.\n\n.PARAMETER DomainNetBIOS\n    Nome NetBIOS do dominio. Quando omitido, o script deriva do FQDN.\n\n.PARAMETER PreferredDc\n    Controlador de dominio preferencial.\n\n.PARAMETER DnsServers\n    Servidores DNS esperados no cliente. Quando informados, o script aponta\n    divergencias de configuracao local.\n\n.PARAMETER Path\n    Raiz de relatorios. Quando omitido, usa a raiz persistente do toolkit.\n\n.PARAMETER Help\n    Exibe a ajuda resumida do script e encerra."
+  },
+  {
+    "Nome": "diagnosticar-disco-100.ps1",
+    "Tipo": "Script",
+    "Modulo": null,
+    "Categoria": "Maintenance",
+    "AjudaCurta": "Diagnostico assistido para uso de disco em 100% no Windows.",
+    "AjudaLonga": "Coleta evidencias tecnicas para investigacao do sintoma conhecido como HD100 ou Disco 100%.\n    A primeira versao prioriza diagnostico seguro, relatorio tecnico e registro estruturado em JSON.\n\n    No modo Diagnostico, o script nao aplica correcoes permanentes. Comandos com potencial de reparo,\n    como SFC /scannow e DISM RestoreHealth, ficam reservados ao modo Assistido."
+  },
+  {
+    "Nome": "diagnosticar-grafico.ps1",
+    "Tipo": "Script",
+    "Modulo": null,
+    "Categoria": "Diagnostics",
+    "AjudaCurta": "Diagnostico de travamentos graficos, tela preta, DWM e driver de video no Windows.",
+    "AjudaLonga": "Coleta evidencias tecnicas para investigacao de congelamento com tela preta, reinicializacao forcada,\n    falhas do Desktop Window Manager (dwm.exe), TDR, WHEA, Kernel-Power e erros em componentes DirectX.\n\n    O script e conservador: no modo Diagnostico nao altera configuracoes do Windows, nao remove drivers e nao\n    aplica reparos. O modo Assistido amplia a coleta com DXDiag, exportacao dos logs EVTX e HTML por padrao,\n    mas tambem nao aplica alteracoes permanentes."
+  },
+  {
+    "Nome": "diagnosticar-memoria.ps1",
+    "Tipo": "Script",
+    "Modulo": null,
+    "Categoria": "Diagnostics",
+    "AjudaCurta": "Identifica os maiores consumidores de memoria e gera relatorio para verificacao de legitimidade.",
+    "AjudaLonga": "Coleta os N processos com maior consumo de memoria e enriquece cada um com dados de publisher,\n    assinatura digital, hash SHA256 e nivel de confianca do caminho. O relatorio HTML inclui links\n    prontos para pesquisa no Google, ProcessLibrary e VirusTotal."
+  },
+  {
+    "Nome": "gerenciar-drivers.ps1",
+    "Tipo": "Script",
+    "Modulo": null,
+    "Categoria": "Maintenance",
+    "AjudaCurta": "Backup e restauracao de drivers de terceiros instalados no Windows.",
+    "AjudaLonga": "Enumera drivers OEM (nao-inbox) do sistema, permite selecao granular e executa\n    exportacao via pnputil. No modo Restore, verifica presenca do hardware antes de\n    instalar; drivers sem hardware detectado exigem confirmacao explicita do operador\n    com aviso de risco de instabilidade.\n\n.PARAMETER Modo\n    Define a operacao:\n      Backup  - enumera e exporta drivers instalados (padrao)\n      Restore - localiza backup anterior e reinstala drivers selecionados\n\n.PARAMETER DryRun\n    Simula operacoes sem executar pnputil. Exibe o que seria feito.\n\n.PARAMETER GerarHtml\n    Gera relatorio HTML alem do TXT.\n\n.PARAMETER Path\n    Raiz de relatorios/backup. Quando omitido, usa configuracao do toolkit ou C:\\WBA\\Relatorios.\n\n.PARAMETER Help\n    Exibe a ajuda resumida do script e encerra."
+  },
+  {
+    "Nome": "gerenciar-inicializacao.ps1",
+    "Tipo": "Script",
+    "Modulo": null,
+    "Categoria": "Startup",
+    "AjudaCurta": "Gerenciamento de itens de inicializacao e servicos do Windows.",
+    "AjudaLonga": "Ferramenta dedicada ao gerenciamento da inicializacao do Windows. Coleta, exibe\n    e permite modificar entradas das tres fontes reconhecidas pelo toolkit:\n\n      - Registro (HKLM/HKCU Run e RunOnce)\n      - Pasta de inicializacao (usuario e sistema)\n      - Tarefas agendadas com gatilho de logon ou boot\n\n    Adicionalmente, exibe o estado e o tipo de inicializacao dos servicos relevantes.\n\n    No modo Diagnostico (padrao), apenas coleta e exibe informacoes sem alterar nada.\n    No modo Assistido, permite ao operador desabilitar, reativar ou remover entradas.\n\n    A coleta, exibicao e modificacao sao delegadas ao modulo WbaToolkit.Startup; o\n    script orquestra o fluxo, registra a sessao e exporta relatorios.\n\n    Todas as operacoes de desativacao sao reversiveis: o item original e registrado\n    no repositorio WBA (HKLM:\\SOFTWARE\\WBA\\WindowsToolkit\\Startup\\Disabled) antes\n    de qualquer alteracao.\n\n    Os relatorios seguem o padrao global de saida do toolkit. Quando -DiretorioSaida\n    nao e informado, o caminho e resolvido pela configuracao persistente (ReportsRoot)\n    ou, na ausencia desta, por C:\\WBA\\Relatorios. Os artefatos sao gravados em\n    <Raiz>\\WbaToolkit.Startup\\<yyyy-MM-dd_HHmmss>\\ (relatorio TXT, JSON, alteracoes\n    e a pasta logs\\).\n\n.PARAMETER Modo\n    Define o modo de execucao:\n      Diagnostico - leitura e relatorio apenas (padrao)\n      Assistido   - permite modificacoes interativas\n\n.PARAMETER DryRun\n    Simula todas as operacoes sem efetuar alteracoes no sistema.\n\n.PARAMETER GerarHtml\n    Reservado para geracao de relatorio HTML alem do TXT e JSON.\n\n.PARAMETER Path\n    Raiz de relatorios escolhida pelo usuario. Quando omitido, usa a configuracao\n    persistente do toolkit ou C:\\WBA\\Relatorios. Aceita o alias -DiretorioSaida.\n\n.PARAMETER Help\n    Exibe a ajuda resumida do script e encerra."
+  },
+  {
+    "Nome": "gerenciar-login-automatico.ps1",
+    "Tipo": "Script",
+    "Modulo": null,
+    "Categoria": "Identidade",
+    "AjudaCurta": "Gerencia o logon automatico (autologon) do Windows: diagnostico, habilitar,     desabilitar e editar.",
+    "AjudaLonga": "Interface operacional para o modulo WbaToolkit.Identity. A senha do autologon e\n    sempre armazenada como segredo LSA ('DefaultPassword'), nunca em texto claro no\n    registro (conformidade ADR 0005). Faz backup dos valores atuais antes de alterar.\n\n    No modo Diagnostico (padrao), apenas le e exibe o estado atual e gera relatorio.\n    No modo Assistido, abre o gerenciador interativo (habilitar/desabilitar/editar).\n    O parametro -Acao permite uso nao-interativo para automacao.\n\n    A senha NUNCA e aceita por parametro de texto: e sempre solicitada de forma segura\n    (Read-Host -AsSecureString) e nunca aparece em logs ou relatorios.\n\n.PARAMETER Modo\n    Diagnostico : le e exibe o estado do autologon; sem alteracoes (padrao).\n    Assistido   : abre o gerenciador interativo.\n\n.PARAMETER Acao\n    Uso nao-interativo: Habilitar, Desabilitar ou Editar. Requer -UserName quando aplicavel.\n\n.PARAMETER UserName\n    Conta alvo (para -Acao Habilitar/Editar).\n\n.PARAMETER Domain\n    Dominio da conta. Padrao: nome da maquina (conta local).\n\n.PARAMETER AutoLogonCount\n    Numero de logons automaticos antes de o Windows desativar o autologon.\n\n.PARAMETER DryRun\n    Simula operacoes que alterariam o sistema, sem executa-las.\n\n.PARAMETER Path\n    Raiz de relatorios. Quando omitido, usa a configuracao persistente do toolkit\n    ou C:\\WBA\\Relatorios.\n\n.PARAMETER Help\n    Exibe a ajuda resumida do script e encerra."
+  },
+  {
+    "Nome": "inventario-hardware-software.ps1",
+    "Tipo": "Script",
+    "Modulo": null,
+    "Categoria": "Inventory",
+    "AjudaCurta": "Gera inventario completo de hardware e software em HTML e PDF.",
+    "AjudaLonga": "Coleta informacoes detalhadas do equipamento e do ambiente Windows e produz\n    um relatorio HTML com design moderno salvo na pasta de saida escolhida.\n    Opcionalmente converte o HTML para PDF usando o Chrome ou Edge em modo\n    headless (sem abrir janela).\n\n    Informacoes coletadas:\n      - Sistema Operacional  : nome, versao, build, arquitetura, uptime\n      - Processador          : modelo, nucleos, threads, velocidade, cache\n      - Memoria RAM          : total, modulos (slot, tipo, velocidade, fabricante)\n      - Placa-mae e BIOS     : fabricante, modelo, versao, data, numero de serie\n      - Armazenamento        : discos fisicos e volumes logicos com barra de uso\n      - Placa de video       : modelo, VRAM, driver, resolucao atual\n      - Rede                 : MAC, IP, mascara, gateway, DNS e status DHCP\n      - Monitores            : modelos detectados via PnP\n      - Software instalado   : lista completa com versao, fabricante e data\n      - Atualizacoes         : hotfixes instalados com data\n      - Servicos             : todos os servicos com status Running\n\n    Pre-requisitos:\n      - PowerShell 5.1 ou superior\n      - Execucao como Administrador (obrigatorio)\n      - Para gerar PDF: Google Chrome ou Microsoft Edge instalado\n        Chrome  : %ProgramFiles%\\Google\\Chrome\\Application\\chrome.exe\n        Edge    : %ProgramFiles(x86)%\\Microsoft\\Edge\\Application\\msedge.exe\n        Se nenhum for encontrado, o script gera apenas o HTML e instrui o\n        usuario a usar Ctrl+P > Salvar como PDF no navegador.\n\n    Arquivos gerados na sessao padronizada de relatorio:\n      relatorio-inventario-<COMPUTERNAME>-<yyyy-MM-dd_HHmmss>.html  Relatorio principal\n      relatorio-inventario-<COMPUTERNAME>-<yyyy-MM-dd_HHmmss>.pdf   Versao em PDF (se disponivel)\n      logs\\inventario-<yyyy-MM-dd_HHmmss>.log                      Transcript de execucao\n      resumo-hardware-drivers.txt                                  Resumo enxuto opcional\n      resumo-hardware-drivers.md                                   Resumo enxuto opcional\n      resumo-hardware-drivers.json                                 Resumo estruturado opcional\n\n.PARAMETER Path\n    Raiz de relatorios escolhida pelo usuario (alias: -DiretorioSaida). Quando omitido, usa ReportsRoot\n    persistente do toolkit ou C:\\WBA\\Relatorios. O script cria automaticamente Inventory\\<timestamp>.\n\n    Exemplos de valores validos:\n      C:\\TI\n      D:\\Relatorios\\TI\n      \\\\servidor\\compartilhamento\\inventarios\n\n.PARAMETER NaoPDF\n    Quando informado, o script gera apenas o relatorio HTML e nao tenta\n    converter para PDF. Util quando:\n      - Chrome e Edge nao estao instalados no equipamento\n      - A conversao PDF nao e necessaria (envio por e-mail do HTML)\n      - Execucao em ambientes sem interface grafica (Server Core)\n\n.PARAMETER GerarResumoHardwareDrivers\n    Gera, alem do inventario completo, um resumo enxuto de hardware e drivers ativos em TXT, Markdown e/ou JSON.\n\n.PARAMETER SomenteHardwareDrivers\n    Gera apenas o resumo enxuto de hardware e drivers ativos. Nao gera HTML, PDF nem inventario completo.\n\n.PARAMETER FormatoResumoHardwareDrivers\n    Define o formato do resumo enxuto: Txt, Markdown, Json ou Todos.\n\n.PARAMETER Help\n    Exibe a ajuda resumida do script e encerra."
+  },
+  {
+    "Nome": "limpar-windows.ps1",
+    "Tipo": "Script",
+    "Modulo": null,
+    "Categoria": "Maintenance",
+    "AjudaCurta": "Script de limpeza segura, manutenção e otimização conservadora para Windows 10 Pro.",
+    "AjudaLonga": "Este script executa rotinas administrativas seguras para liberar espaço em disco,\n    remover arquivos temporários, limpar logs não essenciais antigos, remover arquivos\n    de dump de memória, limpar cache do Windows Update, executar verificações de\n    integridade do sistema e aplicar ajustes opcionais de manutenção.\n\n    O foco desta versão é realizar uma limpeza eficiente sem remover componentes\n    críticos do Windows."
+  },
+  {
+    "Nome": "limpar-winsxs.ps1",
+    "Tipo": "Script",
+    "Modulo": null,
+    "Categoria": "Maintenance",
+    "AjudaCurta": "Diagnostico e limpeza assistida do Component Store (WinSxS) do Windows.",
+    "AjudaLonga": "Analisa e opcionalmente limpa o Component Store via DISM. Disponivel em tres modos:\n\n    Diagnostico (padrao): exibe tamanho e recomendacao de limpeza sem alterar o sistema.\n    Limpeza             : executa limpeza via DISM apos confirmacao do operador.\n    Relatorio           : como Diagnostico, mas salva resultado em JSON e opcionalmente HTML.\n\n    O nivel padrao de limpeza (Standard) executa /StartComponentCleanup e e reversivel.\n    O nivel Aggressive (/ResetBase) e IRREVERSIVEL: remove backups de updates instalados\n    e impossibilita rollback de Service Packs. Requer confirmacao explicita.\n\n.PARAMETER Modo\n    Diagnostico : analisa o store e exibe resultado; sem alteracoes (padrao).\n    Limpeza     : solicita confirmacao e executa limpeza DISM.\n    Relatorio   : como Diagnostico, salva JSON e opcionalmente HTML.\n\n.PARAMETER ResetBase\n    Apenas em -Modo Limpeza. Ativa /ResetBase no DISM.\n    IRREVERSIVEL: remove backups de updates, impossibilita rollback de SPs.\n\n.PARAMETER DryRun\n    Simula operacoes destrutivas sem executa-las. Valido apenas em -Modo Limpeza.\n\n.PARAMETER GerarHtml\n    Apenas em -Modo Relatorio. Salva tambem relatorio em HTML.\n\n.PARAMETER Path\n    Diretorio raiz de relatorios. Padrao: configuracao global ou C:\\WBA\\Relatorios.\n\n.PARAMETER Help\n    Exibe a ajuda resumida do script e encerra."
+  },
+  {
+    "Nome": "preparar-imagem-windows.ps1",
+    "Tipo": "Script",
+    "Modulo": null,
+    "Categoria": "Maintenance",
+    "AjudaCurta": "Preparacao do sistema Windows para criacao de imagem corporativa.",
+    "AjudaLonga": "Aplica um conjunto curado de tweaks ao perfil Default do Windows, garantindo\n    que toda nova conta de usuario criada a partir da imagem herde as configuracoes\n    padrao da organizacao.\n\n    O operador e sempre apresentado a uma simulacao completa antes de qualquer\n    alteracao no sistema. A execucao real exige confirmacao explicita digitando\n    CONFIRMAR. Um backup do perfil Default e criado automaticamente antes das\n    modificacoes.\n\n    Compativel com Windows 10 Pro (build 10240+) e Windows 11.\n\n.PARAMETER ApenasDryRun\n    Exibe a simulacao completa e encerra sem efetuar alteracoes.\n    Util para verificar quais tweaks serao aplicados antes de executar.\n\n.PARAMETER SemSysprep\n    Aplica os tweaks ao perfil Default, mas nao oferece executar o sysprep.exe.\n    Use quando o sysprep sera iniciado por outra ferramenta ou em etapa posterior.\n\n.PARAMETER Path\n    Raiz de relatorios da sessao. Quando omitido, usa a configuracao persistente\n    do toolkit ou C:\\WBA\\Relatorios.\n\n.PARAMETER Help\n    Exibe a ajuda resumida do script e encerra."
+  },
+  {
+    "Nome": "remover-perfis-inativos.ps1",
+    "Tipo": "Script",
+    "Modulo": null,
+    "Categoria": "Utilities",
+    "AjudaCurta": "Lista perfis de usuario locais com espaco em disco e permite remocao interativa     de perfis antigos ou inativos.",
+    "AjudaLonga": "Enumera todos os perfis de usuario nao-sistema do Windows, calcula o espaco\n    ocupado por cada um, exibe o ultimo acesso e o status da conta associada.\n    O operador escolhe interativamente quais perfis remover; a remocao usa\n    Win32_UserProfile (que limpa tambem a chave de registro do perfil).\n\n    Perfis do sistema (Default, Public, SYSTEM, etc.) sao excluidos automaticamente.\n    Perfis com sessao ativa (usuario logado) nao podem ser removidos e sao sinalizados."
+  },
+  {
+    "Nome": "testar-conectividade-internet.ps1",
+    "Tipo": "Script",
+    "Modulo": null,
+    "Categoria": "Diagnostics",
+    "AjudaCurta": "Diagnóstico completo de conectividade com a internet.",
+    "AjudaLonga": "Invólucro operacional do módulo WbaToolkit.Networking. Mantém o comportamento legado do script\n    enquanto a lógica de teste e relatório passa a ser tratada pelo módulo compartilhado.\n\n.PARAMETER Detalhado\n    Exibe informações adicionais no relatório em tela.\n\n.PARAMETER Help\n    Exibe a ajuda resumida do script e encerra."
+  },
+  {
+    "Nome": "verificar-atualizacoes-hardware.ps1",
+    "Tipo": "Script",
+    "Modulo": null,
+    "Categoria": "Diagnostics",
+    "AjudaCurta": "Diagnostico de atualizacoes de BIOS e drivers via Windows Update.",
+    "AjudaLonga": "Verifica o estado do BIOS (versao, data, fabricante, ferramenta oficial recomendada),\n    inventaria os drivers instalados (versao, data, assinatura digital) e consulta o\n    Windows Update para drivers disponiveis mas ainda nao instalados.\n\n    O script e SOMENTE LEITURA: nao instala nada, nao altera o sistema.\n    Atualizacoes de BIOS nunca sao aplicadas automaticamente — o script aponta a ferramenta\n    oficial do fabricante para execucao manual controlada.\n\n    A busca de drivers via Windows Update respeita politicas de GPO/WSUS: se o WU estiver\n    bloqueado por politica corporativa, o script registra aviso e continua.\n\n.PARAMETER GerarHtml\n    Gera relatorio HTML alem do JSON.\n\n.PARAMETER AbrirRelatorio\n    Abre o relatorio HTML (ou JSON, se HTML nao foi gerado) ao final da execucao.\n\n.PARAMETER Path\n    Diretorio raiz de relatorios. Padrao: configuracao global ou C:\\WBA\\Relatorios.\n\n.PARAMETER Help\n    Exibe a ajuda resumida do script e encerra."
+  }
+]

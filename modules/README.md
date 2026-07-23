@@ -14,6 +14,11 @@ modules/
     ├── WbaToolkit.Core.psm1
     ├── Public/
     └── Private/
+├── WbaToolkit.Inventory/
+    ├── WbaToolkit.Inventory.psd1
+    ├── WbaToolkit.Inventory.psm1
+    ├── Public/
+    └── Private/
 └── WbaToolkit.Networking/
     ├── WbaToolkit.Networking.psd1
     ├── WbaToolkit.Networking.psm1
@@ -27,8 +32,10 @@ modules/
 - Funções internas ficam em `Private/`.
 - O `.psm1` carrega as funções e exporta apenas as públicas.
 - Funções públicas devem ter `Comment-Based Help`.
+- Funções públicas devem expor ajuda inline consistente com `Get-Help`, incluindo suporte a `-Help` quando a função for invocada diretamente por script de operação.
 - Funções públicas podem declarar metadados do manual HTML com uma linha interna no formato
   `# WBA-DOCS: Category=Networking; Related=Show-ConnectivityReport; Manual=Descrição curta`.
+- A decisão formal dessa padronização está na ADR-0026 (repositório `spec-win-toolkit`).
 
 ## `WbaToolkit.Core`
 
@@ -77,6 +84,16 @@ Funções públicas principais:
 | `Show-ConnectivityReport` | Exibe relatório no console |
 | `Export-ConnectivityReport` | Exporta relatório HTML |
 | `Export-ConnectivityReportPdf` | Exporta PDF quando suportado |
+
+## `WbaToolkit.Inventory`
+
+Módulo de inventário técnico do toolkit.
+
+Funções públicas principais:
+
+| Função | Uso |
+|---|---|
+| `Get-InventoryCoverageMap` | Retorna a cobertura atual do inventário e suas lacunas conhecidas |
 
 ## Documentação HTML
 

@@ -1,0 +1,54 @@
+﻿[
+  {
+    "Slug": "Configuration",
+    "Nome": "Configuration"
+  },
+  {
+    "Slug": "Core",
+    "Nome": "Core"
+  },
+  {
+    "Slug": "Diagnostics",
+    "Nome": "Diagnostics"
+  },
+  {
+    "Slug": "Documentacao",
+    "Nome": "Documentacao"
+  },
+  {
+    "Slug": "Geral",
+    "Nome": "Geral"
+  },
+  {
+    "Slug": "Identidade",
+    "Nome": "Identidade"
+  },
+  {
+    "Slug": "Inventory",
+    "Nome": "Inventory"
+  },
+  {
+    "Slug": "Maintenance",
+    "Nome": "Maintenance"
+  },
+  {
+    "Slug": "Networking",
+    "Nome": "Networking"
+  },
+  {
+    "Slug": "Scripts",
+    "Nome": "Scripts"
+  },
+  {
+    "Slug": "Startup",
+    "Nome": "Startup"
+  },
+  {
+    "Slug": "Updates",
+    "Nome": "Updates"
+  },
+  {
+    "Slug": "Utilities",
+    "Nome": "Utilities"
+  }
+]
