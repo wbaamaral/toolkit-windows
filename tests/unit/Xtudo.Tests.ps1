@@ -20,7 +20,7 @@ Describe 'Xtudo launcher' {
         $script:launcherContent | Should -Match 'function\s+Invoke-XtudoScript'
     }
 
-    It 'Mantem cinco atalhos rapidos e rotas pesquisaveis oficiais' {
+    It 'Mantem cinco atalhos rapidos, busca e rotas pesquisaveis adicionais' {
         $script:launcherContent | Should -Match "Path\s+=\s+'scripts/limpar-windows\.ps1'"
         $script:launcherContent | Should -Match "Path\s+=\s+'scripts/diagnosticar-disco-100\.ps1'"
         $script:launcherContent | Should -Match "Path\s+=\s+'scripts/diagnosticar-memoria\.ps1'"
@@ -29,11 +29,19 @@ Describe 'Xtudo launcher' {
         $script:launcherContent | Should -Match "Path\s+=\s+'scripts/atualizar-windows\.ps1'"
         $script:launcherContent | Should -Match "Path\s+=\s+'scripts/diagnosticar-ad-cliente\.ps1'"
         $script:launcherContent | Should -Match "Path\s+=\s+'scripts/inventario-hardware-software\.ps1'"
+        $script:launcherContent | Should -Match "Label\s+=\s+'Inventário hardware e software'"
+        $script:launcherContent | Should -Match "Category\s+=\s+'Inventário'"
         ($script:launcherContent -match 'Quick\s+=\s+\$true') | Should -BeTrue
+        $script:launcherContent | Should -Match '0/q/sair cancela'
+        $script:launcherContent | Should -Match "\$input -match '\^\(0\|q\|quit\|sair\)\$'"
+        $script:launcherContent | Should -Match 'Resultados encontrados:'
+        $script:launcherContent | Should -Match 'Nenhum resultado exato\.'
     }
 
-    It 'Preserva os atalhos de cancelamento para o operador' {
-        $script:launcherContent | Should -Match '0/q/sair cancela'
-        ($script:launcherContent.Contains("`$input -match '^(0|q|quit|sair)$'")) | Should -BeTrue
+    It 'Normaliza argumentos antes de chamar scripts' {
+        $script:launcherContent | Should -Match 'foreach \(\$arg in @\(\$Entry\.Args\)\)'
+        $script:launcherContent | Should -Match '\$text = \[string\]\$arg'
+        $script:launcherContent | Should -Match '\$text -match ''\^\\-\\S\+\\s\+\\S\+\$'''
+        $script:launcherContent | Should -Match '\$invokeArgs \+= @\(\$text -split ''\\s\+'', 2\)'
     }
 }
