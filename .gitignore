@@ -1,7 +1,14 @@
-.claude/*
-.claude-config/
-CLAUDE.md
 .env
+
+# Artefatos gerados pelo pipeline LaTeX (docs/latex/build/)
+docs/latex/build/*
+!docs/latex/build/.gitkeep
+
+# Tailwind CLI standalone (binario baixado manualmente) e CSS intermediario
+# gerado por tools/build-report-css.sh — o CSS final fica embutido nos
+# geradores de HTML, nao neste diretorio.
+tools/bin/
+tools/tailwind/build/
 
 # ---> Kate
 # Swap Files #
@@ -21,6 +28,10 @@ CLAUDE.md
 pyvenv.cfg
 .venv
 pip-selfcheck.json
+
+# MVP Xtudo: camada plana de scripts operacionais
+!/scripts/
+!/scripts/**
 
 # ---> GNOMEShellExtension
 # Ignored files for GNOME extension git repository
@@ -451,4 +462,3 @@ tmtags
 # ---> TortoiseGit
 # Project-level settings
 /.tgitconfig
-
