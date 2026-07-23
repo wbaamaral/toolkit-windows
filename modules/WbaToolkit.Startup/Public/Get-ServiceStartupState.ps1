@@ -1,4 +1,4 @@
-function Get-ServiceStartupState {
+﻿function Get-ServiceStartupState {
     <#
     .SYNOPSIS
         Retorna o estado e o tipo de inicializacao de servicos do Windows.
@@ -40,7 +40,8 @@ function Get-ServiceStartupState {
     $services = foreach ($name in @($ServiceName)) {
         $svc = Get-Service -Name $name -ErrorAction SilentlyContinue
         if ($svc) {
-            $cim = Get-CimInstance Win32_Service -Filter "Name='$name'" -ErrorAction SilentlyContinue
+            $safeName = $name -replace "'", "''"
+            $cim = Get-CimInstance Win32_Service -Filter "Name='$safeName'" -ErrorAction SilentlyContinue
             [pscustomobject]@{
                 Name        = $name
                 DisplayName = $svc.DisplayName

@@ -1,4 +1,4 @@
-function Get-Utf8BomEncoding {
+﻿function Get-Utf8BomEncoding {
     <#
     .SYNOPSIS
         Retorna um objeto de encoding UTF-8 com BOM.

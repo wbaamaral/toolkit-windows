@@ -1,5 +1,5 @@
-@{
-    ModuleVersion     = '1.0.0'
+﻿@{
+    ModuleVersion     = '2.0.3'
     GUID              = 'd5e3f178-2a4c-4e8b-b9c1-7e2a5d6f0891'
     Author            = 'wbaamaral'
     CompanyName       = 'WBA'
@@ -8,7 +8,7 @@
     PowerShellVersion = '5.1'
     RootModule        = 'WbaToolkit.Maintenance.psm1'
     RequiredModules   = @(
-        @{ ModuleName = 'WbaToolkit.Core'; ModuleVersion = '1.0.0' }
+        @{ ModuleName = 'WbaToolkit.Core'; ModuleVersion = '2.0.3' }
     )
     FunctionsToExport = @(
         'Get-DefaultUserHivePath'
@@ -16,6 +16,14 @@
         'Import-RegistryTweakToDefaultProfile'
         'Test-SysprepEnvironment'
         'Invoke-SysprepPreparation'
+        'Remove-SafePath'
+        'Get-DiskInfo'
+        'Get-FilesystemErrorEvent'
+        'Write-MaintenanceEvent'
+        'Invoke-FilesystemCheck'
+        'Invoke-EventLogMaintenance'
+        'Get-ComponentStoreInfo'
+        'Invoke-ComponentStoreCleanup'
     )
     CmdletsToExport   = @()
     VariablesToExport = @()

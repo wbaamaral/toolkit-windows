@@ -1,4 +1,4 @@
-function Invoke-WithDefaultUserHive {
+﻿function Invoke-WithDefaultUserHive {
     <#
     .SYNOPSIS
         Monta o hive do perfil Default e executa um bloco de codigo com acesso a ele.
@@ -35,21 +35,55 @@ function Invoke-WithDefaultUserHive {
     $mountKey  = "HKU\$mountName"
     $hivePath  = Get-DefaultUserHivePath
 
-    $loadOutput = & reg load $mountKey $hivePath 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw "Falha ao montar hive do perfil Default em '$mountKey': $loadOutput"
-    }
-
-    try {
-        return (& $ScriptBlock $mountName)
-    }
-    finally {
+    # Limpa montagem stale de uma execucao anterior que nao desmontou: senao o
+    # 'reg load' falha e o hive fica preso, quebrando logon/criacao de perfis.
+    if (Test-Path -LiteralPath "Registry::HKEY_USERS\$mountName") {
+        Write-Warn "Montagem stale detectada em '$mountKey' (execucao anterior). Desmontando antes de prosseguir."
         [System.GC]::Collect()
         [System.GC]::WaitForPendingFinalizers()
-
-        $unloadOutput = & reg unload $mountKey 2>&1
-        if ($LASTEXITCODE -ne 0) {
-            Write-Warn "Nao foi possivel desmontar o hive '$mountKey'. Execute manualmente: reg unload $mountKey"
-        }
+        & reg unload $mountKey 2>&1 | Out-Null
     }
+
+    # Mesmo comportamento de reg import: reg.exe PT-BR escreve sucesso em stderr.
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    $loadOutput = & reg load $mountKey $hivePath 2>&1
+    $ErrorActionPreference = $prevEAP
+    if ($LASTEXITCODE -ne 0) {
+        throw "Falha ao montar hive do perfil Default em '$mountKey': $($loadOutput -join ' ')"
+    }
+
+    $resultado  = $null
+    $erroScript = $null
+    try {
+        $resultado = & $ScriptBlock $mountName
+    }
+    catch {
+        $erroScript = $_
+    }
+
+    # Desmonta com retry: handles do registro podem demorar a liberar; o GC entre
+    # tentativas libera RegistryKey finalizaveis que mantem o hive aberto.
+    $desmontado   = $false
+    $unloadOutput = ''
+    for ($tentativa = 1; $tentativa -le 3; $tentativa++) {
+        [System.GC]::Collect()
+        [System.GC]::WaitForPendingFinalizers()
+        $prevEAP2 = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        $unloadOutput = & reg unload $mountKey 2>&1
+        $ErrorActionPreference = $prevEAP2
+        if ($LASTEXITCODE -eq 0) { $desmontado = $true; break }
+        Start-Sleep -Milliseconds 400
+    }
+
+    # Erro do ScriptBlock tem prioridade — nao mascarar a causa original.
+    if ($erroScript) { throw $erroScript }
+
+    if (-not $desmontado) {
+        throw ("Nao foi possivel desmontar o hive '$mountKey' apos 3 tentativas: $unloadOutput. " +
+            "O hive segue montado — execute manualmente: reg unload $mountKey")
+    }
+
+    return $resultado
 }

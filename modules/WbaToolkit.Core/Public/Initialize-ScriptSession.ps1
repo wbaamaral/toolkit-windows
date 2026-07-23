@@ -1,4 +1,4 @@
-function Initialize-ScriptSession {
+﻿function Initialize-ScriptSession {
     <#
     .SYNOPSIS
         Cria uma sessao padronizada de script com caminhos de saida resolvidos.

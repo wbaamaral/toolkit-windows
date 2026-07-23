@@ -1,4 +1,4 @@
-function Get-DefaultUserHivePath {
+﻿function Get-DefaultUserHivePath {
     <#
     .SYNOPSIS
         Retorna o caminho do arquivo de hive do perfil padrao do Windows.

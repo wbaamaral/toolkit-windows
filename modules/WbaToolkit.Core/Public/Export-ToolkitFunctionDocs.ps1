@@ -29,27 +29,19 @@
     param(
         [Parameter(Mandatory = $false)]
         [string[]]$ModulePath = @(
-            (Join-Path (Get-Location) 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'),
-            (Join-Path (Get-Location) 'modules/WbaToolkit.Networking/WbaToolkit.Networking.psd1')
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'modules/WbaToolkit.Networking/WbaToolkit.Networking.psd1'),
+            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'modules/WbaToolkit.Inventory/WbaToolkit.Inventory.psd1')
         ),
 
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [string]$OutputPath = (Join-Path (Get-Location) 'docs-html'),
+        [string]$OutputPath = (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'docs-html'),
 
         [Parameter(Mandatory = $false)]
         [string[]]$ScriptPath = @(
-            (Join-Path (Get-Location) 'active-directory/Diagnostico-GPO-Client.ps1'),
-            (Join-Path (Get-Location) 'active-directory/Testa-Repara-ContaMaquinaAD.ps1'),
-            (Join-Path (Get-Location) 'configuration/Configurar-Idioma-Regional.ps1'),
-            (Join-Path (Get-Location) 'diagnostics/networking/Testar-conectividade-internet.ps1'),
-            (Join-Path (Get-Location) 'diagnostics/Diagnostico-Driver-Grafico.ps1'),
-            (Join-Path (Get-Location) 'inventory/Inventario-Hardware-Software.ps1'),
-            (Join-Path (Get-Location) 'maintenance/Diagnostico-Reparo-HD100.ps1'),
-            (Join-Path (Get-Location) 'maintenance/limpeza-windows.ps1'),
-            (Join-Path (Get-Location) 'updates/upgrade-windows.ps1'),
-            (Join-Path (Get-Location) 'utilities/Analise-Espaco-Disco.ps1'),
-            (Join-Path (Get-Location) 'utilities/Remover-Perfis-Inativos.ps1')
+            Get-ChildItem -Path (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'scripts') -Filter '*.ps1' -ErrorAction SilentlyContinue |
+                Sort-Object Name | Select-Object -ExpandProperty FullName
         ),
 
         [Parameter(Mandatory = $false)]
@@ -74,6 +66,17 @@
     $encoding = [System.Text.UTF8Encoding]::new($true)
     $moduleDocs = [System.Collections.ArrayList]::new()
     $scriptDocs = [System.Collections.ArrayList]::new()
+
+    # Garante que os modulos do toolkit sejam resolviveis por nome durante o Import-Module,
+    # permitindo que o RequiredModules dos manifestos (ex.: WbaToolkit.Core) seja satisfeito
+    # mesmo que a dependencia ainda nao esteja carregada na sessao.
+    $modulesRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+    if ($modulesRoot -and (Test-Path -LiteralPath $modulesRoot)) {
+        $psModulePathEntries = $env:PSModulePath -split [System.IO.Path]::PathSeparator
+        if ($modulesRoot -notin $psModulePathEntries) {
+            $env:PSModulePath = $modulesRoot + [System.IO.Path]::PathSeparator + $env:PSModulePath
+        }
+    }
 
     foreach ($path in $ModulePath) {
         $resolvedPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($path)
@@ -166,7 +169,7 @@ $metadataRows
             }) -join "`r`n"
 
             $body = @"
-<p class="muted">Modulo: <a href="../modules/$([string](New-StaticDocsSlug -Name $module.Name)).html">$([string](ConvertTo-HtmlSafe -Value $module.Name))</a></p>
+<p class="text-gray-500">Modulo: <a href="../modules/$([string](New-StaticDocsSlug -Name $module.Name)).html">$([string](ConvertTo-HtmlSafe -Value $module.Name))</a></p>
 $metadataSection
 <h2>Sinopse</h2>
 <p>$([string](ConvertTo-HtmlSafe -Value $help.Synopsis))</p>
@@ -186,7 +189,7 @@ $examples
 "@
 
             $html = ConvertTo-StaticDocsHtml -Title $command.Name -Body $body -RelativePrefix '../'
-            [System.IO.File]::WriteAllText($functionPath, $html, $encoding)
+            Write-TextFileUtf8 -Path $functionPath -Content $html
 
             $null = $functionLinks.Add([pscustomobject]@{
                 Name = $command.Name
@@ -198,25 +201,25 @@ $examples
 
         $moduleSlug = New-StaticDocsSlug -Name $module.Name
         $moduleFile = "$moduleSlug.html"
-        $modulePath = Join-Path $moduleOutputPath $moduleFile
+        $modulePagePath = Join-Path $moduleOutputPath $moduleFile
         $moduleCards = @($functionLinks | ForEach-Object {
             @"
-<div class="card">
-  <div class="card-title"><a href="../$($_.RelativePath)">$([string](ConvertTo-HtmlSafe -Value $_.Name))</a></div>
-  <div class="card-meta">$([string](ConvertTo-HtmlSafe -Value $_.Synopsis))</div>
+<div class="border border-gray-300 rounded-lg p-4 bg-white break-inside-avoid">
+  <div class="font-bold text-slate-900"><a href="../$($_.RelativePath)">$([string](ConvertTo-HtmlSafe -Value $_.Name))</a></div>
+  <div class="mt-1.5 text-gray-500 text-[13px]">$([string](ConvertTo-HtmlSafe -Value $_.Synopsis))</div>
 </div>
 "@
         }) -join "`r`n"
 
         $moduleBody = @"
-<p class="muted">Funcoes exportadas: $($commands.Count)</p>
-<div class="grid">
+<p class="text-gray-500">Funcoes exportadas: $($commands.Count)</p>
+<div class="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-3">
 $moduleCards
 </div>
 "@
 
         $moduleHtml = ConvertTo-StaticDocsHtml -Title $module.Name -Body $moduleBody -RelativePrefix '../'
-        [System.IO.File]::WriteAllText($modulePath, $moduleHtml, $encoding)
+        Write-TextFileUtf8 -Path $modulePagePath -Content $moduleHtml
 
         $null = $moduleDocs.Add([pscustomobject]@{
             Name = $module.Name
@@ -246,13 +249,13 @@ $moduleCards
 
         if ($commentMatch.Success) {
             $currentSection = 'Documentacao'
-            $sections[$currentSection] = [System.Collections.Generic.List[string]]::new()
+            $sections[$currentSection] = New-Object 'System.Collections.Generic.List[string]'
 
             foreach ($line in ($commentMatch.Groups[1].Value -split "\r?\n")) {
                 if ($line -match '^\s*\.(?<name>[A-Za-z0-9_-]+)\s*$') {
                     $currentSection = $Matches.name
                     if (-not $sections.Contains($currentSection)) {
-                        $sections[$currentSection] = [System.Collections.Generic.List[string]]::new()
+                        $sections[$currentSection] = New-Object 'System.Collections.Generic.List[string]'
                     }
                     continue
                 }
@@ -289,15 +292,15 @@ $moduleCards
         }) -join "`r`n"
 
         $scriptBody = @"
-<p class="muted">Script operacional: <code>$([string](ConvertTo-HtmlSafe -Value $scriptName))</code></p>
-<p class="muted">Categoria: $([string](ConvertTo-HtmlSafe -Value $scriptCategory))</p>
+<p class="text-gray-500">Script operacional: <code>$([string](ConvertTo-HtmlSafe -Value $scriptName))</code></p>
+<p class="text-gray-500">Categoria: $([string](ConvertTo-HtmlSafe -Value $scriptCategory))</p>
 <h2>Como executar</h2>
 <pre>.\$([string](ConvertTo-HtmlSafe -Value $scriptName))</pre>
 $scriptSections
 "@
 
         $scriptHtml = ConvertTo-StaticDocsHtml -Title $scriptName -Body $scriptBody -RelativePrefix '../'
-        [System.IO.File]::WriteAllText($scriptPagePath, $scriptHtml, $encoding)
+        Write-TextFileUtf8 -Path $scriptPagePath -Content $scriptHtml
 
         $null = $scriptDocs.Add([pscustomobject]@{
             Name = $scriptName
@@ -309,9 +312,9 @@ $scriptSections
 
     $indexCards = @($moduleDocs | ForEach-Object {
         @"
-<div class="card">
-  <div class="card-title"><a href="$($_.RelativePath)">$([string](ConvertTo-HtmlSafe -Value $_.Name))</a></div>
-  <div class="card-meta">$($_.FunctionCount) funcoes exportadas</div>
+<div class="border border-gray-300 rounded-lg p-4 bg-white break-inside-avoid">
+  <div class="font-bold text-slate-900"><a href="$($_.RelativePath)">$([string](ConvertTo-HtmlSafe -Value $_.Name))</a></div>
+  <div class="mt-1.5 text-gray-500 text-[13px]">$($_.FunctionCount) funcoes exportadas</div>
 </div>
 "@
     }) -join "`r`n"
@@ -341,9 +344,9 @@ $scriptSections
     }) -join "`r`n"
 
     $indexBody = @"
-<p class="muted">Gerado em $(Get-Date -Format 'dd/MM/yyyy HH:mm:ss'). Abra este arquivo localmente no navegador.</p>
+<p class="text-gray-500">Gerado em $(Get-Date -Format 'dd/MM/yyyy HH:mm:ss'). Abra este arquivo localmente no navegador.</p>
 <h2>Modulos</h2>
-<div class="grid">
+<div class="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-3">
 $indexCards
 </div>
 <h2>Indice de funcoes</h2>
@@ -364,7 +367,7 @@ $scriptRows
 
     $indexHtml = ConvertTo-StaticDocsHtml -Title 'Manual de Funcoes do WBA Windows Toolkit' -Body $indexBody
     $indexPath = Join-Path $OutputPath 'index.html'
-    [System.IO.File]::WriteAllText($indexPath, $indexHtml, $encoding)
+    Write-TextFileUtf8 -Path $indexPath -Content $indexHtml
 
     [pscustomobject]@{
         Success = $true

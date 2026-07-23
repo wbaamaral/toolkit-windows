@@ -1,4 +1,4 @@
-function Remove-StartupStoreItem {
+﻿function Remove-StartupStoreItem {
     [CmdletBinding()]
     param([Parameter(Mandatory = $true)][string]$Id)
 

@@ -23,7 +23,7 @@
         [string[]]$ArgumentList = @()
     )
 
-    if (-not (Get-Command $FilePath -ErrorAction SilentlyContinue)) {
+    if (-not (Get-Command $FilePath -CommandType Application -ErrorAction SilentlyContinue)) {
         return [PSCustomObject]@{
             ExitCode = 127
             Output   = "Comando não encontrado: $FilePath"
@@ -31,6 +31,7 @@
     }
 
     try {
+        $global:LASTEXITCODE = 0
         $output = & $FilePath @ArgumentList 2>&1
         return [PSCustomObject]@{
             ExitCode = $LASTEXITCODE

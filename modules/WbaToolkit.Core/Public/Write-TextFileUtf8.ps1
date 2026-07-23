@@ -1,4 +1,4 @@
-function Write-TextFileUtf8 {
+﻿function Write-TextFileUtf8 {
     <#
     .SYNOPSIS
         Grava ou acrescenta texto em arquivo com encoding UTF-8 com BOM.
@@ -37,8 +37,13 @@ function Write-TextFileUtf8 {
         [AllowEmptyString()]
         [string]$Content,
 
-        [switch]$Append
+    [switch]$Append
     )
+
+    $directory = Split-Path -Parent $Path
+    if (-not [string]::IsNullOrWhiteSpace($directory) -and -not (Test-Path -LiteralPath $directory)) {
+        New-Item -Path $directory -ItemType Directory -Force | Out-Null
+    }
 
     $encoding = Get-Utf8BomEncoding
     if ($Append -and (Test-Path -LiteralPath $Path)) {

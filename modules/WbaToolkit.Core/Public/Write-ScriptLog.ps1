@@ -1,4 +1,4 @@
-function Write-ScriptLog {
+﻿function Write-ScriptLog {
     <#
     .SYNOPSIS
         Registra uma mensagem de log com timestamp e nivel de severidade.
@@ -48,7 +48,11 @@ function Write-ScriptLog {
 
     if (-not [string]::IsNullOrWhiteSpace($LogPath)) {
         try {
-            $line | Add-Content -LiteralPath $LogPath
+            $directory = Split-Path -Parent $LogPath
+            if (-not [string]::IsNullOrWhiteSpace($directory) -and -not (Test-Path -LiteralPath $directory)) {
+                New-Item -Path $directory -ItemType Directory -Force | Out-Null
+            }
+            $line | Add-Content -LiteralPath $LogPath -Encoding UTF8
         }
         catch {
             Write-Verbose "Write-ScriptLog: nao foi possivel gravar em '$LogPath'. $($_.Exception.Message)"

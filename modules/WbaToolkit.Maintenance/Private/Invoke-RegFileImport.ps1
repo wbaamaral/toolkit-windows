@@ -1,4 +1,4 @@
-function Invoke-RegFileImport {
+﻿function Invoke-RegFileImport {
     <#
     .SYNOPSIS
         Importa um arquivo .reg substituindo o caminho do hive pelo ponto de montagem ativo.
@@ -18,14 +18,34 @@ function Invoke-RegFileImport {
         [string]$MountPoint
     )
 
-    $conteudo = [System.IO.File]::ReadAllText($RegFilePath, [System.Text.Encoding]::UTF8)
+    $conteudo = Read-RegFileContent -Path $RegFilePath
 
-    $substituido = [System.Text.RegularExpressions.Regex]::Replace(
-        $conteudo,
-        'hkey_users\\default',
-        "HKEY_USERS\\$MountPoint",
-        [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+    # Reescreve todas as referencias de hive do usuario para o ponto de montagem ativo,
+    # cobrindo as tres formas que um .reg pode usar. Sem isso, HKEY_CURRENT_USER seria
+    # importado no hive do usuario logado em vez do perfil Default.
+    $alvo    = "HKEY_USERS\$MountPoint"
+    $padroes = @(
+        'hkey_users\\\.default',   # HKEY_USERS\.DEFAULT
+        'hkey_users\\default',     # HKEY_USERS\DEFAULT (forma usada pelo toolkit)
+        'hkey_current_user'        # HKEY_CURRENT_USER
     )
+    $substituido = $conteudo
+    $totalSubs   = 0
+    foreach ($padrao in $padroes) {
+        $totalSubs += [System.Text.RegularExpressions.Regex]::Matches(
+            $substituido, $padrao,
+            [System.Text.RegularExpressions.RegexOptions]::IgnoreCase).Count
+        $substituido = [System.Text.RegularExpressions.Regex]::Replace(
+            $substituido, $padrao, $alvo,
+            [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+    }
+
+    # Garante que o .reg referenciava o hive do usuario; importar sem substituir
+    # escreveria no hive ativo (HKCU do usuario logado) em vez do perfil Default.
+    if ($totalSubs -eq 0) {
+        throw ("Arquivo .reg lido com sucesso, mas nenhuma referencia de hive de usuario foi encontrada. " +
+            "Importacao abortada para evitar escrita fora do perfil Default.")
+    }
 
     $tempPath = [System.IO.Path]::Combine(
         [System.IO.Path]::GetTempPath(),
@@ -35,9 +55,16 @@ function Invoke-RegFileImport {
     try {
         [System.IO.File]::WriteAllText($tempPath, $substituido, [System.Text.Encoding]::Unicode)
 
+        # reg.exe em Windows PT-BR escreve em stderr mesmo em sucesso, gerando ErrorRecord
+        # que dispara NativeCommandError com $ErrorActionPreference='Stop'. Suspender Stop
+        # impede falso positivo; $LASTEXITCODE continua sendo a fonte de verdade.
+        $prevEAP = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
         $saida = & reg import $tempPath 2>&1
+        $ErrorActionPreference = $prevEAP
+
         if ($LASTEXITCODE -ne 0) {
-            throw "reg import falhou (codigo $LASTEXITCODE): $saida"
+            throw "reg import falhou (codigo $LASTEXITCODE): $($saida -join ' ')"
         }
     }
     finally {

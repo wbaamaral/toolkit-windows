@@ -19,6 +19,7 @@ Export-ModuleMember -Function @(
     'Write-Info',
     'Write-Title',
     'Write-Section',
+    'Write-Step',
     'Read-YesNo',
     'Read-UserInput',
     'Invoke-ExternalCommand',
@@ -32,5 +33,7 @@ Export-ModuleMember -Function @(
     'Set-ToolkitReportsRoot',
     'Get-ToolkitReportsRoot',
     'Initialize-ToolkitReportSession',
-    'Export-ToolkitFunctionDocs'
+    'Export-ToolkitFunctionDocs',
+    'Export-ToolkitDocumentation',
+    'New-ToolkitElevationCommand'
 )

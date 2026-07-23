@@ -37,7 +37,7 @@
     $data['ReportsRoot'] = $resolvedPath
     $encoding = [System.Text.UTF8Encoding]::new($true)
     try {
-        [System.IO.File]::WriteAllText($ConfigPath, ($data | ConvertTo-Json -Depth 6), $encoding)
+        Write-TextFileUtf8 -Path $ConfigPath -Content ($data | ConvertTo-Json -Depth 6)
     }
     catch {
         throw "Nao foi possivel gravar a configuracao em '$ConfigPath'. $($_.Exception.Message)"

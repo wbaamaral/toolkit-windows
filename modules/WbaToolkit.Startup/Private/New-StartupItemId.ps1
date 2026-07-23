@@ -1,4 +1,4 @@
-function New-StartupItemId {
+﻿function New-StartupItemId {
     [CmdletBinding()]
     param([Parameter(Mandatory = $true)][string]$Value)
 

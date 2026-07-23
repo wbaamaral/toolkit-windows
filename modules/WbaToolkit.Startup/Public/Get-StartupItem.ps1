@@ -1,4 +1,4 @@
-function Get-StartupItem {
+﻿function Get-StartupItem {
     <#
     .SYNOPSIS
         Retorna todos os itens de inicializacao do Windows.

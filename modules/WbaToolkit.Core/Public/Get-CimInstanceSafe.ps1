@@ -1,4 +1,4 @@
-function Get-CimInstanceSafe {
+﻿function Get-CimInstanceSafe {
     <#
     .SYNOPSIS
         Consulta instancias CIM com tratamento de erro seguro.

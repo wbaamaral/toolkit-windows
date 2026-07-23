@@ -1,4 +1,4 @@
-function Disable-StartupItem {
+﻿function Disable-StartupItem {
     <#
     .SYNOPSIS
         Desabilita um ou mais itens de inicializacao do Windows.
@@ -39,7 +39,7 @@ function Disable-StartupItem {
         System.Management.Automation.PSCustomObject[]
         Array de objetos com as propriedades: Name, Action, Success, Message.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true)]
     param(
         [Parameter(Mandatory = $true)]
         [object[]]$Item,
@@ -58,6 +58,11 @@ function Disable-StartupItem {
         if ($DryRun) {
             Write-Verbose "DRY-RUN: desabilitaria inicializacao '$($currentItem.Name)'."
             [pscustomobject]@{ Name = $currentItem.Name; Action = 'Disable'; Success = $true; Message = 'DryRun.' }
+            continue
+        }
+
+        if (-not $PSCmdlet.ShouldProcess($currentItem.Name, 'Desabilitar inicializacao')) {
+            [pscustomobject]@{ Name = $currentItem.Name; Action = 'Disable'; Success = $true; Message = 'WhatIf.' }
             continue
         }
 
