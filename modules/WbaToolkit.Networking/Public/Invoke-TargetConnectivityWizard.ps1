@@ -12,7 +12,7 @@
         [CmdletBinding()]
         param([Parameter(Mandatory = $true)][string]$Selection)
 
-        $protocols = [System.Collections.Generic.List[string]]::new()
+        $protocols = New-Object 'System.Collections.Generic.List[string]'
         $tokens = $Selection -split '[,\s;]+' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
 
         foreach ($token in $tokens) {
@@ -76,7 +76,7 @@
     $report = [pscustomobject]@{
         ReportId    = [guid]::NewGuid().ToString()
         ReportType  = 'TargetConnectivity'
-        StartedAt   = @($reports | Sort-Object StartedAt | Select-Object -First 1 -ExpandProperty StartedAt)
+        StartedAt   = $reports | Sort-Object StartedAt | Select-Object -First 1 -ExpandProperty StartedAt
         FinishedAt  = Get-Date
         Target      = $target
         Protocol    = if (@($protocols).Count -eq 3) { 'All' } else { @($protocols) -join ',' }

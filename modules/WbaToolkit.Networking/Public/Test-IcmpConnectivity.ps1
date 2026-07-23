@@ -42,7 +42,10 @@
         $reply = Test-Connection -ComputerName $TargetAddress -Count $Count -ErrorAction Stop
         $latency = $null
         if ($reply) {
-            $latency = [math]::Round((($reply | Measure-Object -Property ResponseTime -Average).Average), 1)
+            # Windows PowerShell 5.1 expoe 'ResponseTime'; PowerShell 7+ expoe 'Latency'.
+            $latencyProperty = if ((@($reply)[0].PSObject.Properties.Name) -contains 'Latency') { 'Latency' } else { 'ResponseTime' }
+            $avgLatency = ($reply | Measure-Object -Property $latencyProperty -Average).Average
+            if ($null -ne $avgLatency) { $latency = [math]::Round($avgLatency, 1) }
         }
 
         New-ConnectivityResult -TestName 'Teste ICMP' -Category 'ICMP' -Protocol 'ICMP' -Direction 'Outbound' -Scope 'WAN' `

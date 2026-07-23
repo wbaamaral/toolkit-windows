@@ -9,11 +9,11 @@
 
     [pscustomobject]@{
         Total         = @($Results).Count
-        Success       = ($grouped | Where-Object Name -eq 'Success').Count
-        Failed        = ($grouped | Where-Object Name -eq 'Failed').Count
-        Warning       = ($grouped | Where-Object Name -eq 'Warning').Count
-        Inconclusive  = ($grouped | Where-Object Name -eq 'Inconclusive').Count
-        Skipped       = ($grouped | Where-Object Name -eq 'Skipped').Count
-        Error         = ($grouped | Where-Object Name -eq 'Error').Count
+        Success       = @($grouped | Where-Object Name -eq 'Success').Count
+        Failed        = @($grouped | Where-Object Name -eq 'Failed').Count
+        Warning       = @($grouped | Where-Object Name -eq 'Warning').Count
+        Inconclusive  = @($grouped | Where-Object Name -eq 'Inconclusive').Count
+        Skipped       = @($grouped | Where-Object Name -eq 'Skipped').Count
+        Error         = @($grouped | Where-Object Name -eq 'Error').Count
     }
 }

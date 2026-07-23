@@ -57,7 +57,9 @@
         $client = [System.Net.Sockets.TcpClient]::new()
         $async = $client.BeginConnect($TargetAddress, $Port, $null, $null)
         if (-not $async.AsyncWaitHandle.WaitOne($TimeoutSeconds * 1000, $false)) {
-            $client.Close()
+            # Timeout: nao chamamos EndConnect (bloquearia ate o connect completar/falhar).
+            # Dispose aborta o connect assincrono pendente e libera o socket.
+            $client.Dispose()
             return New-ConnectivityResult -TestName 'Teste TCP' -Category 'Porta' -Protocol 'TCP' -Direction $Direction -Scope $Scope `
                 -Target $TargetAddress -Port $Port -Success $false -Status 'Timeout' -Classification 'Failed' `
                 -Recommendation 'Timeout: verifique firewall, rota, NAT ou serviço indisponível.' -StartedAt $startedAt -FinishedAt (Get-Date)
@@ -75,6 +77,6 @@
             -Recommendation 'Verifique firewall, serviço de destino e rota.' -StartedAt $startedAt -FinishedAt (Get-Date)
     }
     finally {
-        if ($client) { $client.Close() }
+        if ($client) { $client.Dispose() }
     }
 }

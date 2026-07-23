@@ -10,7 +10,7 @@
         [int]$MaxPorts = 1024
     )
 
-    $ports = [System.Collections.Generic.List[int]]::new()
+    $ports = New-Object 'System.Collections.Generic.List[int]'
     $tokens = $PortSpec -split '[,;\s]+' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
 
     foreach ($token in $tokens) {
