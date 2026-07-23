@@ -29,5 +29,6 @@ Export-ModuleMember -Function @(
     'Invoke-TargetConnectivityWizard',
     'Show-ConnectivityReport',
     'Export-ConnectivityReport',
-    'Export-ConnectivityReportPdf'
+    'Export-ConnectivityReportPdf',
+    'Detect-DuplicateIp'
 )

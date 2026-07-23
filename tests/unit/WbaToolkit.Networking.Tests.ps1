@@ -9,6 +9,15 @@ BeforeAll {
     $script:connectivityModuleContent = Get-Content -LiteralPath (Join-Path $repoRoot 'modules/WbaToolkit.Networking/WbaToolkit.Networking.psd1') -Raw
     $script:coreModuleContent = Get-Content -LiteralPath (Join-Path $repoRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1') -Raw
     $script:reportHtmlContent = Get-Content -LiteralPath (Join-Path $repoRoot 'modules/WbaToolkit.Networking/Private/ConvertTo-ConnectivityReportHtml.ps1') -Raw
+    $script:ipRangeContent   = Get-Content -LiteralPath (Join-Path $repoRoot 'modules/WbaToolkit.Networking/Private/ConvertFrom-IpRange.ps1') -Raw
+    $script:arpSweepContent  = Get-Content -LiteralPath (Join-Path $repoRoot 'modules/WbaToolkit.Networking/Private/Invoke-ArpSweep.ps1') -Raw
+    $script:duplicateReport  = Get-Content -LiteralPath (Join-Path $repoRoot 'modules/WbaToolkit.Networking/Private/New-DuplicateIpReport.ps1') -Raw
+    $script:detectDuplicate  = Get-Content -LiteralPath (Join-Path $repoRoot 'modules/WbaToolkit.Networking/Public/Detect-DuplicateIp.ps1') -Raw
+    $script:scriptWrapper    = Get-Content -LiteralPath (Join-Path (Get-XtudoScriptsRoot) 'detectar-ip-duplicado.ps1') -Raw
+
+    # Dot-source direto do ConvertFrom-IpRange para testes funcionais (nao depende
+    # de Windows CIM nem Get-NetNeighbor — soh aritmetica de inteiros).
+    . (Join-Path $repoRoot 'modules/WbaToolkit.Networking/Private/ConvertFrom-IpRange.ps1')
 }
 
 Describe 'Xtudo rotas de rede' {
@@ -49,5 +58,221 @@ Describe 'ConvertTo-ConnectivityReportHtml' {
         foreach ($color in $cardColors) {
             $mappedColors | Should -Contain $color
         }
+    }
+}
+
+Describe 'ConvertFrom-IpRange (parser de faixa de IP)' {
+    It 'Expande /24 em 254 enderecos uteis' {
+        $ips = ConvertFrom-IpRange -Range '192.168.1.0/24'
+        @($ips).Count | Should -Be 254
+        $ips[0]   | Should -Be '192.168.1.1'
+        $ips[-1]  | Should -Be '192.168.1.254'
+    }
+
+    It 'Expande /30 em 2 enderecos uteis' {
+        $ips = ConvertFrom-IpRange -Range '10.0.0.0/30'
+        @($ips).Count | Should -Be 2
+        $ips -contains '10.0.0.1' | Should -BeTrue
+        $ips -contains '10.0.0.2' | Should -BeTrue
+        $ips -contains '10.0.0.0' | Should -BeFalse
+        $ips -contains '10.0.0.3' | Should -BeFalse
+    }
+
+    It 'Expande /31 em 2 enderecos (p2p)' {
+        $ips = ConvertFrom-IpRange -Range '10.0.0.0/31'
+        @($ips).Count | Should -Be 2
+        $ips -contains '10.0.0.0' | Should -BeTrue
+        $ips -contains '10.0.0.1' | Should -BeTrue
+    }
+
+    It 'Expande /32 como endereco unico' {
+        $ips = ConvertFrom-IpRange -Range '192.168.1.5/32'
+        @($ips).Count | Should -Be 1
+        $ips[0] | Should -Be '192.168.1.5'
+    }
+
+    It 'Expande intervalo completo (192.168.1.1-192.168.1.10)' {
+        $ips = ConvertFrom-IpRange -Range '192.168.1.1-192.168.1.10'
+        @($ips).Count | Should -Be 10
+        $ips[0]  | Should -Be '192.168.1.1'
+        $ips[-1] | Should -Be '192.168.1.10'
+    }
+
+    It 'Expande intervalo compacto (192.168.1.10-50) em 41 enderecos' {
+        $ips = ConvertFrom-IpRange -Range '192.168.1.10-50'
+        @($ips).Count | Should -Be 41
+        $ips[0]  | Should -Be '192.168.1.10'
+        $ips[-1] | Should -Be '192.168.1.50'
+    }
+
+    It 'Trata IP unico como faixa de 1' {
+        $ips = ConvertFrom-IpRange -Range '10.1.1.1'
+        @($ips).Count | Should -Be 1
+        $ips[0] | Should -Be '10.1.1.1'
+    }
+
+    It 'Rejeita formato misto CIDR+intervalo' {
+        { ConvertFrom-IpRange -Range '192.168.1.0/24-10' } | Should -Throw
+    }
+
+    It 'Rejeita mascara fora de 1..32' {
+        { ConvertFrom-IpRange -Range '192.168.1.0/33' } | Should -Throw
+    }
+
+    It 'Rejeita intervalo com inicio > fim' {
+        { ConvertFrom-IpRange -Range '192.168.1.10-192.168.1.5' } | Should -Throw
+    }
+
+    It 'Rejeita formato nao reconhecido' {
+        { ConvertFrom-IpRange -Range 'nao-e-ip' } | Should -Throw
+    }
+
+    It 'Rejeita intervalo compacto com octeto fora de 0..255' {
+        { ConvertFrom-IpRange -Range '192.168.1.10-999' } | Should -Throw
+    }
+
+    It '/23 expande em 510 enderecos uteis' {
+        $ips = ConvertFrom-IpRange -Range '192.168.4.0/23'
+        @($ips).Count | Should -Be 510
+        $ips[0]  | Should -Be '192.168.4.1'
+        $ips[-1] | Should -Be '192.168.5.254'
+    }
+}
+
+Describe 'Invoke-ArpSweep (analise estatica)' {
+    It 'Usa SendPingAsync para concorrencia' {
+        $script:arpSweepContent | Should -Match 'SendPingAsync'
+    }
+
+    It 'Usa Get-NetNeighbor como primario se disponivel' {
+        $script:arpSweepContent | Should -Match 'Get-NetNeighbor'
+    }
+
+    It 'Tem fallback para arp -a' {
+        $script:arpSweepContent | Should -Match 'arp -a'
+    }
+
+    It 'Tem regex robusto que aceita separador - e : no MAC' {
+        $script:arpSweepContent | Should -Match '\(\[0-9a-fA-F\]\{2\}\[-:\]\)\{5\}'
+        $script:arpSweepContent | Should -Match "Replace\(':', '-'\)"
+    }
+
+    It 'Filtra apenas IPs dentro do range informado' {
+        $script:arpSweepContent | Should -Match 'ipSet'
+        $script:arpSweepContent | Should -Match 'Contains'
+    }
+
+    It 'Ignora MACs zero/broadcast' {
+        $script:arpSweepContent | Should -Match '00-00-00-00-00-00'
+        $script:arpSweepContent | Should -Match 'ff-ff-ff-ff-ff-ff'
+    }
+
+    It 'Respeita -Throttle agrupando em chunks' {
+        $script:arpSweepContent | Should -Match 'chunkStart'
+        $script:arpSweepContent | Should -Match 'Throttle'
+    }
+
+    It 'Nao exige Administrador (sem Test-IsAdministrator)' {
+        $script:arpSweepContent | Should -Not -Match 'Test-IsAdministrator'
+    }
+}
+
+Describe 'New-DuplicateIpReport (analise estatica)' {
+    It 'Gera 3 arquivos: relatorio.txt, relatorio.md, relatorio.html' {
+        $script:duplicateReport | Should -Match "relatorio\.txt"
+        $script:duplicateReport | Should -Match "relatorio\.md"
+        $script:duplicateReport | Should -Match "relatorio\.html"
+    }
+
+    It 'Usa New-ToolkitHtmlReport para HTML' {
+        $script:duplicateReport | Should -Match 'New-ToolkitHtmlReport'
+    }
+
+    It 'Grava com UTF8Encoding($true) — BOM (ADR 0007)' {
+        $script:duplicateReport | Should -Match 'UTF8Encoding\(\$true\)'
+    }
+
+    It 'Cria diretorio de saida se nao existir' {
+        $script:duplicateReport | Should -Match 'New-Item.*Directory'
+    }
+
+    It 'Inclui timestamp no relatorio' {
+        $script:duplicateReport | Should -Match 'Timestamp'
+    }
+
+    It 'Marca DUPLICADO no status' {
+        $script:duplicateReport | Should -Match "DUPLICADO"
+        $script:duplicateReport | Should -Match "badge-red"
+    }
+}
+
+Describe 'Detect-DuplicateIp (analise estatica)' {
+    It 'Exporta Detect-DuplicateIp no psd1' {
+        $script:connectivityModuleContent | Should -Match 'Detect-DuplicateIp'
+    }
+
+    It 'Delega parsing para ConvertFrom-IpRange' {
+        $script:detectDuplicate | Should -Match 'ConvertFrom-IpRange'
+    }
+
+    It 'Delega varredura para Invoke-ArpSweep' {
+        $script:detectDuplicate | Should -Match 'Invoke-ArpSweep'
+    }
+
+    It 'Delega relatorio para New-DuplicateIpReport' {
+        $script:detectDuplicate | Should -Match 'New-DuplicateIpReport'
+    }
+
+    It 'Usa Write-Verbose em vez de Write-Host direto' {
+        $script:detectDuplicate | Should -Match 'Write-Verbose'
+        $script:detectDuplicate | Should -Not -Match 'Write-Host\b.*-ForegroundColor'
+    }
+
+    It 'Comenta cada uma das 5 etapas principais' {
+        $script:detectDuplicate | Should -Match 'ETAPA 1'
+        $script:detectDuplicate | Should -Match 'ETAPA 2'
+        $script:detectDuplicate | Should -Match 'ETAPA 3'
+        $script:detectDuplicate | Should -Match 'ETAPA 4'
+        $script:detectDuplicate | Should -Match 'ETAPA 5'
+    }
+}
+
+Describe 'detectar-ip-duplicado.ps1 (wrapper operacional)' {
+    It 'Existe em scripts/ (kebab-case ADR 0024)' {
+        Test-Path -LiteralPath (Join-Path (Get-XtudoScriptsRoot) 'detectar-ip-duplicado.ps1') | Should -BeTrue
+    }
+
+    It 'Despacha -Help antes de elevacao (ADR 0021)' {
+        $script:scriptWrapper | Should -Match 'if \(\$Help\) \{ Show-Help; exit 0'
+    }
+
+    It 'Adiciona modules/ ao PSModulePath (padrao-dependencias-modulos)' {
+        $script:scriptWrapper | Should -Match 'PSModulePath'
+    }
+
+    It 'Importa WbaToolkit.Core e WbaToolkit.Networking' {
+        $script:scriptWrapper | Should -Match 'WbaToolkit\.Core\.psd1'
+        $script:scriptWrapper | Should -Match 'WbaToolkit\.Networking\.psd1'
+    }
+
+    It 'Usa Initialize-ScriptSession para ReportsRoot' {
+        $script:scriptWrapper | Should -Match 'Initialize-ScriptSession'
+        $script:scriptWrapper | Should -Match 'ModuleName.*detectar-ip-duplicado'
+    }
+
+    It 'Usa funcoes do Core para feedback (Write-Title/Ok/Fail/Info/Warn)' {
+        $script:scriptWrapper | Should -Match 'Write-Title'
+        $script:scriptWrapper | Should -Match 'Write-Ok'
+        $script:scriptWrapper | Should -Match 'Write-Fail'
+        $script:scriptWrapper | Should -Match 'Write-Info'
+        $script:scriptWrapper | Should -Match 'Write-Warn'
+    }
+
+    It 'Tem metadados WBA-DOCS (ADR documentacao)' {
+        $script:scriptWrapper | Should -Match 'WBA-DOCS:.*Category=Networking'
+    }
+
+    It 'Tem Requires Version 5.1' {
+        $script:scriptWrapper | Should -Match '#Requires -Version 5\.1'
     }
 }

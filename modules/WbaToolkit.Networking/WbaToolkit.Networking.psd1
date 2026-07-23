@@ -23,7 +23,8 @@
         'Invoke-TargetConnectivityWizard',
         'Show-ConnectivityReport',
         'Export-ConnectivityReport',
-        'Export-ConnectivityReportPdf'
+        'Export-ConnectivityReportPdf',
+        'Detect-DuplicateIp'
     )
     CmdletsToExport   = @()
     VariablesToExport = @()
