@@ -32,6 +32,10 @@
         [AllowEmptyCollection()]
         [pscustomobject[]]$Results,
 
+        [Parameter(Mandatory = $false)]
+        [AllowEmptyCollection()]
+        [string[]]$FreeIPs = @(),
+
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [pscustomobject]$Context,
@@ -59,7 +63,9 @@
     $range      = $Context.Range
     $iface      = if ($Context.Interface) { $Context.Interface } else { '<todas>' }
     $totalRange = $Context.TotalConsultado
-    $totalFound = $Context.TotalEncontrado
+    $totalFound = if ($Context.PSObject.Properties.Name -contains 'TotalOcupados') { $Context.TotalOcupados } else { $Context.TotalEncontrado }
+    $totalFree  = if ($Context.PSObject.Properties.Name -contains 'TotalLivres') { $Context.TotalLivres } else { @($FreeIPs).Count }
+    $freeIps    = @($FreeIPs)
     $totalDup   = $Context.TotalDuplicados
     $duplicates = @($Results | Where-Object Status -eq 'DUPLICADO')
 
@@ -74,7 +80,8 @@
     [void]$txt.AppendLine("Faixa consultada: $range")
     [void]$txt.AppendLine("Interface       : $iface")
     [void]$txt.AppendLine("Total na faixa  : $totalRange")
-    [void]$txt.AppendLine("IPs com ARP     : $totalFound")
+    [void]$txt.AppendLine("IPs ocupados    : $totalFound")
+    [void]$txt.AppendLine("IPs livres      : $totalFree")
     [void]$txt.AppendLine("IPs duplicados  : $totalDup")
     [void]$txt.AppendLine('--------------------------------------------------')
     [void]$txt.AppendLine('')
@@ -97,6 +104,13 @@
         [void]$txt.AppendLine('Nenhuma duplicacao detectada.')
     }
     [void]$txt.AppendLine('')
+    [void]$txt.AppendLine('==> IPS LIVRES (sem entrada ARP observada) <==')
+    if ($freeIps.Count -gt 0) {
+        foreach ($freeIp in $freeIps) { [void]$txt.AppendLine("  $freeIp") }
+    } else {
+        [void]$txt.AppendLine('  Nenhum IP livre observado.')
+    }
+    [void]$txt.AppendLine('')
     [void]$txt.AppendLine('Gerado pelo WBA Windows Toolkit')
     Write-ReportFile -Path (Join-Path $OutputPath 'relatorio.txt') -Content $txt.ToString()
 
@@ -110,7 +124,8 @@
     [void]$md.AppendLine('- **Faixa consultada:** ``' + $range + '``')
     [void]$md.AppendLine('- **Interface:** ``' + $iface + '``')
     [void]$md.AppendLine("- **Total na faixa:** $totalRange")
-    [void]$md.AppendLine("- **IPs com ARP:** $totalFound")
+    [void]$md.AppendLine("- **IPs ocupados:** $totalFound")
+    [void]$md.AppendLine("- **IPs livres:** $totalFree")
     [void]$md.AppendLine("- **IPs duplicados:** $totalDup")
     [void]$md.AppendLine('')
     if ($duplicates.Count -gt 0) {
@@ -138,6 +153,14 @@
         [void]$md.AppendLine('_Nenhuma duplicacao detectada._')
     }
     [void]$md.AppendLine('')
+    [void]$md.AppendLine('## IPs livres')
+    [void]$md.AppendLine('')
+    if ($freeIps.Count -gt 0) {
+        foreach ($freeIp in $freeIps) { [void]$md.AppendLine("- ``$freeIp``") }
+    } else {
+        [void]$md.AppendLine('_Nenhum IP livre observado._')
+    }
+    [void]$md.AppendLine('')
     [void]$md.AppendLine('---')
     [void]$md.AppendLine('_Gerado pelo WBA Windows Toolkit_')
     Write-ReportFile -Path (Join-Path $OutputPath 'relatorio.md') -Content $md.ToString()
@@ -152,7 +175,8 @@
     $cardsHtml = @"
 <div class="cards">
   <div class="card"><div class="card-icon">&#128202;</div><div class="card-label">Faixa consultada</div><div class="card-value">$range</div></div>
-  <div class="card"><div class="card-icon">&#128225;</div><div class="card-label">Hosts com ARP</div><div class="card-value">$totalFound</div><div class="card-sub">de $totalRange na faixa</div></div>
+  <div class="card"><div class="card-icon">&#128225;</div><div class="card-label">IPs ocupados</div><div class="card-value">$totalFound</div><div class="card-sub">de $totalRange na faixa</div></div>
+  <div class="card"><div class="card-icon">&#128275;</div><div class="card-label">IPs livres</div><div class="card-value" style="color:var(--success)">$totalFree</div></div>
   <div class="card"><div class="card-icon">&#9888;</div><div class="card-label">IPs duplicados</div><div class="card-value" style="color:var(--danger)">$totalDup</div></div>
 </div>
 "@
@@ -181,6 +205,20 @@ $items    </ul>
 "@
     }
 
+    $freeHtml = New-Object System.Text.StringBuilder
+    if ($freeIps.Count -gt 0) {
+        foreach ($freeIp in $freeIps) { [void]$freeHtml.AppendLine("      <li class=mono>$freeIp</li>") }
+    } else {
+        [void]$freeHtml.AppendLine('      <li>Nenhum IP livre observado.</li>')
+    }
+    $freeSectionHtml = @"
+<div class="section">
+  <div class="section-hdr">&#128275; IPs Livres ($totalFree)</div>
+  <div class="section-body"><ul>
+$($freeHtml.ToString())  </ul></div>
+</div>
+"@
+
     $tableHtml = @"
 <div class="section">
   <div class="section-hdr">&#128202; Detalhamento IP x MAC</div>
@@ -194,7 +232,7 @@ $($rowsHtml.ToString())      </tbody>
 </div>
 "@
 
-    $bodyHtml = $cardsHtml + "`n" + $dupHtml + "`n" + $tableHtml
+    $bodyHtml = $cardsHtml + "`n" + $dupHtml + "`n" + $freeSectionHtml + "`n" + $tableHtml
 
     $meta = @(
         "Faixa: $range",
@@ -204,7 +242,7 @@ $($rowsHtml.ToString())      </tbody>
 
     $html = New-ToolkitHtmlReport `
         -Title 'Relatorio de Duplicacao IP x MAC' `
-        -Subtitle "Hosts com ARP: $totalFound de $totalRange | Duplicados: $totalDup" `
+        -Subtitle "Ocupados: $totalFound | Livres: $totalFree | Duplicados: $totalDup" `
         -Icon '&#128225;' `
         -MetaRight $meta `
         -Body $bodyHtml `

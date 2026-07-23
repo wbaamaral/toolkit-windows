@@ -18,6 +18,7 @@
   breaklines=true,%
   breakanywhere=true,%
   breaksymbol={},%
+  fontsize=\small,%
   commandchars=\\\{\}%
 }
 
@@ -29,9 +30,15 @@
 
 % Tabelas com wrap automático de texto nas células
 \usepackage{longtable}
+\usepackage{etoolbox}
 \usepackage{booktabs}
 \usepackage{array}
 \newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+% Evita iniciar tabelas pequenas no espaço restante da página. Tabelas longas
+% continuam podendo quebrar quando ultrapassarem uma página inteira.
+\usepackage{needspace}
+\BeforeBeginEnvironment{longtable}{\Needspace{18\baselineskip}}
 
 % Cabeçalho e rodapé personalizados
 \usepackage{fancyhdr}
@@ -42,21 +49,14 @@
 \fancyfoot[C]{\thepage}
 \renewcommand{\headrulewidth}{0.4pt}
 \renewcommand{\footrulewidth}{0pt}
+\raggedbottom
 
 % Fonte monoespaçada para blocos de código e fonte principal sem serifa
 % fontspec já foi carregado pelo template Pandoc neste ponto
 \AtBeginDocument{%
-  \IfFontExistsTF{Libertinus Mono}{%
-    \setmonofont{Libertinus Mono}[Scale=0.9]%
-  }{%
-    \setmonofont{Latin Modern Mono}[Scale=0.9]%
-  }%
-  \IfFontExistsTF{Libertinus Sans}{%
-    \setsansfont{Libertinus Sans}%
-  }{%
-    \setsansfont{Latin Modern Sans}%
-  }%
-  % Corpo do texto sem serifa: \sfdefault agora aponta para uma fonte sans real
-  \renewcommand{\familydefault}{\sfdefault}%
+  \setmainfont{Latin Modern Roman}%
+  \setsansfont{Latin Modern Sans}%
+  \setmonofont{Latin Modern Mono}[Scale=0.9,FakeBold=1.2]%
+  \renewcommand{\familydefault}{\rmdefault}%
   \normalfont%
 }

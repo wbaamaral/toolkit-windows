@@ -71,5 +71,5 @@ Set-Date (Get-Date).AddMinutes(20)   # reverter depois com w32tm /resync
 ## Notas
 - O passo de DNS no cliente é o mais comum de esquecer — sem DNS apontando para o DC,
   nada de AD funciona.
-- `Get-ADComputer` (usado pelo Diagnostico-GPO-Client) precisa do **RSAT AD PowerShell**,
+- `Get-ADComputer` (usado pelo diagnóstico do cliente AD) precisa do **RSAT AD PowerShell**,
   instalado pela fase 3.

@@ -18,6 +18,7 @@ BeforeAll {
     # Dot-source direto do ConvertFrom-IpRange para testes funcionais (nao depende
     # de Windows CIM nem Get-NetNeighbor — soh aritmetica de inteiros).
     . (Join-Path $repoRoot 'modules/WbaToolkit.Networking/Private/ConvertFrom-IpRange.ps1')
+    Import-Module (Join-Path $repoRoot 'modules/WbaToolkit.Networking/WbaToolkit.Networking.psd1') -Force -DisableNameChecking
 }
 
 Describe 'Xtudo rotas de rede' {
@@ -204,6 +205,12 @@ Describe 'New-DuplicateIpReport (analise estatica)' {
         $script:duplicateReport | Should -Match "DUPLICADO"
         $script:duplicateReport | Should -Match "badge-red"
     }
+
+    It 'Inclui contagem e seção de IPs livres' {
+        $script:duplicateReport | Should -Match 'totalFree'
+        $script:duplicateReport | Should -Match 'IPs livres'
+        $script:duplicateReport | Should -Match 'IPs Livres'
+    }
 }
 
 Describe 'Detect-DuplicateIp (analise estatica)' {
@@ -223,6 +230,13 @@ Describe 'Detect-DuplicateIp (analise estatica)' {
         $script:detectDuplicate | Should -Match 'New-DuplicateIpReport'
     }
 
+    It 'Calcula IPs livres e ocupados a partir da faixa e do ARP' {
+        $script:detectDuplicate | Should -Match 'occupiedSet'
+        $script:detectDuplicate | Should -Match 'freeIps'
+        $script:detectDuplicate | Should -Match 'TotalLivres'
+        $script:detectDuplicate | Should -Match 'TotalOcupados'
+    }
+
     It 'Usa Write-Verbose em vez de Write-Host direto' {
         $script:detectDuplicate | Should -Match 'Write-Verbose'
         $script:detectDuplicate | Should -Not -Match 'Write-Host\b.*-ForegroundColor'
@@ -234,6 +248,31 @@ Describe 'Detect-DuplicateIp (analise estatica)' {
         $script:detectDuplicate | Should -Match 'ETAPA 3'
         $script:detectDuplicate | Should -Match 'ETAPA 4'
         $script:detectDuplicate | Should -Match 'ETAPA 5'
+    }
+}
+
+Describe 'Detect-DuplicateIp (ocupados e livres)' {
+    It 'Calcula livres sem perder duplicados na contagem de ocupados' {
+        Mock Invoke-ArpSweep {
+            @(
+                [pscustomobject]@{ IP = '192.168.1.1'; MAC = 'aa-bb-cc-dd-ee-01' }
+                [pscustomobject]@{ IP = '192.168.1.1'; MAC = 'aa-bb-cc-dd-ee-02' }
+                [pscustomobject]@{ IP = '192.168.1.3'; MAC = 'aa-bb-cc-dd-ee-03' }
+            )
+        } -ModuleName WbaToolkit.Networking
+
+        $outputPath = Join-Path $TestDrive 'duplicate-report'
+        $result = @(Detect-DuplicateIp -Range '192.168.1.1-4' -OutputPath $outputPath -ErrorAction Stop)
+
+        @($result).Count | Should -Be 2
+        ($result | Where-Object IP -eq '192.168.1.1').Status | Should -Be 'DUPLICADO'
+        $markdownPath = @($result[0].ReportFiles | Where-Object { $_ -like '*relatorio.md' })[0]
+        Test-Path -LiteralPath $markdownPath | Should -BeTrue
+        $markdown = Get-Content -LiteralPath $markdownPath -Raw
+        $markdown | Should -Match 'IPs ocupados.*2'
+        $markdown | Should -Match 'IPs livres.*2'
+        $markdown | Should -Match '192\.168\.1\.2'
+        $markdown | Should -Match '192\.168\.1\.4'
     }
 }
 
@@ -255,9 +294,13 @@ Describe 'detectar-ip-duplicado.ps1 (wrapper operacional)' {
         $script:scriptWrapper | Should -Match 'WbaToolkit\.Networking\.psd1'
     }
 
-    It 'Usa Initialize-ScriptSession para ReportsRoot' {
-        $script:scriptWrapper | Should -Match 'Initialize-ScriptSession'
-        $script:scriptWrapper | Should -Match 'ModuleName.*detectar-ip-duplicado'
+    It 'Suprime apenas o aviso de verbo não aprovado do nome histórico' {
+        $script:scriptWrapper | Should -Match 'DisableNameChecking'
+    }
+
+    It 'Delega a sessao padronizada ao modulo' {
+        $script:detectDuplicate | Should -Match 'Initialize-ToolkitReportSession'
+        $script:detectDuplicate | Should -Match 'ModuleName.*detectar-ip-duplicado'
     }
 
     It 'Usa funcoes do Core para feedback (Write-Title/Ok/Fail/Info/Warn)' {

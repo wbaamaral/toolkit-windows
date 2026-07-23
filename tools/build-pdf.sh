@@ -19,11 +19,16 @@ set -euo pipefail
 REPO_ROOT="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
-SOURCE="manuais/manual-operador-wba-windows-toolkit.md"
+SOURCE="docs/README.md"
 TEX_FILE="docs/latex/build/manual.tex"
 BUILD_DIR="docs/latex/build"
-OUTPUT="manuais/manual-operador-wba-windows-toolkit.pdf"
+OUTPUT="docs/manual-operador-wba-windows-toolkit.pdf"
 DEFAULTS="docs/latex/pandoc-defaults.yaml"
+
+# Mantém o cache LuaLaTeX dentro da árvore de build para funcionar em ambientes
+# sem cache de usuário gravável.
+mkdir -p "$BUILD_DIR/texmf-var"
+export TEXMFVAR="$REPO_ROOT/$BUILD_DIR/texmf-var"
 
 # ── Verificar dependências ──────────────────────────────────────────────────
 for cmd in pandoc latexmk lualatex; do
@@ -47,12 +52,15 @@ echo "  OK — nenhum escape proibido encontrado."
 echo "Passo 1/2: Pandoc → $TEX_FILE ..."
 pandoc "$SOURCE" \
     --defaults="$DEFAULTS" \
+    --metadata="date=$(date +%Y-%m-%d)" \
+    --metadata="lang=pt-BR" \
     --standalone \
     -o "$TEX_FILE"
 
 # ── Passo 2: latexmk → PDF ─────────────────────────────────────────────────
 echo "Passo 2/2: latexmk → $BUILD_DIR/manual.pdf ..."
 latexmk \
+    -g \
     -lualatex \
     -interaction=nonstopmode \
     -halt-on-error \

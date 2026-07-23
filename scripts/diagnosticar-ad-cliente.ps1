@@ -89,6 +89,7 @@ $ScriptDir  = $PSScriptRoot
 $ToolkitRoot = Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1') -Force -ErrorAction Stop
 Import-Module (Join-Path $ToolkitRoot 'modules/WbaToolkit.Startup/WbaToolkit.Startup.psd1') -Force -ErrorAction Stop
+Import-Module (Join-Path $ToolkitRoot 'modules/WbaToolkit.Maintenance/WbaToolkit.Maintenance.psd1') -Force -ErrorAction Stop
 
 $ScriptVersion = 'v1.0.0'
 $script:Checks = New-Object 'System.Collections.Generic.List[object]'
@@ -420,35 +421,14 @@ function Repair-AdTimeSync {
     }
 
     try {
-        $steps = @(
-            @{ FilePath = 'w32tm'; ArgumentList = @('/config', '/syncfromflags:domhier', '/update'); Label = 'Aplicando politica de sincronizacao' },
-            @{ FilePath = 'net';    ArgumentList = @('stop', 'w32time'); Label = 'Parando W32Time' },
-            @{ FilePath = 'net';    ArgumentList = @('start', 'w32time'); Label = 'Iniciando W32Time' },
-            @{ FilePath = 'w32tm';  ArgumentList = @('/resync', '/force'); Label = 'Reforcando sincronizacao' }
-        )
-
-        foreach ($step in $steps) {
-            Write-Info $step.Label
-            $result = Invoke-ExternalCommand -FilePath $step.FilePath -ArgumentList $step.ArgumentList
-            if ($result.ExitCode -ne 0) {
-                throw "$($step.Label): $($result.Output)"
-            }
-        }
-
-        Start-Sleep -Seconds 2
-        $post = Invoke-ExternalCommand -FilePath 'w32tm' -ArgumentList @('/query', '/source')
-        $source = ($post.Output | Select-Object -First 1)
-        if ([string]::IsNullOrWhiteSpace($source)) {
-            $source = 'desconhecido'
-        }
-
-        if ($source -match 'Domain Hierarchy|^.*\bDC\b.*$') {
-            Set-AdCheckResult -Category 'Tempo' -Name 'Sincronização de hora' -Status 'OK' -Detail "Sincronização corrigida. Fonte de tempo: $source" -Penalty 0
-            Add-AdCheck -Category 'Tempo' -Name 'Reparo da hora' -Status 'OK' -Detail "Reparo concluído com sucesso. Fonte atual: $source" -Penalty 0
+        $sync = Sync-ComputerTime -Apply -Confirm:$false
+        if ($sync.Success -and $sync.PartOfDomain -and $sync.SourceAfter -notmatch 'Local CMOS|Free-running') {
+            Set-AdCheckResult -Category 'Tempo' -Name 'Sincronização de hora' -Status 'OK' -Detail "Sincronização corrigida. Fonte de tempo: $($sync.SourceAfter)" -Penalty 0
+            Add-AdCheck -Category 'Tempo' -Name 'Reparo da hora' -Status 'OK' -Detail 'Reparo concluído pela rotina compartilhada de sincronização.' -Penalty 0
         }
         else {
-            Set-AdCheckResult -Category 'Tempo' -Name 'Sincronização de hora' -Status 'AVISO' -Detail "Sincronização executada, mas a fonte ainda não é do domínio: $source" -Recommendation 'Valide a fonte de tempo do cliente e do controlador de domínio.' -Penalty 5
-            Add-AdCheck -Category 'Tempo' -Name 'Reparo da hora' -Status 'AVISO' -Detail "Reparo executado, mas a fonte permanece fora do domínio: $source" -Penalty 5
+            $detail = if ($sync.Errors.Count -gt 0) { $sync.Errors -join '; ' } else { "Fonte atual: $($sync.SourceAfter)" }
+            Add-AdCheck -Category 'Tempo' -Name 'Reparo da hora' -Status 'FALHA' -Detail $detail -Recommendation 'Verifique conectividade com o DC e permissões de administrador.' -Penalty 10 -Critical
         }
     }
     catch {

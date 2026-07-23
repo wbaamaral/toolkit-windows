@@ -125,18 +125,26 @@
 
     $totalDup = @($results | Where-Object Status -eq 'DUPLICADO').Count
 
+    # Um IP ocupado e aquele que apareceu no cache ARP; o mesmo IP pode ter
+    # mais de um MAC, mas continua contando uma vez como ocupado. Os demais
+    # enderecos consultados sao exibidos como livres, com a ressalva de que
+    # ausencia no ARP nao prova que o host esteja definitivamente livre.
+    $occupiedSet = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($pair in $arpPairs) { [void]$occupiedSet.Add([string]$pair.IP) }
+    $freeIps = @($ipList | Where-Object { -not $occupiedSet.Contains($_) })
+    $totalOccupied = $occupiedSet.Count
+    $totalFree = $freeIps.Count
+
     # === ETAPA 4: definicao do local de saida dos relatorios =============
-    # Se -OutputPath nao foi informado, segue o padrao do toolkit:
-    # <ReportsRoot>/detectar-ip-duplicado/<ddMMyyyy_HHmmss>/. O ReportsRoot
-    # vem da sessao inicializada pelo script operador (Initialize-ScriptSession).
+    # OutputPath e a raiz opcional escolhida pelo operador. A sessao Core
+    # sempre cria <ReportsRoot>/<modulo>/<timestamp>/, inclusive em chamada direta.
     if ([string]::IsNullOrWhiteSpace($OutputPath)) {
-        $timestampDir = (Get-Date -Format 'ddMMyyyy_HHmmss')
-        $reportsRoot  = $script:ReportsRoot
-        if ([string]::IsNullOrWhiteSpace($reportsRoot)) {
-            $reportsRoot = (Join-Path $env:TEMP 'WbaToolkit-Relatorios')
-        }
-        $OutputPath = Join-Path $reportsRoot "detectar-ip-duplicado/$timestampDir"
+        $reportSession = Initialize-ToolkitReportSession -ModuleName 'detectar-ip-duplicado'
     }
+    else {
+        $reportSession = Initialize-ToolkitReportSession -ReportsRoot $OutputPath -ModuleName 'detectar-ip-duplicado'
+    }
+    $OutputPath = $reportSession.Path
     Write-Verbose "Saida dos relatorios: $OutputPath"
 
     # === ETAPA 5: geracao dos tres relatorios (TXT, MD, HTML) ============
@@ -147,12 +155,15 @@
         Range            = $Range
         Interface        = $Interface
         TotalConsultado  = $ipList.Count
-        TotalEncontrado  = $arpPairs.Count
+        TotalEncontrado  = $totalOccupied
+        TotalOcupados    = $totalOccupied
+        TotalLivres      = $totalFree
         TotalDuplicados  = $totalDup
     }
 
     $paths = New-DuplicateIpReport `
         -Results $results `
+        -FreeIPs $freeIps `
         -Context $context `
         -OutputPath $OutputPath
 

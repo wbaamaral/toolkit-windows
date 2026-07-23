@@ -4,20 +4,20 @@
     Gera portal de documentação HTML unificado do WBA Windows Toolkit.
 
 .DESCRIPTION
-    Combina o portal operacional (index.html, operador.html) convertido de Markdown com
-    a referência técnica HTML gerada por Export-ToolkitFunctionDocs. Compatível com PS 5.1.
+    Gera o portal operacional a partir de docs/README.md e a referência técnica HTML
+    gerada por Export-ToolkitFunctionDocs. Compatível com PS 5.1.
     O resultado é um conjunto de arquivos estáticos para uso offline via file://.
 
 .PARAMETER OutputPath
     Pasta de saída do portal. Padrão: .\docs\portal
 
 .PARAMETER ManualPath
-    Caminho para a pasta manuais com os arquivos-fonte Markdown.
-    Padrão: .\manuais
+    Caminho para a pasta docs com os arquivos-fonte Markdown.
+    Padrão: .\docs
 
 .PARAMETER ModulePath
     Array de caminhos para os arquivos .psd1 dos módulos a documentar.
-    Padrão: todos os 4 módulos do toolkit.
+    Padrão: todos os módulos encontrados em modules/.
 
 .PARAMETER ScriptPath
     Array de caminhos para os scripts .ps1 a documentar.
@@ -25,7 +25,7 @@
 
 .PARAMETER Mode
     All     — portal + referência técnica + catálogo de ajuda (padrão)
-    Portal  — apenas portal operacional (index.html e operador.html)
+    Portal  — apenas portal operacional (index.html)
     TechnicalReference — apenas referência técnica CBH (chama Export-ToolkitFunctionDocs)
     Help    — apenas catálogo de ajuda (ADR-0013): portal.pt-BR.json, categorias.pt-BR.json
               e glossario.pt-BR.md em ManualPath
@@ -53,13 +53,12 @@
     [CmdletBinding()]
     param(
         [string]$OutputPath = (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'docs/portal'),
-        [string]$ManualPath = (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'manuais'),
+        [string]$ManualPath = (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'docs'),
         [string[]]$ModulePath = @(
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'modules/WbaToolkit.Networking/WbaToolkit.Networking.psd1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'modules/WbaToolkit.Inventory/WbaToolkit.Inventory.psd1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'modules/WbaToolkit.Startup/WbaToolkit.Startup.psd1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'modules/WbaToolkit.Maintenance/WbaToolkit.Maintenance.psd1')
+            Get-ChildItem -Path (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'modules') -Directory -ErrorAction SilentlyContinue |
+                ForEach-Object { Join-Path $_.FullName "$($_.Name).psd1" } |
+                Where-Object { Test-Path -LiteralPath $_ } |
+                Sort-Object
         ),
         [string[]]$ScriptPath = @(
             Get-ChildItem -Path (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'scripts') -Filter '*.ps1' -ErrorAction SilentlyContinue |
@@ -89,19 +88,6 @@
         $indexPath  = Join-Path $OutputPath 'index.html'
         Write-TextFileUtf8 -Path $indexPath -Content $indexHtml
         $portalIndex = $indexPath
-
-        # --- operador.html ---
-        $guiaPath = Join-Path $ManualPath 'operador\guia-rapido.md'
-        if (Test-Path -LiteralPath $guiaPath) {
-            $guiaMd   = [System.IO.File]::ReadAllText($guiaPath, $enc)
-            $guiaBody = ConvertFrom-MarkdownSimple -Markdown $guiaMd
-            $guiaHtml = ConvertTo-StaticDocsHtml -Title 'Guia Rápido do Operador' -Body $guiaBody
-            Write-TextFileUtf8 -Path (Join-Path $OutputPath 'operador.html') -Content $guiaHtml
-        }
-        else {
-            Write-Warning "Export-ToolkitDocumentation: guia-rapido.md não encontrado em '$guiaPath'."
-            $warningCount++
-        }
 
         # --- changelog.html (opcional) ---
         if ($IncludeChangelog) {

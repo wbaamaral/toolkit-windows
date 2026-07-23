@@ -22,8 +22,9 @@
     Omita para coletar de todas as interfaces.
 
 .PARAMETER OutputPath
-    Diretorio de saida dos relatorios. Se omitido, usa a pasta timestampada
-    padrao do toolkit em <ReportsRoot>/detectar-ip-duplicado/<ddMMyyyy_HHmmss>/.
+    Raiz opcional dos relatorios. Se omitido, usa ReportsRoot persistente ou
+    C:\WBA\Relatorios. A sessao sera criada em
+    <Raiz>/detectar-ip-duplicado/<ddMMyyyy_HHmmss>/.
 
 .PARAMETER TimeoutMs
     Tempo de espera por host em milissegundos. Default 500.
@@ -111,8 +112,8 @@ function Show-Help {
     Write-Host "  -Range '<faixa>'      Faixa de IP (CIDR, intervalo, compacto ou IP unico)."
     Write-Host "                        Ex.: '192.168.4.0/23' | '192.168.1.10-50' | '192.168.1.5'"
     Write-Host "  -Interface '<alias>'  Filtra coleta ARP por interface (ex.: 'Ethernet0')."
-    Write-Host "  -OutputPath '<dir>'   Diretorio de saida dos relatorios."
-    Write-Host "                          Padrao: <ReportsRoot>/detectar-ip-duplicado/<ddMMyyyy_HHmmss>/"
+    Write-Host "  -OutputPath '<dir>'   Raiz opcional dos relatorios."
+    Write-Host "                          Padrao: ReportsRoot ou C:\WBA\Relatorios"
     Write-Host "  -TimeoutMs <ms>       Tempo de espera por host. Default 500."
     Write-Host "  -Throttle <n>         Pings simultaneos (chunks). Default 50."
     Write-Host "  -Help                 Esta ajuda."
@@ -152,7 +153,9 @@ foreach ($mod in @($CoreModulePath, $NetworkingModulePath)) {
 
 try {
     Import-Module $CoreModulePath       -Force -ErrorAction Stop
-    Import-Module $NetworkingModulePath -Force -ErrorAction Stop
+    # Detect-DuplicateIp é nome público histórico da funcionalidade; suprime
+    # apenas o aviso de verbo não aprovado, sem esconder erros de importação.
+    Import-Module $NetworkingModulePath -Force -DisableNameChecking -ErrorAction Stop
 }
 catch {
     Write-Host "[FALHA] Nao foi possivel carregar os modulos do toolkit." -ForegroundColor Red
@@ -163,16 +166,15 @@ catch {
 
 # WBA-DOCS: Category=Networking; Related=testar-conectividade-internet.ps1; Manual=Deteccao de IP duplicado via ARP sweep
 
-# === Sessao de relatorio (ReportsRoot) ======================================
-# Inicializa a sessao para obter o ReportsRoot padrao e tornar $script:ReportsRoot
-# visivel a Detect-DuplicateIp. -ModuleName curto segue padrao-saida-relatorios.md.
-$session = Initialize-ScriptSession -ModuleName 'detectar-ip-duplicado' -ExecutionMode 'Diagnostico'
-$script:ReportsRoot = $session.Path
-
 # === Cabecalho do operador ================================================
 Write-Title "Deteccao de IP Duplicado — $Range"
 Write-Info  "Varredura ARP com ping assincrono (timeout ${TimeoutMs}ms, throttle ${Throttle})."
-Write-Info  "Relatorios serao gravados em $OutputPath"
+if ([string]::IsNullOrWhiteSpace($OutputPath)) {
+    Write-Info 'Relatorios: ReportsRoot persistente ou C:\WBA\Relatorios.'
+}
+else {
+    Write-Info "Raiz de relatorios informada: $OutputPath"
+}
 Write-Host  ""
 
 try {

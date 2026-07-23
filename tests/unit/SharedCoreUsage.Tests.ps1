@@ -4,13 +4,12 @@ BeforeAll {
     . (Join-Path $PSScriptRoot 'Xtudo.TestSupport.ps1')
     $script:scriptPaths = @(Get-XtudoOfficialScriptPaths)
     $script:repoRoot = Get-XtudoRepoRoot
-    $script:operatorGuideContent = Get-Content -LiteralPath (Join-Path $script:repoRoot 'manuais/operador/guia-rapido.md') -Raw
-    $script:operatorManualContent = Get-Content -LiteralPath (Join-Path $script:repoRoot 'manuais/manual-operador-wba-windows-toolkit.md') -Raw
+    $script:operatorManualContent = Get-Content -LiteralPath (Join-Path $script:repoRoot 'docs/README.md') -Raw
 }
 
 Describe 'Xtudo estrutura do toolkit' {
-    It 'Mantem dezessete scripts oficiais em scripts/' {
-        $script:scriptPaths.Count | Should -Be 17
+    It 'Mantem dezoito scripts oficiais em scripts/' {
+        $script:scriptPaths.Count | Should -Be 18
         foreach ($path in $script:scriptPaths) {
             Split-Path -Parent $path | Should -Be (Get-XtudoScriptsRoot)
         }
@@ -33,15 +32,15 @@ Describe 'Xtudo estrutura do toolkit' {
 
     It 'A documentacao continua apontando para o launcher xtudo' {
         (Get-Content -LiteralPath (Join-Path $script:repoRoot 'README.md') -Raw) | Should -Match '\.\\xtudo\.ps1'
-        (Get-Content -LiteralPath (Join-Path $script:repoRoot 'manuais/README.md') -Raw) | Should -Match '\.\./xtudo\.ps1'
+        (Get-Content -LiteralPath (Join-Path $script:repoRoot 'docs/README.md') -Raw) | Should -Match '\.\\xtudo\.ps1'
     }
 
     It 'Os manuais do operador destacam o MVP oficial atual' {
-        $script:operatorGuideContent | Should -Match 'scripts\\limpar-windows\.ps1'
-        $script:operatorGuideContent | Should -Match 'scripts\\atualizar-windows\.ps1'
-        $script:operatorGuideContent | Should -Match 'scripts\\diagnosticar-ad-cliente\.ps1'
-        $script:operatorGuideContent | Should -Match 'scripts\\inventario-hardware-software\.ps1'
-        $script:operatorManualContent | Should -Match 'diagnosticar-ad-cliente\.ps1'
-        $script:operatorManualContent | Should -Match 'Legado experimental de AD'
+        $script:operatorManualContent | Should -Match 'scripts\\limpar-windows\.ps1'
+        $script:operatorManualContent | Should -Match 'scripts\\atualizar-windows\.ps1'
+        $script:operatorManualContent | Should -Match 'scripts\\diagnosticar-ad-cliente\.ps1'
+        $script:operatorManualContent | Should -Match 'scripts\\inventario-hardware-software\.ps1'
+        $script:operatorManualContent | Should -Match 'scripts\\detectar-ip-duplicado\.ps1'
+        $script:operatorManualContent | Should -Match 'WbaToolkit\.Licensing'
     }
 }

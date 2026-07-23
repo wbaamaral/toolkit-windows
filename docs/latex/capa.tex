@@ -1,0 +1,43 @@
+% Capa do Manual do Operador — WBA Windows Toolkit
+% Starburst é opcional; o fallback mantém o PDF reproduzível sem essa fonte.
+
+\definecolor{WbaNavy}{HTML}{102A43}
+\definecolor{WbaGold}{HTML}{F2C14E}
+
+\IfFontExistsTF{Starburst}{%
+  \newfontfamily\starburstfont{Starburst}%
+}{%
+  \newcommand{\starburstfont}{\sffamily}%
+}
+
+\AtBeginDocument{%
+  \hypersetup{pageanchor=false}%
+  \begin{titlepage}
+    \newgeometry{top=2cm,bottom=2cm,left=2.5cm,right=2.5cm}%
+    \pagecolor{WbaNavy}%
+    \color{white}%
+    \thispagestyle{empty}%
+    \vspace*{1.2cm}%
+    {\sffamily\small\textbf{WBA WINDOWS TOOLKIT}\par}
+    \vspace{0.35cm}%
+    {\color{WbaGold}\rule{\textwidth}{1.2pt}\par}
+    \vfill
+    {\starburstfont\fontsize{34}{40}\selectfont\color{white}WBA\par}
+    \vspace{0.15cm}%
+    {\sffamily\fontsize{24}{30}\selectfont\textbf{Windows Toolkit}\par}
+    \vspace{0.8cm}%
+    {\color{WbaGold}\rule{0.42\textwidth}{2pt}\par}
+    \vspace{0.8cm}%
+    {\rmfamily\fontsize{18}{24}\selectfont Manual do Operador\par}
+    \vspace{0.35cm}%
+    {\rmfamily\large Diagnóstico, manutenção e suporte para Windows\par}
+    \vfill
+    {\sffamily\small\color{white!75}Uso local e offline\par}
+    \vspace{0.25cm}%
+    {\sffamily\small\color{white!75}\today\par}
+    \restoregeometry
+  \end{titlepage}%
+  \hypersetup{pageanchor=true}%
+  \nopagecolor
+  \color{black}%
+}

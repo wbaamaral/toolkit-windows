@@ -8,12 +8,36 @@
     "AjudaLonga": "Converte caracteres especiais para entidades HTML e retorna um valor padronizado\npara relatorios HTML."
   },
   {
+    "Nome": "Detect-DuplicateIp",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Networking",
+    "Categoria": "Geral",
+    "AjudaCurta": "Detecta IPs associados a multiplos enderecos MAC em uma faixa de rede.",
+    "AjudaLonga": "Orquestra o ciclo completo de deteccao:\n\n  1. Expande a faixa informada (CIDR, intervalo, intervalo compacto ou IP unico).\n  2. Varre a faixa com ping ICMP assincrono para popular o cache ARP local.\n  3. Coleta os pares IP x MAC (Get-NetNeighbor ou arp -a).\n  4. Agrupa por IP e marca como DUPLICADO os que possuem mais de um MAC.\n  5. Gera tres relatorios (TXT, Markdown, HTML) na pasta de saida.\n\nNao exige privilegios administrativos: ping e leitura do cache ARP sao\noperacoes de usuario comum no Windows."
+  },
+  {
+    "Nome": "Disable-Autologon",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Identity",
+    "Categoria": "Geral",
+    "AjudaCurta": "Desabilita o logon automatico do Windows.",
+    "AjudaLonga": "Grava AutoAdminLogon=0, limpa a senha armazenada como segredo LSA\n('DefaultPassword') e remove DefaultPassword (texto claro, se existir) e\nAutoLogonCount do registro. Faz backup dos valores atuais antes de alterar.\nIdempotente: avisa se o autologon ja estava desabilitado."
+  },
+  {
     "Nome": "Disable-StartupItem",
     "Tipo": "Funcao",
     "Modulo": "WbaToolkit.Startup",
     "Categoria": "Geral",
     "AjudaCurta": "Desabilita um ou mais itens de inicializacao do Windows.",
     "AjudaLonga": "Desabilita entradas de inicializacao preservando os dados originais no registro\nWBA para permitir reativacao. Suporta Registry (chaves Run), StartupFolder\n(atalhos movidos) e ScheduledTask (tarefas desabilitadas).\nAceita item unico ou lista de itens retornados por Get-StartupItem."
+  },
+  {
+    "Nome": "Enable-Autologon",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Identity",
+    "Categoria": "Geral",
+    "AjudaCurta": "Habilita o logon automatico do Windows para a conta informada.",
+    "AjudaLonga": "Configura o autologon gravando AutoAdminLogon=1, DefaultUserName e\nDefaultDomainName na chave Winlogon e armazenando a senha como segredo LSA\n('DefaultPassword'), sem nunca gravar a senha em texto claro no registro\n(conformidade ADR 0005). Faz backup dos valores atuais antes de alterar.\n\nSalvaguardas: confirma explicitamente quando a conta alvo for privilegiada\n(membro de Administradores); suporta AutoLogonCount para limitar o numero de\nlogons automaticos; suporta -DryRun e -WhatIf."
   },
   {
     "Nome": "Enable-StartupItem",
@@ -45,7 +69,7 @@
     "Modulo": "WbaToolkit.Core",
     "Categoria": "Documentacao",
     "AjudaCurta": "Gera portal de documentação HTML unificado do WBA Windows Toolkit.",
-    "AjudaLonga": "Combina o portal operacional (index.html, operador.html) convertido de Markdown com\na referência técnica HTML gerada por Export-ToolkitFunctionDocs. Compatível com PS 5.1.\nO resultado é um conjunto de arquivos estáticos para uso offline via file://."
+    "AjudaLonga": "Gera o portal operacional a partir de docs/README.md e a referência técnica HTML\ngerada por Export-ToolkitFunctionDocs. Compatível com PS 5.1.\nO resultado é um conjunto de arquivos estáticos para uso offline via file://."
   },
   {
     "Nome": "Export-ToolkitFunctionDocs",
@@ -62,6 +86,14 @@
     "Categoria": "Geral",
     "AjudaCurta": "Formata um valor em bytes para uma unidade legivel.",
     "AjudaLonga": "Converte bytes em uma representacao legivel usando TB, GB, MB, KB ou B,\nmantendo uma saida previsivel para relatorios em console e HTML."
+  },
+  {
+    "Nome": "Get-AutologonStatus",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Identity",
+    "Categoria": "Geral",
+    "AjudaCurta": "Le o estado atual do logon automatico (autologon) do Windows.",
+    "AjudaLonga": "Consulta a chave Winlogon e reporta se o autologon esta habilitado, qual a conta\ne dominio configurados, o AutoLogonCount, o ForceAutoLogon, se a senha esta\narmazenada como segredo LSA e se existe (indevidamente) uma senha em texto claro\nno registro. Operacao estritamente de leitura: nao altera o sistema.\n\nA senha em si NUNCA e lida nem exibida."
   },
   {
     "Nome": "Get-CimInstanceSafe",
@@ -96,6 +128,14 @@
     "AjudaLonga": "Consulta o disco correspondente ao SystemDrive via WMI e retorna tamanho\ntotal e espaco livre em gigabytes."
   },
   {
+    "Nome": "Get-FileHashSha256",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Calcula o hash SHA256 de um arquivo e opcionalmente salva em arquivo .sha256sum.",
+    "AjudaLonga": "Funcao reutilizavel para gerar hash SHA256 de qualquer arquivo.\nPode retornar apenas o hash ou salvar em arquivo .sha256sum para verificacao futura."
+  },
+  {
     "Nome": "Get-FilesystemErrorEvent",
     "Tipo": "Funcao",
     "Modulo": "WbaToolkit.Maintenance",
@@ -118,6 +158,14 @@
     "Categoria": "Geral",
     "AjudaCurta": "Coleta o contexto local de rede.",
     "AjudaLonga": "Identifica adaptador ativo, IPv4 principal, gateway, DNS e dados básicos do ambiente para uso em\ndiagnósticos de conectividade."
+  },
+  {
+    "Nome": "Get-ReportLogoBase64",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Retorna o logo do toolkit como data URI base64 para embutir em HTML.",
+    "AjudaLonga": "Le o arquivo de logo do diretorio assets/images/ e converte para base64\ndata URI, pronto para uso em atributo src de tag <img>.\n\nQuando nenhum logo e encontrado, retorna $null — o chamador deve exibir\num placeholder ou omitir a imagem."
   },
   {
     "Nome": "Get-ServiceStartupState",
@@ -181,7 +229,15 @@
     "Modulo": "WbaToolkit.Core",
     "Categoria": "Geral",
     "AjudaCurta": "Cria uma sessao padronizada de relatorio.",
-    "AjudaLonga": "Resolve a raiz de relatorios, cria a pasta agrupadora do modulo, cria a subpasta da execucao com timestamp\ne devolve caminhos padronizados para relatorios, logs e backups."
+    "AjudaLonga": "Resolve a raiz de relatorios, cria a pasta do script, cria a subpasta da execucao com timestamp\ne devolve caminhos padronizados para relatorios e logs.\n\nEstrutura: <ReportsRoot>/<scriptname>/<ddMMyyyy_HHmmss>/"
+  },
+  {
+    "Nome": "Invoke-AutologonManager",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Identity",
+    "Categoria": "Geral",
+    "AjudaCurta": "Gerenciador interativo do logon automatico (autologon) do Windows.",
+    "AjudaLonga": "Apresenta o estado atual do autologon e um menu para habilitar, desabilitar ou\neditar. Senhas sao sempre lidas como SecureString (nunca exibidas) e armazenadas\ncomo segredo LSA. Retorna um array com o registro das operacoes da sessao,\npermitindo que o chamador integre o historico ao seu rastreamento."
   },
   {
     "Nome": "Invoke-ComponentStoreCleanup",
@@ -288,12 +344,28 @@
     "AjudaLonga": "Retorna um objeto de configuração com os alvos e parâmetros usados por Invoke-ConnectivityTest.\nPermite customizar os IPs, domínios para DNS, domínios para ICMP/TCP e porta TCP."
   },
   {
+    "Nome": "New-ToolkitArchive",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Cria pacote ZIP a partir de um diretorio e opcionalmente gera hash SHA256.",
+    "AjudaLonga": "Funcao reutilizavel para empacotar arquivos em ZIP com integridade verificavel.\nSuporta geracao automatica de hash SHA256 e nomeacao com versao."
+  },
+  {
     "Nome": "New-ToolkitElevationCommand",
     "Tipo": "Funcao",
     "Modulo": "WbaToolkit.Core",
     "Categoria": "Core",
     "AjudaCurta": "Monta a linha de comando PowerShell para relancar um script com elevacao.",
     "AjudaLonga": "Converte $PSBoundParameters do script chamador em uma string de comando\nsegura para uso com 'powershell.exe -Command', preservando parametros\ncom espacos, aspas e arrays (ex.: [string[]]$Drive) intactos no processo\nelevado. Usa -Command (nao -File) porque somente o parser da linguagem\nPowerShell reconstroi um array a partir de 'valor1','valor2' — passar\narray via -File colapsa os valores em um unico argumento."
+  },
+  {
+    "Nome": "New-ToolkitHtmlReport",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Gera esqueleto HTML padronizado para relatorios do toolkit.",
+    "AjudaLonga": "Retorna uma string HTML completa com CSS, header, footer e container pronto\npara receber o conteudo especifico do relatorio.\n\nO CSS inclui: @font-face (Inter + JetBrains Mono), variaveis CSS, classes\ncomponentes (cards, sections, tables, badges, barras) e print CSS."
   },
   {
     "Nome": "Read-UserInput",
@@ -328,6 +400,14 @@
     "AjudaLonga": "Remove entradas de inicializacao de forma permanente e irreversivel.\nExige confirmacao textual antes de prosseguir. Suporta Registry,\nStartupFolder e ScheduledTask. Itens gerenciados (ManagedDisabled) tem\nseus backups e registros WBA limpos junto com a remocao.\nAceita item unico ou lista."
   },
   {
+    "Nome": "Set-Autologon",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Identity",
+    "Categoria": "Geral",
+    "AjudaCurta": "Edita parametros do autologon sem alternar seu estado habilitado/desabilitado.",
+    "AjudaLonga": "Altera DefaultUserName, DefaultDomainName e/ou AutoLogonCount, e opcionalmente\nre-grava a senha (como segredo LSA), preservando o valor atual de AutoAdminLogon.\nFaz backup antes de alterar. Util para corrigir a conta ou ajustar o contador\nsem precisar reabilitar todo o autologon.\n\nSe a conta passar a ser privilegiada, aplica a mesma confirmacao de Enable-Autologon."
+  },
+  {
     "Nome": "Set-ToolkitReportsRoot",
     "Tipo": "Funcao",
     "Modulo": "WbaToolkit.Core",
@@ -344,6 +424,14 @@
     "AjudaLonga": "Formata e imprime no console o objeto de relatório retornado por Invoke-ConnectivityTest ou\nInvoke-TargetConnectivityTest, incluindo contexto de rede, resumo de classificações e detalhe\nde cada teste executado."
   },
   {
+    "Nome": "Show-Spinner",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Core",
+    "Categoria": "Geral",
+    "AjudaCurta": "Exibe um spinner com timer durante operacoes demoradas.",
+    "AjudaLonga": "Mostra um animacao de spinner com contador de tempo enquanto uma operacao\nesta em execucao. Retorna o resultado da operacao."
+  },
+  {
     "Nome": "Show-StartupItem",
     "Tipo": "Funcao",
     "Modulo": "WbaToolkit.Startup",
@@ -352,12 +440,28 @@
     "AjudaLonga": "Apresenta os itens de inicializacao formatados em tabela numerada com\nindicacao visual do estado (ON/OFF), tipo de fonte e escopo."
   },
   {
+    "Nome": "Sync-ComputerTime",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Maintenance",
+    "Categoria": "Geral",
+    "AjudaCurta": "Diagnostica ou corrige a fonte de tempo e o fuso horário do Windows.",
+    "AjudaLonga": "Clientes ingressados no Active Directory usam a hierarquia do domínio.\nClientes fora do domínio usam uma fonte NTP externa. A execução padrão\né somente leitura; -Apply autoriza a alteração da configuração."
+  },
+  {
     "Nome": "Test-DnsResolution",
     "Tipo": "Funcao",
     "Modulo": "WbaToolkit.Networking",
     "Categoria": "Geral",
     "AjudaCurta": "Valida resolução DNS para um nome informado.",
     "AjudaLonga": "Executa Resolve-DnsName para o nome e tipo de registro informados e retorna um objeto de resultado\npadronizado com os registros obtidos em Details."
+  },
+  {
+    "Nome": "Test-DownloadSpeed",
+    "Tipo": "Funcao",
+    "Modulo": "WbaToolkit.Networking",
+    "Categoria": "Geral",
+    "AjudaCurta": "Testa velocidade de download da internet.",
+    "AjudaLonga": "Baixa um arquivo de teste e mede a velocidade de download em Mbps."
   },
   {
     "Nome": "Test-GatewayConnectivity",
@@ -528,6 +632,14 @@
     "AjudaLonga": "Configura uma instalacao existente do Windows 10/11 (Pro ou superior) para o padrao\n    brasileiro (pt-BR): pacote de idioma, idioma de exibicao, locale regional, teclado ABNT2,\n    localizacao geografica e fuso horario.\n\n    As configuracoes sao aplicadas ao usuario atual, a conta do sistema e ao perfil padrao\n    de novos usuarios (via intl.cpl com propagacao automatica).\n\n    Requer acesso a internet para download do pacote de idioma quando nao instalado.\n    Requer reinicializacao para aplicar completamente o idioma de exibicao.\n\n    Funcionalidades:\n    - Instala pacote de idioma pt-BR (se ausente, via LanguagePackManagement ou DISM).\n    - Define pt-BR como idioma de exibicao do sistema.\n    - Configura locale regional pt-BR: data, hora, moeda, separadores numericos.\n    - Define teclado ABNT2 como layout principal.\n    - Define localizacao geografica como Brasil (GeoID 32).\n    - Propaga todas as configuracoes para conta do sistema e perfil de novos usuarios.\n    - Configura fuso horario (padrao UTC-4; parametrizavel para qualquer fuso do Brasil).\n    - Suporte a modo silencioso para automacao via GPO, SCCM ou scripts de implantacao.\n    - Salva log completo na pasta padronizada de relatorios do toolkit.\n\n.PARAMETER Help\n    Mostra a ajuda do script e encerra.\n\n.PARAMETER Version\n    Mostra a versao do script e encerra.\n\n.PARAMETER ListTimeZones\n    Lista os fusos horarios do Brasil aceitos pelo parametro -TimeZone e encerra.\n\n.PARAMETER NoReboot\n    Nao reinicia o sistema ao final da configuracao.\n\n.PARAMETER Silent\n    Modo silencioso, sem prompts de confirmacao. Util para automacao via GPO ou SCCM.\n\n.PARAMETER TimeZone\n    ID do fuso horario Windows a aplicar. Padrao: 'SA Western Standard Time' (UTC-4).\n\n.PARAMETER Path\n    Raiz de relatorios da sessao. Quando omitido, usa a configuracao persistente\n    do toolkit ou C:\\WBA\\Relatorios."
   },
   {
+    "Nome": "detectar-ip-duplicado.ps1",
+    "Tipo": "Script",
+    "Modulo": null,
+    "Categoria": "Networking",
+    "AjudaCurta": "Detecta IPs associados a multiplos enderecos MAC em uma faixa de rede.",
+    "AjudaLonga": "Wrapper operacional da funcao Detect-DuplicateIp do modulo WbaToolkit.Networking.\n    Expande a faixa informada (CIDR, intervalo ou IP unico), varre via ping ICMP\n    assincrono, coleta os pares IP x MAC do cache ARP e gera relatorios em tres\n    formatos (TXT, Markdown, HTML) na pasta de saida do toolkit.\n\n    Nao exige privilegios administrativos: ping e leitura do cache ARP sao\n    operacoes de usuario comum no Windows.\n\n.PARAMETER Range\n    Faixa de IP no formato CIDR (\"192.168.1.0/24\"), intervalo completo\n    (\"192.168.1.1-192.168.1.254\"), intervalo compacto (\"192.168.1.10-50\")\n    ou IP unico (\"192.168.1.5\").\n\n.PARAMETER Interface\n    Alias da interface de rede para filtrar a coleta ARP (ex.: \"Ethernet0\").\n    Omita para coletar de todas as interfaces.\n\n.PARAMETER OutputPath\n    Raiz opcional dos relatorios. Se omitido, usa ReportsRoot persistente ou\n    C:\\WBA\\Relatorios. A sessao sera criada em\n    <Raiz>/detectar-ip-duplicado/<ddMMyyyy_HHmmss>/.\n\n.PARAMETER TimeoutMs\n    Tempo de espera por host em milissegundos. Default 500.\n\n.PARAMETER Throttle\n    Numero maximo de pings simultaneos. Default 50.\n\n.PARAMETER Help\n    Exibe esta ajuda e encerra."
+  },
+  {
     "Nome": "diagnosticar-ad-cliente.ps1",
     "Tipo": "Script",
     "Modulo": null,
@@ -622,6 +734,14 @@
     "Categoria": "Utilities",
     "AjudaCurta": "Lista perfis de usuario locais com espaco em disco e permite remocao interativa     de perfis antigos ou inativos.",
     "AjudaLonga": "Enumera todos os perfis de usuario nao-sistema do Windows, calcula o espaco\n    ocupado por cada um, exibe o ultimo acesso e o status da conta associada.\n    O operador escolhe interativamente quais perfis remover; a remocao usa\n    Win32_UserProfile (que limpa tambem a chave de registro do perfil).\n\n    Perfis do sistema (Default, Public, SYSTEM, etc.) sao excluidos automaticamente.\n    Perfis com sessao ativa (usuario logado) nao podem ser removidos e sao sinalizados."
+  },
+  {
+    "Nome": "sincronizar-relogio.ps1",
+    "Tipo": "Script",
+    "Modulo": null,
+    "Categoria": "Scripts",
+    "AjudaCurta": "!     Verifica e corrige a sincronização de relógio e o fuso horário do Windows.",
+    "AjudaLonga": "Em clientes Active Directory usa a hierarquia de tempo do domínio. Fora do\n    domínio usa pool.ntp.br por padrão ou time.windows.com. A execução padrão\n    é somente diagnóstico; -Corrigir aplica alterações com elevação.\n\n.PARAMETER Corrigir\n    Aplica a configuração de tempo e, se informado, o fuso horário.\n\n.PARAMETER NtpServer\n    Fonte NTP externa fora do domínio. Padrão: pool.ntp.br.\n\n.PARAMETER TimeZoneId\n    ID do fuso horário Windows. Sem este parâmetro o fuso apenas é verificado.\n\n.PARAMETER GerarHtml\n    Gera também o relatório HTML.\n\n.PARAMETER DiretorioSaida\n    Raiz dos relatórios. Padrão: configuração persistente ou C:\\WBA\\Relatorios.\n\n.PARAMETER Help\n    Exibe esta ajuda e encerra."
   },
   {
     "Nome": "testar-conectividade-internet.ps1",

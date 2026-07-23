@@ -123,6 +123,14 @@ function New-XtudoCatalog {
             Quick    = $false
         }
         [pscustomobject]@{
+            Id       = 'sincronizar-relogio'
+            Label    = 'Sincronizar relógio'
+            Category = 'Configuração'
+            Path     = 'scripts/sincronizar-relogio.ps1'
+            Keywords = @('relogio', 'hora', 'ntp', 'w32time', 'fuso', 'timezone', 'active directory', 'dominio')
+            Quick    = $false
+        }
+        [pscustomobject]@{
             Id       = 'gerenciar-drivers'
             Label    = 'Gerenciar drivers (backup/restauração)'
             Category = 'Manutenção'

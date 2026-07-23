@@ -11,8 +11,8 @@ Describe 'Xtudo portabilidade da documentacao de inventario' {
     It 'Resolve o inventario a partir da arvore real do repositório' {
         $script:functionDocsContent | Should -Match "Get-ChildItem -Path \(Join-Path.+'scripts'\) -Filter '\*\.ps1'"
         $script:portalDocsContent | Should -Match "Get-ChildItem -Path \(Join-Path.+'scripts'\) -Filter '\*\.ps1'"
-        $script:functionDocsContent | Should -Match 'WbaToolkit.Inventory/WbaToolkit.Inventory\.psd1'
-        $script:portalDocsContent | Should -Match 'WbaToolkit.Inventory/WbaToolkit.Inventory\.psd1'
+        $script:functionDocsContent | Should -Match "Get-ChildItem -Path \(Join-Path.+ 'modules'\) -Directory"
+        $script:portalDocsContent | Should -Match "Get-ChildItem -Path \(Join-Path.+ 'modules'\) -Directory"
     }
 
     It 'Nao depende do diretório atual para localizar os arquivos do portal' {
@@ -23,7 +23,7 @@ Describe 'Xtudo portabilidade da documentacao de inventario' {
     It 'Usa a raiz do repositório ao gerar o portal e a referência técnica' {
         $script:functionDocsContent | Should -Match "Get-ChildItem -Path \(Join-Path.+'scripts'\) -Filter '\*\.ps1'"
         $script:portalDocsContent | Should -Match "Get-ChildItem -Path \(Join-Path.+'scripts'\) -Filter '\*\.ps1'"
-        $script:functionDocsContent | Should -Match 'WbaToolkit.Inventory/WbaToolkit.Inventory\.psd1'
-        $script:portalDocsContent | Should -Match 'WbaToolkit.Inventory/WbaToolkit.Inventory\.psd1'
+        $script:functionDocsContent | Should -Match "Get-ChildItem -Path \(Join-Path.+ 'modules'\) -Directory"
+        $script:portalDocsContent | Should -Match "Get-ChildItem -Path \(Join-Path.+ 'modules'\) -Directory"
     }
 }

@@ -38,7 +38,7 @@ Set-DnsClientServerAddress -InterfaceAlias $InterfaceAlias -ServerAddresses $DcI
 Write-Host "Validando resolucao de $DomainName..." -ForegroundColor Cyan
 $null = Resolve-DnsName -Name $DomainName -Type SRV -Server $DcIp -ErrorAction Stop
 
-# 3) RSAT AD PowerShell (Get-ADComputer usado pelo Diagnostico-GPO-Client)
+# 3) RSAT AD PowerShell (Get-ADComputer usado pelo diagnóstico do cliente AD)
 Write-Host 'Instalando RSAT ActiveDirectory PowerShell...' -ForegroundColor Cyan
 $cap = Get-WindowsCapability -Online -Name 'Rsat.ActiveDirectory.DS-LDS.Tools*' -ErrorAction SilentlyContinue |
     Select-Object -First 1

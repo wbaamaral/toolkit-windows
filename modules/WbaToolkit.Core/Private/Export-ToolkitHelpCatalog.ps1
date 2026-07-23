@@ -37,6 +37,19 @@
     $catalog = [System.Collections.Generic.List[object]]::new()
     $categories = [System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 
+    # Permite resolver RequiredModules a partir da árvore do repositório, mesmo
+    # quando o catálogo é gerado fora de uma instalação de módulos do Windows.
+    $modulesRoot = $ModulePath |
+        Where-Object { Test-Path -LiteralPath $_ } |
+        Select-Object -First 1 |
+        ForEach-Object { Split-Path -Parent (Split-Path -Parent $_) }
+    if ($modulesRoot -and (Test-Path -LiteralPath $modulesRoot)) {
+        $psModulePathEntries = $env:PSModulePath -split [System.IO.Path]::PathSeparator
+        if ($modulesRoot -notin $psModulePathEntries) {
+            $env:PSModulePath = $modulesRoot + [System.IO.Path]::PathSeparator + $env:PSModulePath
+        }
+    }
+
     foreach ($path in $ModulePath) {
         $resolvedPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($path)
         if (-not (Test-Path -LiteralPath $resolvedPath)) { continue }
@@ -44,7 +57,7 @@
         $moduleName = [System.IO.Path]::GetFileNameWithoutExtension($resolvedPath)
         $module = Get-Module -Name $moduleName | Select-Object -First 1
         if (-not $module) {
-            $module = Import-Module $resolvedPath -Force -PassThru -ErrorAction Stop
+            $module = Import-Module $resolvedPath -Force -PassThru -DisableNameChecking -ErrorAction Stop
         }
 
         foreach ($command in ($module.ExportedFunctions.Values | Sort-Object Name)) {

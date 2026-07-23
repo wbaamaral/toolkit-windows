@@ -2,8 +2,7 @@
     [CmdletBinding()]
     param(
         [string]$ManualReadmePath,
-        [string]$TechnicalReferenceUrl = 'referencia/index.html',
-        [string]$OperatorUrl = 'operador.html'
+        [string]$TechnicalReferenceUrl = 'referencia/index.html'
     )
 
     if ($ManualReadmePath -and (Test-Path -LiteralPath $ManualReadmePath)) {
@@ -19,53 +18,14 @@
 
     $geradoEm = (Get-Date).ToString('yyyy-MM-dd HH:mm')
 
-    $cards = @'
-<div class="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-3">
-  <div class="border border-gray-300 rounded-lg p-4 bg-white break-inside-avoid">
-    <h3>Diagnóstico de Rede</h3>
-    <p>Testa conectividade TCP/UDP/ICMP/DNS por alvo. Gera relatório HTML.</p>
-    <code>.\scripts\testar-conectividade-internet.ps1</code>
-  </div>
-  <div class="border border-gray-300 rounded-lg p-4 bg-white break-inside-avoid">
-    <h3>Diagnóstico HD100</h3>
-    <p>Saúde do disco, processos em alta CPU e gerenciamento de inicialização.</p>
-    <code>.\scripts\diagnosticar-disco-100.ps1</code>
-  </div>
-  <div class="border border-gray-300 rounded-lg p-4 bg-white break-inside-avoid">
-    <h3>Inventário</h3>
-    <p>Hardware, software instalado, drivers. Exporta HTML, TXT, JSON e PDF.</p>
-    <code>.\scripts\inventario-hardware-software.ps1</code>
-  </div>
-  <div class="border border-gray-300 rounded-lg p-4 bg-white break-inside-avoid">
-    <h3>Limpeza Windows</h3>
-    <p>Remove arquivos temporários, cache e logs antigos.</p>
-    <code>.\scripts\limpar-windows.ps1</code>
-  </div>
-  <div class="border border-gray-300 rounded-lg p-4 bg-white break-inside-avoid">
-    <h3>Gerenciar Inicialização</h3>
-    <p>Lista, habilita e desabilita itens de inicialização do Windows.</p>
-    <code>.\scripts\gerenciar-inicializacao.ps1</code>
-  </div>
-  <div class="border border-gray-300 rounded-lg p-4 bg-white break-inside-avoid">
-    <h3>Atualização Windows</h3>
-    <p>Aplica atualizações do sistema e Chocolatey de forma conservadora.</p>
-    <code>.\scripts\atualizar-windows.ps1</code>
-  </div>
-</div>
-'@
-
     $docLinks = @"
 <ul>
-  <li><a href="$OperatorUrl">Guia rápido do operador</a> — comandos por cenário operacional</li>
-  <li><a href="$TechnicalReferenceUrl">Referência técnica</a> — todas as funções e scripts com CBH completo</li>
+  <li><a href="$TechnicalReferenceUrl">Referência técnica</a> — funções e scripts com Comment-Based Help</li>
 </ul>
 "@
 
     $body = @"
 <p class="text-gray-500">Gerado em $geradoEm</p>
-
-<h2>Ferramentas principais</h2>
-$cards
 
 <h2>Documentação</h2>
 $docLinks

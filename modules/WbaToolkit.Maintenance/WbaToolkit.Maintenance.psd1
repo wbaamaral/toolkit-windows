@@ -24,6 +24,7 @@
         'Invoke-EventLogMaintenance'
         'Get-ComponentStoreInfo'
         'Invoke-ComponentStoreCleanup'
+        'Sync-ComputerTime'
     )
     CmdletsToExport   = @()
     VariablesToExport = @()

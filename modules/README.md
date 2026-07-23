@@ -12,6 +12,7 @@ modules/
 ├── WbaToolkit.Core/
 ├── WbaToolkit.Identity/
 ├── WbaToolkit.Inventory/
+├── WbaToolkit.Licensing/
 ├── WbaToolkit.Maintenance/
 ├── WbaToolkit.Networking/
 └── WbaToolkit.Startup/
@@ -53,10 +54,16 @@ Módulo base do projeto. Funções comuns de console, segurança, configuração
 | `Export-ToolkitFunctionDocs` | Gera manual HTML local dos scripts e funções |
 | `Export-ToolkitDocumentation` | Gera portal HTML documentação |
 | `New-ToolkitHtmlReport` | Template HTML compartilhado para relatórios |
+| `Sync-ComputerTime` | Diagnóstico e correção contextual da fonte de tempo e fuso |
 | `Show-Spinner` | Spinner com timer para operações longas |
 | `Get-FileHashSha256` | Hash SHA256 de arquivos |
 | `New-ToolkitArchive` | Empacotamento ZIP com hash SHA256 |
 | `Get-ReportLogoBase64` | Retorna logo do toolkit em base64 |
+
+## `WbaToolkit.Licensing`
+
+Módulo interno para diagnóstico do licenciamento Windows. Não exporta funções públicas; os helpers são usados por
+rotinas de suporte e seguem as APIs oficiais do sistema.
 
 ## `WbaToolkit.Networking`
 

@@ -1,40 +1,13 @@
 # WBA Windows Toolkit
 
-Toolkit PowerShell para suporte, diagnóstico, manutenção e automação de ambientes Windows.
+Toolkit PowerShell para diagnóstico, manutenção e suporte a ambientes Windows.
 
-O ponto de entrada recomendado é [`xtudo.ps1`](xtudo.ps1). Ele centraliza as ações mais usadas, aceita busca por
-palavra-chave e reduz a necessidade de navegar pela árvore do projeto.
+## Comece aqui
 
-## Acesso rápido
+A documentação operacional está em [`docs/README.md`](docs/README.md). Ela reúne os procedimentos, comandos,
+cuidados e locais de saída que o operador precisa consultar.
 
-- [Launcher principal](xtudo.ps1)
-- [Catálogo de documentação](manuais/README.md)
-- [Guia rápido do operador](manuais/operador/README.md)
-- [Manual completo do operador](manuais/manual-operador-wba-windows-toolkit.md)
-- ADRs e demais especificações do projeto: repositório `spec-win-toolkit` (`spec/adr/`)
-
-## O que existe no projeto
-
-| Área | Conteúdo |
-|---|---|
-| `scripts/` | Rotas oficiais do operador e da linha atual |
-| `modules/` | Funções reutilizáveis compartilhadas pelos scripts |
-| `manuais/` | Guias do operador e documentação de referência |
-| `experimental/` | Ferramentas históricas ou ainda não promovidas |
-| `tests/` | Testes unitários e laboratórios de validação |
-| `tools/` | Apoio a releases e conferência do repositório |
-
-## Rotas principais
-
-- Limpar Windows
-- Diagnosticar disco 100%
-- Diagnosticar memória
-- Diagnosticar gráfico
-- Diagnosticar cliente AD
-- Preparar imagem Windows
-- Atualizar Windows
-
-## Uso básico
+Para abrir o menu interativo:
 
 ```powershell
 Set-Location C:\ti\wba-windows-toolkit
@@ -42,30 +15,41 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
 .\xtudo.ps1
 ```
 
-## Regras operacionais
+O `Xtudo` é o ponto de entrada recomendado para as ações mais comuns. Quando a tarefa não estiver no menu, use o
+script correspondente em `scripts/` e consulte `-Help`.
 
-- Comece pelo diagnóstico antes de reparar.
-- Use os scripts oficiais em `scripts/` para operação diária.
-- Consulte `manuais/` quando precisar de roteiro ou referência.
-- Mantenha `experimental/` fora do fluxo principal do operador.
-- `-Help` e `Comment-Based Help` são obrigatórios na superfície oficial para consulta inline e documentação gerada.
-- ADR-0026 (repositório `spec-win-toolkit`) registra o motivo dessa padronização.
-- Rode os testes em `tests/unit` antes de publicar mudanças.
+## Desenvolvimento
 
-## Testes
+Os módulos reutilizáveis ficam em `modules/`, os testes em `tests/` e os recursos de apoio em `tools/`.
+
+Execute a suíte antes de publicar alterações:
 
 ```powershell
 Invoke-Pester -Path tests/unit
 ```
 
-## Publicação
+Para gerar a documentação HTML local no Windows PowerShell 5.1:
 
-Antes de publicar uma release, valide o pacote com:
-
-```bash
-bash tools/release-check.sh
+```powershell
+Import-Module .\modules\WbaToolkit.Core\WbaToolkit.Core.psd1 -Force
+Export-ToolkitDocumentation -Mode All -Force
 ```
+
+O resultado fica em `docs/portal/`.
+
+## Estrutura essencial
+
+| Caminho | Uso |
+|---|---|
+| `xtudo.ps1` | Menu interativo do operador |
+| `scripts/` | Scripts oficiais de operação |
+| `modules/` | Funções reutilizáveis |
+| `docs/` | Documentação operacional, referência técnica e geração do PDF |
+| `tests/` | Testes unitários e de integração |
+| `experimental/` | Material não promovido para operação |
+
+As especificações, decisões arquiteturais e histórico de desenvolvimento ficam no repositório `spec-win-toolkit`.
 
 ## Licença
 
-MIT. Consulte [`LICENSE`](LICENSE) para os termos completos.
+MIT. Consulte [`LICENSE`](LICENSE).

@@ -29,9 +29,10 @@
     param(
         [Parameter(Mandatory = $false)]
         [string[]]$ModulePath = @(
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'modules/WbaToolkit.Networking/WbaToolkit.Networking.psd1'),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'modules/WbaToolkit.Inventory/WbaToolkit.Inventory.psd1')
+            Get-ChildItem -Path (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'modules') -Directory -ErrorAction SilentlyContinue |
+                ForEach-Object { Join-Path $_.FullName "$($_.Name).psd1" } |
+                Where-Object { Test-Path -LiteralPath $_ } |
+                Sort-Object
         ),
 
         [Parameter(Mandatory = $false)]
@@ -89,7 +90,7 @@
         $moduleName = [System.IO.Path]::GetFileNameWithoutExtension($resolvedPath)
         $module = Get-Module -Name $moduleName | Select-Object -First 1
         if (-not $module) {
-            $module = Import-Module $resolvedPath -Force -PassThru -ErrorAction Stop
+            $module = Import-Module $resolvedPath -Force -PassThru -DisableNameChecking -ErrorAction Stop
         }
         $commands = @($module.ExportedFunctions.Values | Sort-Object Name)
         $functionLinks = [System.Collections.ArrayList]::new()
