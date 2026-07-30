@@ -117,49 +117,10 @@ $ScriptPath = $PSCommandPath
 $ScriptDir  = $PSScriptRoot
 $ToolkitRoot = Split-Path -Parent $PSScriptRoot
 
-function Show-Help {
-    [CmdletBinding()]
-    param()
-    Write-Host ""
-    Write-Host "Gerenciamento de OpenSSH Server no Windows" -ForegroundColor Cyan
-    Write-Host ""
-    Write-Host "Uso:  .\$ScriptName [opcoes]"
-    Write-Host ""
-    Write-Host "  -Acao <acao>         Acao a executar:"
-    Write-Host "                         Diagnostico    - Exibe estado completo (padrao)"
-    Write-Host "                         Instalar       - Instala OpenSSH Server"
-    Write-Host "                         Habilitar      - Habilita servico + firewall"
-    Write-Host "                         Desabilitar    - Para e desabilita servico"
-    Write-Host "                         Parar          - Para servico sshd"
-    Write-Host "                         Iniciar        - Inicia servico sshd"
-    Write-Host "                         Configurar     - Altera sshd_config (-ConfigKey/-ConfigValue)"
-    Write-Host "                         GerarChaveHost - Gera chaves de host"
-    Write-Host "                         GerarChaveUsuario - Gera par de chaves de usuario"
-    Write-Host "                         AdicionarChave - Adiciona chave publica ao authorized_keys"
-    Write-Host "                         RemoverChave   - Remove chave publica do authorized_keys"
-    Write-Host "                         ListarChaves   - Lista chaves no authorized_keys"
-    Write-Host "                         TestarConexao  - Testa conectividade SSH"
-    Write-Host "  -Port <porta>        Porta TCP (padrao: 22)."
-    Write-Host "  -UserName <user>     Usuario para operacoes de chave."
-    Write-Host "  -PublicKeyPath <cam> Caminho da chave publica (.pub)."
-    Write-Host "  -KeyType <tipo>      Tipo de chave: ed25519, rsa, ecdsa."
-    Write-Host "  -ConfigKey <dir>     Diretiva do sshd_config."
-    Write-Host "  -ConfigValue <val>   Valor da diretiva."
-    Write-Host "  -DryRun              Simula sem executar."
-    Write-Host "  -Path '<dir>'        Raiz dos relatorios."
-    Write-Host "  -Help                Esta ajuda."
-    Write-Host ""
-    Write-Host "Exemplos:"
-    Write-Host "  .\$ScriptName"
-    Write-Host "  .\$ScriptName -Acao Instalar"
-    Write-Host "  .\$ScriptName -Acao Configurar -ConfigKey Port -ConfigValue 2222"
-    Write-Host "  .\$ScriptName -Acao GerarChaveHost"
-    Write-Host "  .\$ScriptName -Acao AdicionarChave -PublicKeyPath 'C:\chaves\id.pub' -UserName 'joao'"
-    Write-Host "  .\$ScriptName -Acao TestarConexao -Port 2222"
-    Write-Host ""
+if ($Help) {
+    Get-Help $MyInvocation.MyCommand.Path -Full
+    exit 0
 }
-
-if ($Help) { Show-Help; exit 0 }
 
 $actionRequiresAdmin = @('Instalar', 'Habilitar', 'Desabilitar', 'Parar', 'Iniciar', 'Configurar', 'GerarChaveHost')
 if ($Acao -in $actionRequiresAdmin -and -not (Test-IsAdministrator)) {
@@ -192,32 +153,21 @@ catch {
 # WBA-DOCS: Category=Networking; Manual=Gerenciamento de OpenSSH Server no Windows
 
 $ReportSession = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'ssh'
-$LogDir = $ReportSession.LogsPath
-$LogFile = Join-Path $LogDir "$((Get-Date).ToString('yyyy-MM-dd_HHmmss'))-$ScriptName.log"
-
-if (!(Test-Path $LogDir)) {
-    New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
-}
-
+$logFile = Join-Path $ReportSession.LogsPath "$($ScriptName -replace '\.ps1$','').log"
 $transcriptActive = $false
 try {
-    Start-Transcript -Path $LogFile -ErrorAction Stop | Out-Null
+    Start-Transcript -Path $logFile -ErrorAction Stop | Out-Null
     $transcriptActive = $true
-}
-catch {
+} catch {
     Write-Warning "Nao foi possivel iniciar o log de transcricao: $($_.Exception.Message)"
 }
 
-Write-Host ""
-Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host " Gerenciamento de OpenSSH Server" -ForegroundColor Cyan
-Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host "Log: $LogFile" -ForegroundColor Yellow
+Write-Title "Gerenciamento de OpenSSH Server"
 
 if ($DryRun) {
-    Write-Host "MODO DRY-RUN: nenhuma alteracao sera aplicada." -ForegroundColor Yellow
+    Write-Warn "MODO DRYRUN: Nenhuma alteracao sera aplicada."
+    Write-Host ""
 }
-Write-Host ""
 
 # ── Validações ─────────────────────────────────────────────────────────────
 

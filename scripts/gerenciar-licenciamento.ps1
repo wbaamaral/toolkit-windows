@@ -105,42 +105,10 @@ $ScriptPath = $PSCommandPath
 $ScriptDir  = $PSScriptRoot
 $ToolkitRoot = Split-Path -Parent $PSScriptRoot
 
-function Show-Help {
-    [CmdletBinding()]
-    param()
-    Write-Host ""
-    Write-Host "Gerenciamento de Licenciamento do Windows" -ForegroundColor Cyan
-    Write-Host ""
-    Write-Host "Uso:  .\$ScriptName [opcoes]"
-    Write-Host ""
-    Write-Host "  -Acao <acao>         Acao a executar:"
-    Write-Host "                         Diagnostico  - Exibe estado atual (padrao)"
-    Write-Host "                         Ativar       - Ativacao online via slmgr /ato"
-    Write-Host "                         InstalarChave - Instala product key via slmgr /ipk"
-    Write-Host "                         Rearm        - Estende grace period via slmgr /rearm"
-    Write-Host "                         DefinirKMS   - Configura servidor KMS via slmgr /skms"
-    Write-Host "                         Restaurar    - Restaura config de um backup salvo"
-    Write-Host "  -ProductKey <chave>  Product key (exigido com InstalarChave)."
-    Write-Host "  -KmsServer <host>    Servidor KMS (exigido com DefinirKMS)."
-    Write-Host "  -BackupPath <caminho> Caminho do backup (exigido com Restaurar)."
-    Write-Host "  -GerarHtml           Gera relatorio HTML."
-    Write-Host "  -AbrirRelatorio      Abre o relatorio ao final."
-    Write-Host "  -DryRun              Simula sem executar."
-    Write-Host "  -Path '<dir>'        Raiz dos relatorios."
-    Write-Host "  -Help                Esta ajuda."
-    Write-Host ""
-    Write-Host "Exemplos:"
-    Write-Host "  .\$ScriptName"
-    Write-Host "  .\$ScriptName -Acao Ativar"
-    Write-Host "  .\$ScriptName -Acao InstalarChave -ProductKey 'XXXXX-XXXXX-XXXXX-XXXXX-XXXXX'"
-    Write-Host "  .\$ScriptName -Acao DefinirKMS -KmsServer 'kms.empresa.com'"
-    Write-Host "  .\$ScriptName -Acao Rearm -DryRun"
-    Write-Host "  .\$ScriptName -Acao Restaurar -BackupPath 'C:\WBA\Relatorios\licenciamento\backups\20260730_102500'"
-    Write-Host "  .\$ScriptName -Acao Restaurar -DryRun"
-    Write-Host ""
+if ($Help) {
+    Get-Help $MyInvocation.MyCommand.Path -Full
+    exit 0
 }
-
-if ($Help) { Show-Help; exit 0 }
 
 if ($Acao -in @('Ativar', 'InstalarChave', 'Rearm', 'DefinirKMS', 'Restaurar') -and -not (Test-IsAdministrator)) {
     Write-Warning "A acao '$Acao' exige privilegios administrativos. Solicitando elevacao..."
@@ -172,32 +140,21 @@ catch {
 # WBA-DOCS: Category=Licensing; Manual=Diagnostico e gerenciamento de licenciamento Windows
 
 $ReportSession = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'licenciamento'
-$LogDir = $ReportSession.LogsPath
-$LogFile = Join-Path $LogDir "$((Get-Date).ToString('yyyy-MM-dd_HHmmss'))-$ScriptName.log"
-
-if (!(Test-Path $LogDir)) {
-    New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
-}
-
+$logFile = Join-Path $ReportSession.LogsPath "$($ScriptName -replace '\.ps1$','').log"
 $transcriptActive = $false
 try {
-    Start-Transcript -Path $LogFile -ErrorAction Stop | Out-Null
+    Start-Transcript -Path $logFile -ErrorAction Stop | Out-Null
     $transcriptActive = $true
-}
-catch {
+} catch {
     Write-Warning "Nao foi possivel iniciar o log de transcricao: $($_.Exception.Message)"
 }
 
-Write-Host ""
-Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host " Gerenciamento de Licenciamento do Windows" -ForegroundColor Cyan
-Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host "Log: $LogFile" -ForegroundColor Yellow
+Write-Title "Gerenciamento de Licenciamento do Windows"
 
 if ($DryRun) {
-    Write-Host "MODO DRY-RUN: nenhuma alteracao sera aplicada." -ForegroundColor Yellow
+    Write-Warn "MODO DRYRUN: Nenhuma alteracao sera aplicada."
+    Write-Host ""
 }
-Write-Host ""
 
 # ── Validações de parâmetros ──────────────────────────────────────────────
 
