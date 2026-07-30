@@ -257,6 +257,15 @@ function New-XtudoCatalog {
             Keywords = @('rdp', 'remoto', 'remote', 'desktop', 'area de trabalho', 'terminal', 'porta', 'firewall')
             Quick    = $false
         }
+        [pscustomobject]@{
+            Id       = 'gerenciar-servicos'
+            Label    = 'Gerenciar servicos'
+            Category = 'Manutencao'
+            Path     = 'scripts/gerenciar-servicos.ps1'
+            Keywords = @('servico', 'services', 'start', 'stop', 'restart', 'iniciar', 'parar', 'reiniciar', 'w32time', 'spooler', 'bits')
+            Quick    = $true
+            Args     = @('-Acao', 'Diagnostico')
+        }
     )
 }
 
