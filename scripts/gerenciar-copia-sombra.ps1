@@ -13,6 +13,12 @@
     Acao a executar: Diagnostico (padrao), Criar, Remover, RemoverTodas,
     ConfigurarEspaco, HabilitarProtecao, DesabilitarProtecao.
 
+.PARAMETER VerificarProtecao
+    Exibe somente o status da protecao do sistema (VSS) e encerra.
+
+.PARAMETER ListarCopias
+    Lista as copias de sombra existentes e encerra.
+
 .PARAMETER Volume
     Volume alvo (ex: C:). Padrao: C:.
 
@@ -41,6 +47,12 @@
     .\gerenciar-copia-sombra.ps1
 
 .EXAMPLE
+    .\gerenciar-copia-sombra.ps1 -VerificarProtecao
+
+.EXAMPLE
+    .\gerenciar-copia-sombra.ps1 -ListarCopias
+
+.EXAMPLE
     .\gerenciar-copia-sombra.ps1 -Acao Criar
 
 .EXAMPLE
@@ -57,6 +69,10 @@
 param(
     [ValidateSet('Diagnostico', 'Criar', 'Remover', 'RemoverTodas', 'ConfigurarEspaco', 'HabilitarProtecao', 'DesabilitarProtecao')]
     [string]$Acao = 'Diagnostico',
+
+    [switch]$VerificarProtecao,
+
+    [switch]$ListarCopias,
 
     [string]$Volume = 'C:',
 
@@ -126,9 +142,47 @@ try {
         Write-Host ""
     }
 
-    $status = Get-ShadowCopyProtectionStatus
-    $shadows = Get-ShadowCopy
-    $storage = Get-ShadowCopyStorage
+    $status = @(Get-ShadowCopyProtectionStatus)
+    $shadows = @(Get-ShadowCopy)
+    $storage = @(Get-ShadowCopyStorage)
+
+    if ($VerificarProtecao) {
+        Write-Section "Status da Protecao do Sistema"
+        foreach ($s in $status) {
+            $color = if ($s.ProtectionEnabled) { 'Green' } else { 'Red' }
+            $icon  = if ($s.ProtectionEnabled) { '[ATIVO]' } else { '[INATIVO]' }
+            Write-Host "  $icon $($s.Volume) - $($s.Label) ($($s.FileSystem))" -ForegroundColor $color
+            Write-Host "       Espaco: $($s.FreeGB) GB livre de $($s.SizeGB) GB" -ForegroundColor Gray
+            if ($s.AllocatedGB) {
+                Write-Host "       Shadow Storage: $($s.AllocatedGB) GB alocados" -ForegroundColor Gray
+            }
+        }
+        Write-Host ""
+        $activeCount = @($status | Where-Object { $_.ProtectionEnabled }).Count
+        if ($activeCount -gt 0) {
+            Write-Ok "Protecao ativa em $activeCount volume(s)."
+        } else {
+            Write-Warn "Protecao inativa em todos os volumes."
+        }
+        return
+    }
+
+    if ($ListarCopias) {
+        Write-Section "Shadow Copies Existentes ($($shadows.Count))"
+        if ($shadows) {
+            foreach ($sh in $shadows) {
+                Write-Host "  ID: $($sh.ShadowCopyId)" -ForegroundColor Cyan
+                Write-Host "    Volume: $($sh.Volume)" -ForegroundColor Gray
+                Write-Host "    Criado: $($sh.CreatedAt)" -ForegroundColor Gray
+                Write-Host "    Estado: $($sh.State)" -ForegroundColor Gray
+                Write-Host ""
+            }
+            Write-Info "$($shadows.Count) shadow copy(s) encontrado(s)."
+        } else {
+            Write-Info "Nenhum shadow copy encontrado."
+        }
+        return
+    }
 
     switch ($Acao) {
         'Diagnostico' {
