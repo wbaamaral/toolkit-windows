@@ -34,7 +34,8 @@
     Limita o numero de resultados exibidos. Padrao: 50.
 
 .PARAMETER Interativo
-    Modo interativo com scroll, busca, ordenacao e filtro para Listar.
+    Forca modo interativo em Listar (padrao: ativo em terminal interativo).
+    Navegacao: setas, PgUp/PgDn, Home/End, busca, filtro, ordenacao, paginacao.
 
 .PARAMETER StartupType
     Tipo de inicializacao para ConfigurarInicializacao: Automatic, Manual, Disabled.
@@ -67,13 +68,14 @@
     .\gerenciar-servicos.ps1 -Acao Listar
 
 .EXAMPLE
+    .\gerenciar-servicos.ps1 -Acao Listar -Interativo
+
+.EXAMPLE
     .\gerenciar-servicos.ps1 -Acao Listar -Filtro 'W32*' -FiltroStatus Running
 
 .EXAMPLE
     .\gerenciar-servicos.ps1 -Acao Listar -OrdenarPor Status -Decrescente -Top 20
-
-.EXAMPLE
-    .\gerenciar-servicos.ps1 -Acao Listar -Interativo
+    # Lista estatica (nao interativa) limitada a 20 itens
 
 .EXAMPLE
     .\gerenciar-servicos.ps1 -Acao Parar -Servico Spooler
@@ -163,32 +165,41 @@ if ($Help) {
     exit 0
 }
 
+# === Dependencias: dot-source direto (nao depende de Import-Module) ===
+$coreModuleRoot     = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core'
+$servicesModuleRoot = Join-Path $ToolkitRoot 'modules/WbaToolkit.Services'
+
+foreach ($dir in @($coreModuleRoot, $servicesModuleRoot)) {
+    if (-not (Test-Path -LiteralPath $dir)) {
+        Write-Host "[FALHA] Modulo nao encontrado: $dir" -ForegroundColor Red
+        Write-Host "        Solucao: verifique o clone do repositorio em $ToolkitRoot" -ForegroundColor Yellow
+        exit 1
+    }
+}
+
+try {
+    foreach ($moduleRoot in @($coreModuleRoot, $servicesModuleRoot)) {
+        foreach ($sub in @('Private', 'Public')) {
+            $dir = Join-Path $moduleRoot $sub
+            if (Test-Path -LiteralPath $dir) {
+                Get-ChildItem -LiteralPath $dir -Filter '*.ps1' -File | ForEach-Object { . $_.FullName }
+            }
+        }
+    }
+}
+catch {
+    Write-Host "[FALHA] Nao foi possivel carregar os modulos do toolkit." -ForegroundColor Red
+    Write-Host "        Erro: $($_.Exception.Message)" -ForegroundColor Yellow
+    Write-Host "        Solucao: Set-ExecutionPolicy -Scope CurrentUser RemoteSigned -Force" -ForegroundColor Yellow
+    exit 1
+}
+
 $actionRequiresAdmin = @('Iniciar', 'Parar', 'Reiniciar', 'ConfigurarInicializacao', 'ConfigurarConta')
 if ($Acao -in $actionRequiresAdmin -and -not (Test-IsAdministrator)) {
     Write-Warning "A acao '$Acao' exige privilegios administrativos. Solicitando elevacao..."
     $command = New-ToolkitElevationCommand -ScriptPath $PSCommandPath -BoundParameters $PSBoundParameters
     Start-Process powershell.exe -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $command) -Verb RunAs
     exit 0
-}
-
-$CoreModulePath    = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
-$ServicesModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Services/WbaToolkit.Services.psd1'
-
-foreach ($mod in @($CoreModulePath, $ServicesModulePath)) {
-    if (-not (Test-Path -LiteralPath $mod)) {
-        Write-Host "[FALHA] Modulo nao encontrado: $mod" -ForegroundColor Red
-        exit 1
-    }
-}
-
-try {
-    Import-Module $CoreModulePath    -Force -ErrorAction Stop
-    Import-Module $ServicesModulePath -Force -ErrorAction Stop
-}
-catch {
-    Write-Host "[FALHA] Nao foi possivel carregar os modulos do toolkit." -ForegroundColor Red
-    Write-Host "        Erro: $($_.Exception.Message)" -ForegroundColor Yellow
-    exit 1
 }
 
 $ReportSession = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'servicos'
@@ -255,262 +266,482 @@ if ($Acao -eq 'Diagnostico') {
 # ── Listar ─────────────────────────────────────────────────────────────────
 
 if ($Acao -eq 'Listar') {
-    Write-Section "Servicos Windows"
+    function Get-ServiceListView {
+        param(
+            [object[]]$Source,
+            [string]$Search,
+            [string]$StatusF,
+            [string]$StartF,
+            [string]$SortProp,
+            [bool]$Desc
+        )
+
+        $view = @($Source)
+        if (-not [string]::IsNullOrWhiteSpace($Search)) {
+            $pattern = $Search
+            if ($pattern -notmatch '[\*\?]') { $pattern = "*$pattern*" }
+            $view = @($view | Where-Object {
+                $_.Name -like $pattern -or $_.DisplayName -like $pattern
+            })
+        }
+        if ($StatusF) { $view = @($view | Where-Object { $_.Status -eq $StatusF }) }
+        if ($StartF)  { $view = @($view | Where-Object { $_.StartType -eq $StartF }) }
+
+        if ($Desc) {
+            $view = @($view | Sort-Object $SortProp -Descending)
+        }
+        else {
+            $view = @($view | Sort-Object $SortProp)
+        }
+        return $view
+    }
+
+    function Format-ServiceCell {
+        param([string]$Text, [int]$Width)
+        if ([string]::IsNullOrEmpty($Text)) { $Text = '' }
+        if ($Text.Length -gt $Width) {
+            if ($Width -le 3) { return $Text.Substring(0, $Width) }
+            return $Text.Substring(0, $Width - 3) + '...'
+        }
+        return $Text.PadRight($Width)
+    }
 
     $allServices = @(Get-WindowsServiceStatus)
-    $totalAll = $allServices.Count
-
-    $filteredServices = $allServices
-
-    if ($Filtro) {
-        $filteredServices = @($filteredServices | Where-Object { $_.Name -like $Filtro -or $_.DisplayName -like $Filtro })
-    }
-    if ($FiltroStatus) {
-        $filteredServices = @($filteredServices | Where-Object { $_.Status -eq $FiltroStatus })
-    }
-    if ($FiltroInicio) {
-        $filteredServices = @($filteredServices | Where-Object { $_.StartType -eq $FiltroInicio })
-    }
-
+    $sortLabel = $OrdenarPor
     $sortProperty = switch ($OrdenarPor) {
         'Nome'        { 'Name' }
         'DisplayName' { 'DisplayName' }
         'Status'      { 'Status' }
         'StartType'   { 'StartType' }
+        default       { 'Name' }
     }
-    if ($Decrescente) {
-        $filteredServices = @($filteredServices | Sort-Object $sortProperty -Descending)
-    }
-    else {
-        $filteredServices = @($filteredServices | Sort-Object $sortProperty)
-    }
+    $sortDesc = [bool]$Decrescente
+    $searchTerm = if ($Filtro) { $Filtro } else { '' }
+    $statusFilter = if ($FiltroStatus) { $FiltroStatus } else { '' }
+    $startFilter = if ($FiltroInicio) { $FiltroInicio } else { '' }
 
-    $running = @($filteredServices | Where-Object { $_.Status -eq 'Running' })
-    $stopped = @($filteredServices | Where-Object { $_.Status -eq 'Stopped' })
+    $useInteractive = $Interativo -or (
+        -not $PSBoundParameters.ContainsKey('Top') -and
+        -not $PSBoundParameters.ContainsKey('GerarHtml') -and
+        [Environment]::UserInteractive
+    )
 
-    Write-Host ""
-    Write-Host "  Total: $totalAll servicos | Filtrados: $($filteredServices.Count)" -ForegroundColor Cyan
-    Write-Host "  Em execucao: $($running.Count)" -ForegroundColor Green
-    Write-Host "  Parados:     $($stopped.Count)" -ForegroundColor Yellow
-    Write-Host ""
+    if ($useInteractive) {
+        $consoleHeight = 30
+        $consoleWidth = 100
+        try {
+            $consoleHeight = [Math]::Max(20, $Host.UI.RawUI.WindowSize.Height)
+            $consoleWidth = [Math]::Max(80, $Host.UI.RawUI.WindowSize.Width)
+        } catch { }
 
-    if ($Interativo) {
-        $pageSize = [Math]::Min($Top, 25)
-        $currentPage = 0
-        $sortLabel = $OrdenarPor
-        $sortDir = if ($Decrescente) { 'DESC' } else { 'ASC' }
-        $searchTerm = if ($Filtro) { $Filtro } else { '' }
-        $statusFilter = if ($FiltroStatus) { $FiltroStatus } else { '' }
-        $startFilter = if ($FiltroInicio) { $FiltroInicio } else { '' }
-
-        function Show-ServicePage {
-            param(
-                [object[]]$Services,
-                [int]$Page,
-                [int]$Size,
-                [string]$SortBy,
-                [string]$Dir,
-                [string]$Search,
-                [string]$StatusF,
-                [string]$StartF
-            )
-
-            $totalPages = [Math]::Max(1, [Math]::Ceiling($Services.Count / $Size))
-            if ($Page -ge $totalPages) { $Page = $totalPages - 1 }
-            if ($Page -lt 0) { $Page = 0 }
-
-            $offset = $Page * $Size
-            $pageItems = @($Services | Select-Object -Skip $offset -First $Size)
-
-            $runningPage = @($pageItems | Where-Object { $_.Status -eq 'Running' }).Count
-            $stoppedPage = @($pageItems | Where-Object { $_.Status -eq 'Stopped' }).Count
-
-            $filterParts = @()
-            if ($Search) { $filterParts += "Busca: $Search" }
-            if ($StatusF) { $filterParts += "Status: $StatusF" }
-            if ($StartF) { $filterParts += "Inicio: $StartF" }
-            $filterStr = if ($filterParts.Count -gt 0) { " | $($filterParts -join ' | ')" } else { '' }
-
-            Write-Host ""
-            Write-Host "  Pagina $($Page + 1)/$totalPages | $($Services.Count) servicos | Exec: $runningPage | Parados: $stoppedPage | Ordenar: $SortBy $Dir$filterStr" -ForegroundColor Cyan
-            Write-Host "  $(('─' * 78))" -ForegroundColor DarkGray
-            Write-Host ("  {0,-35} {1,-30} {2,-12} {3,-12}" -f 'NOME', 'DISPLAYNAME', 'STATUS', 'INICIO') -ForegroundColor White
-            Write-Host "  $(('─' * 78))" -ForegroundColor DarkGray
-
-            foreach ($s in $pageItems) {
-                $statusColor = switch ($s.Status) {
-                    'Running'      { 'Green' }
-                    'Stopped'      { 'Yellow' }
-                    'Paused'       { 'Red' }
-                    'StartPending' { 'DarkYellow' }
-                    default        { 'Gray' }
-                }
-                $nameDisplay = if ($s.Name.Length -gt 33) { $s.Name.Substring(0, 30) + '...' } else { $s.Name }
-                $dispDisplay = if ($s.DisplayName.Length -gt 28) { $s.DisplayName.Substring(0, 25) + '...' } else { $s.DisplayName }
-
-                Write-Host ("  {0,-35}" -f $nameDisplay) -NoNewline
-                Write-Host ("{0,-30}" -f $dispDisplay) -NoNewline -ForegroundColor Gray
-                Write-Host ("{0,-12}" -f $s.Status) -NoNewline -ForegroundColor $statusColor
-                Write-Host ("{0,-12}" -f $s.StartType) -ForegroundColor DarkGray
-            }
-
-            Write-Host ""
-            Write-Host "  Comandos: [E]squerda [D]ireita [B]uscar [O]rdenar [F]iltrar [T]amanho [S]tatus [I]nicio [C]lear [R]efresh [Q]uit" -ForegroundColor DarkCyan
-            Write-Host "  Pagina atual: $($Page + 1) de $totalPages" -ForegroundColor DarkGray
-
-            return @{ Page = $Page; TotalPages = $totalPages }
+        $headerLines = 9
+        $footerLines = 5
+        $pageSize = [Math]::Max(5, $consoleHeight - $headerLines - $footerLines)
+        if ($PSBoundParameters.ContainsKey('Top')) {
+            $pageSize = [Math]::Max(5, [Math]::Min($Top, 100))
         }
 
-        $state = Show-ServicePage -Services $filteredServices -Page $currentPage -Size $pageSize `
-            -SortBy $sortLabel -Dir $sortDir -Search $searchTerm -StatusF $statusFilter -StartF $startFilter
+        $currentPage = 0
+        $selectedRow = 0
+        $needsRedraw = $true
+        $statusMsg = ''
+        $exitList = $false
 
-        while ($true) {
+        $filteredServices = Get-ServiceListView -Source $allServices -Search $searchTerm `
+            -StatusF $statusFilter -StartF $startFilter -SortProp $sortProperty -Desc $sortDesc
+
+        while (-not $exitList) {
+            if ($needsRedraw) {
+                $totalCount = $filteredServices.Count
+                $totalPages = [Math]::Max(1, [Math]::Ceiling([double]$totalCount / $pageSize))
+                if ($currentPage -ge $totalPages) { $currentPage = $totalPages - 1 }
+                if ($currentPage -lt 0) { $currentPage = 0 }
+
+                $offset = $currentPage * $pageSize
+                $pageItems = @($filteredServices | Select-Object -Skip $offset -First $pageSize)
+                if ($pageItems.Count -eq 0) {
+                    $selectedRow = 0
+                }
+                elseif ($selectedRow -ge $pageItems.Count) {
+                    $selectedRow = $pageItems.Count - 1
+                }
+                if ($selectedRow -lt 0) { $selectedRow = 0 }
+
+                $runCount = @($filteredServices | Where-Object { $_.Status -eq 'Running' }).Count
+                $stopCount = @($filteredServices | Where-Object { $_.Status -eq 'Stopped' }).Count
+                $autoStopCount = @($filteredServices | Where-Object {
+                    $_.Status -eq 'Stopped' -and $_.StartType -eq 'Automatic'
+                }).Count
+
+                $nameW = 28
+                $dispW = [Math]::Max(20, $consoleWidth - $nameW - 30)
+                $statusW = 12
+                $startW = 12
+                $lineW = [Math]::Min($consoleWidth - 2, $nameW + $dispW + $statusW + $startW + 6)
+
+                $filterParts = @()
+                if ($searchTerm) { $filterParts += "Busca=$searchTerm" }
+                if ($statusFilter) { $filterParts += "Status=$statusFilter" }
+                if ($startFilter) { $filterParts += "Inicio=$startFilter" }
+                $filterStr = if ($filterParts.Count -gt 0) {
+                    ($filterParts -join ' | ')
+                } else {
+                    'sem filtro'
+                }
+                $sortDirLabel = if ($sortDesc) { 'DESC' } else { 'ASC' }
+                $fromIdx = if ($totalCount -eq 0) { 0 } else { $offset + 1 }
+                $toIdx = [Math]::Min($offset + $pageSize, $totalCount)
+
+                Clear-Host
+                Write-Host ''
+                Write-Host ('=' * $lineW) -ForegroundColor DarkCyan
+                Write-Host ' SERVICOS WINDOWS' -NoNewline -ForegroundColor Cyan
+                Write-Host "  |  Total: $($allServices.Count)" -NoNewline -ForegroundColor White
+                Write-Host "  |  Visiveis: $totalCount" -NoNewline -ForegroundColor White
+                Write-Host "  |  Exec: $runCount" -NoNewline -ForegroundColor Green
+                Write-Host "  |  Parados: $stopCount" -NoNewline -ForegroundColor Yellow
+                if ($autoStopCount -gt 0) {
+                    Write-Host "  |  Auto-parados: $autoStopCount" -NoNewline -ForegroundColor Red
+                }
+                Write-Host ''
+                Write-Host ('=' * $lineW) -ForegroundColor DarkCyan
+                Write-Host " Filtro: $filterStr" -ForegroundColor DarkGray
+                Write-Host " Ordenar: $sortLabel $sortDirLabel  |  Pagina $($currentPage + 1)/$totalPages  |  Itens $fromIdx-$toIdx de $totalCount  |  Linhas/pag: $pageSize" -ForegroundColor DarkGray
+                Write-Host ('-' * $lineW) -ForegroundColor DarkGray
+                Write-Host (
+                    ' {0} {1} {2} {3}' -f
+                    (Format-ServiceCell '#' 3),
+                    (Format-ServiceCell 'NOME' $nameW),
+                    (Format-ServiceCell 'DISPLAYNAME' $dispW),
+                    (Format-ServiceCell 'STATUS' $statusW)
+                ) -NoNewline -ForegroundColor White
+                Write-Host (' ' + (Format-ServiceCell 'INICIO' $startW)) -ForegroundColor White
+                Write-Host ('-' * $lineW) -ForegroundColor DarkGray
+
+                if ($pageItems.Count -eq 0) {
+                    Write-Host '  Nenhum servico encontrado com os filtros atuais.' -ForegroundColor Yellow
+                }
+                else {
+                    for ($i = 0; $i -lt $pageItems.Count; $i++) {
+                        $s = $pageItems[$i]
+                        $rowNum = $offset + $i + 1
+                        $isSelected = ($i -eq $selectedRow)
+                        $statusColor = switch ($s.Status) {
+                            'Running'      { 'Green' }
+                            'Stopped'      { 'Yellow' }
+                            'Paused'       { 'Red' }
+                            'StartPending' { 'DarkYellow' }
+                            'StopPending'  { 'DarkYellow' }
+                            default        { 'Gray' }
+                        }
+                        $prefix = if ($isSelected) { '>' } else { ' ' }
+                        $rowBg = if ($isSelected) { 'DarkBlue' } else { $null }
+
+                        $lineName = Format-ServiceCell $s.Name $nameW
+                        $lineDisp = Format-ServiceCell $s.DisplayName $dispW
+                        $lineStat = Format-ServiceCell $s.Status $statusW
+                        $lineStart = Format-ServiceCell $s.StartType $startW
+                        $numCell = Format-ServiceCell $rowNum.ToString() 3
+
+                        if ($isSelected) {
+                            Write-Host ("$prefix$numCell $lineName $lineDisp ") -NoNewline -ForegroundColor White -BackgroundColor DarkBlue
+                            Write-Host $lineStat -NoNewline -ForegroundColor $statusColor -BackgroundColor DarkBlue
+                            Write-Host (" $lineStart") -ForegroundColor Cyan -BackgroundColor DarkBlue
+                        }
+                        else {
+                            Write-Host ("$prefix$numCell ") -NoNewline -ForegroundColor DarkGray
+                            Write-Host ("$lineName ") -NoNewline -ForegroundColor White
+                            Write-Host ("$lineDisp ") -NoNewline -ForegroundColor Gray
+                            Write-Host $lineStat -NoNewline -ForegroundColor $statusColor
+                            Write-Host (" $lineStart") -ForegroundColor DarkGray
+                        }
+                    }
+                }
+
+                Write-Host ('-' * $lineW) -ForegroundColor DarkGray
+                Write-Host ' Setas: mover/paginar  |  Home/End: 1a/ultima  |  PgUp/PgDn: pagina  |  Enter: detalhar' -ForegroundColor DarkCyan
+                Write-Host ' [/]buscar  [O]rdenar  [I]nverter  [S]tatus  [F]inicio  [T]amanho  [G]o pagina  [C]lear  [R]efresh  [Q]sair' -ForegroundColor DarkCyan
+                if ($statusMsg) {
+                    Write-Host " $statusMsg" -ForegroundColor Yellow
+                    $statusMsg = ''
+                }
+                $needsRedraw = $false
+            }
+
             $key = [Console]::ReadKey($true)
-            $char = $key.KeyChar.ToString().ToUpper()
+            $handled = $true
 
-            switch ($char) {
-                'D' {
-                    if ($state.Page -lt $state.TotalPages - 1) {
-                        $currentPage++
-                        $state = Show-ServicePage -Services $filteredServices -Page $currentPage -Size $pageSize `
-                            -SortBy $sortLabel -Dir $sortDir -Search $searchTerm -StatusF $statusFilter -StartF $startFilter
+            switch ($key.Key) {
+                'UpArrow' {
+                    if ($selectedRow -gt 0) {
+                        $selectedRow--
                     }
-                }
-                'E' {
-                    if ($currentPage -gt 0) {
+                    elseif ($currentPage -gt 0) {
                         $currentPage--
-                        $state = Show-ServicePage -Services $filteredServices -Page $currentPage -Size $pageSize `
-                            -SortBy $sortLabel -Dir $sortDir -Search $searchTerm -StatusF $statusFilter -StartF $startFilter
+                        $selectedRow = $pageSize - 1
                     }
+                    $needsRedraw = $true
                 }
-                'B' {
-                    Write-Host ""
-                    $search = Read-Host "  Buscar (nome/display, *wildcard*): "
-                    $searchTerm = $search
-                    $filteredServices = @($allServices | Where-Object {
-                        $_.Name -like "*$search*" -or $_.DisplayName -like "*$search*"
-                    })
-                    if ($statusFilter) { $filteredServices = @($filteredServices | Where-Object { $_.Status -eq $statusFilter }) }
-                    if ($startFilter) { $filteredServices = @($filteredServices | Where-Object { $_.StartType -eq $startFilter }) }
-                    $filteredServices = @($filteredServices | Sort-Object $sortProperty)
-                    $currentPage = 0
-                    $state = Show-ServicePage -Services $filteredServices -Page $currentPage -Size $pageSize `
-                        -SortBy $sortLabel -Dir $sortDir -Search $searchTerm -StatusF $statusFilter -StartF $startFilter
-                }
-                'O' {
-                    Write-Host ""
-                    Write-Host "  Ordenar por: [1] Nome [2] DisplayName [3] Status [4] StartType" -ForegroundColor Cyan
-                    $oKey = [Console]::ReadKey($true)
-                    $sortLabel = switch ($oKey.KeyChar.ToString()) {
-                        '1' { 'Nome' }
-                        '2' { 'DisplayName' }
-                        '3' { 'Status' }
-                        '4' { 'StartType' }
-                        default { $sortLabel }
-                    }
-                    $sortProperty = switch ($sortLabel) {
-                        'Nome'        { 'Name' }
-                        'DisplayName' { 'DisplayName' }
-                        'Status'      { 'Status' }
-                        'StartType'   { 'StartType' }
-                    }
-                    $filteredServices = @($filteredServices | Sort-Object $sortProperty)
-                    $currentPage = 0
-                    $state = Show-ServicePage -Services $filteredServices -Page $currentPage -Size $pageSize `
-                        -SortBy $sortLabel -Dir $sortDir -Search $searchTerm -StatusF $statusFilter -StartF $startFilter
-                }
-                'F' {
-                    Write-Host ""
-                    Write-Host "  Filtrar por Inicio: [A] Automatic [M] Manual [D] Disabled [T] Todos" -ForegroundColor Cyan
-                    $fKey = [Console]::ReadKey($true)
-                    $startFilter = switch ($fKey.KeyChar.ToString().ToUpper()) {
-                        'A' { 'Automatic' }
-                        'M' { 'Manual' }
-                        'D' { 'Disabled' }
-                        'T' { '' }
-                        default { $startFilter }
-                    }
-                    $filteredServices = @($allServices)
-                    if ($searchTerm) { $filteredServices = @($filteredServices | Where-Object { $_.Name -like "*$searchTerm*" -or $_.DisplayName -like "*$searchTerm*" }) }
-                    if ($statusFilter) { $filteredServices = @($filteredServices | Where-Object { $_.Status -eq $statusFilter }) }
-                    if ($startFilter) { $filteredServices = @($filteredServices | Where-Object { $_.StartType -eq $startFilter }) }
-                    $filteredServices = @($filteredServices | Sort-Object $sortProperty)
-                    $currentPage = 0
-                    $state = Show-ServicePage -Services $filteredServices -Page $currentPage -Size $pageSize `
-                        -SortBy $sortLabel -Dir $sortDir -Search $searchTerm -StatusF $statusFilter -StartF $startFilter
-                }
-                'S' {
-                    Write-Host ""
-                    Write-Host "  Filtrar por Status: [R]unning [S]topped [P]aused [T]odos" -ForegroundColor Cyan
-                    $sKey = [Console]::ReadKey($true)
-                    $statusFilter = switch ($sKey.KeyChar.ToString().ToUpper()) {
-                        'R' { 'Running' }
-                        'S' { 'Stopped' }
-                        'P' { 'Paused' }
-                        'T' { '' }
-                        default { $statusFilter }
-                    }
-                    $filteredServices = @($allServices)
-                    if ($searchTerm) { $filteredServices = @($filteredServices | Where-Object { $_.Name -like "*$searchTerm*" -or $_.DisplayName -like "*$searchTerm*" }) }
-                    if ($statusFilter) { $filteredServices = @($filteredServices | Where-Object { $_.Status -eq $statusFilter }) }
-                    if ($startFilter) { $filteredServices = @($filteredServices | Where-Object { $_.StartType -eq $startFilter }) }
-                    $filteredServices = @($filteredServices | Sort-Object $sortProperty)
-                    $currentPage = 0
-                    $state = Show-ServicePage -Services $filteredServices -Page $currentPage -Size $pageSize `
-                        -SortBy $sortLabel -Dir $sortDir -Search $searchTerm -StatusF $statusFilter -StartF $startFilter
-                }
-                'I' {
-                    $sortDir = if ($sortDir -eq 'ASC') { 'DESC' } else { 'ASC' }
-                    if ($sortDir -eq 'DESC') {
-                        $filteredServices = @($filteredServices | Sort-Object $sortProperty -Descending)
+                'DownArrow' {
+                    $pageItemsCount = @($filteredServices | Select-Object -Skip ($currentPage * $pageSize) -First $pageSize).Count
+                    if ($selectedRow -lt ($pageItemsCount - 1)) {
+                        $selectedRow++
                     }
                     else {
-                        $filteredServices = @($filteredServices | Sort-Object $sortProperty)
+                        $tp = [Math]::Max(1, [Math]::Ceiling([double]$filteredServices.Count / $pageSize))
+                        if ($currentPage -lt ($tp - 1)) {
+                            $currentPage++
+                            $selectedRow = 0
+                        }
                     }
-                    $currentPage = 0
-                    $state = Show-ServicePage -Services $filteredServices -Page $currentPage -Size $pageSize `
-                        -SortBy $sortLabel -Dir $sortDir -Search $searchTerm -StatusF $statusFilter -StartF $startFilter
+                    $needsRedraw = $true
                 }
-                'T' {
-                    Write-Host ""
-                    $sizeInput = Read-Host "  Itens por pagina (atual: $pageSize): "
-                    if ($sizeInput -match '^\d+$' -and [int]$sizeInput -ge 5 -and [int]$sizeInput -le 500) {
-                        $pageSize = [int]$sizeInput
+                'LeftArrow' {
+                    if ($currentPage -gt 0) {
+                        $currentPage--
+                        $selectedRow = 0
+                        $needsRedraw = $true
                     }
-                    $currentPage = 0
-                    $state = Show-ServicePage -Services $filteredServices -Page $currentPage -Size $pageSize `
-                        -SortBy $sortLabel -Dir $sortDir -Search $searchTerm -StatusF $statusFilter -StartF $startFilter
                 }
-                'C' {
-                    $searchTerm = ''
-                    $statusFilter = ''
-                    $startFilter = ''
-                    $filteredServices = @($allServices | Sort-Object $sortProperty)
-                    $currentPage = 0
-                    $state = Show-ServicePage -Services $filteredServices -Page $currentPage -Size $pageSize `
-                        -SortBy $sortLabel -Dir $sortDir -Search '' -StatusF '' -StartF ''
+                'RightArrow' {
+                    $tp = [Math]::Max(1, [Math]::Ceiling([double]$filteredServices.Count / $pageSize))
+                    if ($currentPage -lt ($tp - 1)) {
+                        $currentPage++
+                        $selectedRow = 0
+                        $needsRedraw = $true
+                    }
                 }
-                'R' {
-                    $allServices = @(Get-WindowsServiceStatus)
-                    $filteredServices = @($allServices | Sort-Object $sortProperty)
-                    $currentPage = 0
-                    $state = Show-ServicePage -Services $filteredServices -Page $currentPage -Size $pageSize `
-                        -SortBy $sortLabel -Dir $sortDir -Search $searchTerm -StatusF $statusFilter -StartF $startFilter
+                'PageUp' {
+                    if ($currentPage -gt 0) {
+                        $currentPage--
+                        $selectedRow = 0
+                        $needsRedraw = $true
+                    }
                 }
-                'Q' {
-                    Write-Host ""
-                    Write-Ok "Saindo do modo interativo."
-                    break
+                'PageDown' {
+                    $tp = [Math]::Max(1, [Math]::Ceiling([double]$filteredServices.Count / $pageSize))
+                    if ($currentPage -lt ($tp - 1)) {
+                        $currentPage++
+                        $selectedRow = 0
+                        $needsRedraw = $true
+                    }
+                }
+                'Home' {
+                    $currentPage = 0
+                    $selectedRow = 0
+                    $needsRedraw = $true
+                }
+                'End' {
+                    $tp = [Math]::Max(1, [Math]::Ceiling([double]$filteredServices.Count / $pageSize))
+                    $currentPage = $tp - 1
+                    $selectedRow = 0
+                    $needsRedraw = $true
+                }
+                'Enter' {
+                    $pageItemsNow = @($filteredServices | Select-Object -Skip ($currentPage * $pageSize) -First $pageSize)
+                    if ($pageItemsNow.Count -gt 0 -and $selectedRow -lt $pageItemsNow.Count) {
+                        $sel = $pageItemsNow[$selectedRow]
+                        Clear-Host
+                        Write-Section "Detalhe: $($sel.Name)"
+                        $detail = Get-WindowsServiceDetail -Name $sel.Name
+                        if (-not $detail.Success) {
+                            Write-Fail $detail.Message
+                        }
+                        else {
+                            $statusColor = switch ($detail.Status) {
+                                'Running' { 'Green' }
+                                'Stopped' { 'Yellow' }
+                                default   { 'Red' }
+                            }
+                            Write-Host ""
+                            Write-Host "  Nome:          $($detail.Name)" -ForegroundColor Cyan
+                            Write-Host "  Display:       $($detail.DisplayName)"
+                            Write-Host "  Status:        " -NoNewline
+                            Write-Host "$($detail.Status)" -ForegroundColor $statusColor
+                            Write-Host "  Inicializacao: $($detail.StartType)"
+                            Write-Host "  Conta:         $($detail.Account)"
+                            Write-Host "  PID:           $($detail.ProcessId)"
+                            Write-Host "  Caminho:       $($detail.Path)"
+                            Write-Host "  Descricao:     $($detail.Description)"
+                            if ($detail.DependentCount -gt 0) {
+                                Write-Host "  Depende de:    $($detail.DependentServices -join ', ')" -ForegroundColor DarkGray
+                            }
+                            if ($detail.RequiredCount -gt 0) {
+                                Write-Host "  Requer:        $($detail.RequiredServices -join ', ')" -ForegroundColor DarkGray
+                            }
+                        }
+                        Write-Host ""
+                        Write-Host '  Pressione qualquer tecla para voltar a lista...' -ForegroundColor DarkCyan
+                        [Console]::ReadKey($true) | Out-Null
+                        $needsRedraw = $true
+                    }
+                }
+                'Escape' {
+                    $exitList = $true
+                }
+                default {
+                    $handled = $false
+                }
+            }
+
+            if ((-not $handled) -and (-not $exitList)) {
+                $char = $key.KeyChar.ToString().ToUpperInvariant()
+                switch ($char) {
+                    { $_ -in @('/', 'B') } {
+                        Write-Host ''
+                        $search = Read-Host '  Buscar (nome/display; * e ? ok; vazio=limpar)'
+                        $searchTerm = if ($null -eq $search) { '' } else { $search.Trim() }
+                        $filteredServices = Get-ServiceListView -Source $allServices -Search $searchTerm `
+                            -StatusF $statusFilter -StartF $startFilter -SortProp $sortProperty -Desc $sortDesc
+                        $currentPage = 0
+                        $selectedRow = 0
+                        $needsRedraw = $true
+                    }
+                    'O' {
+                        Write-Host ''
+                        Write-Host '  Ordenar: [1] Nome  [2] DisplayName  [3] Status  [4] StartType' -ForegroundColor Cyan
+                        $oKey = [Console]::ReadKey($true)
+                        $newLabel = switch ($oKey.KeyChar.ToString()) {
+                            '1' { 'Nome' }
+                            '2' { 'DisplayName' }
+                            '3' { 'Status' }
+                            '4' { 'StartType' }
+                            default { $null }
+                        }
+                        if ($newLabel) {
+                            $sortLabel = $newLabel
+                            $sortProperty = switch ($sortLabel) {
+                                'Nome'        { 'Name' }
+                                'DisplayName' { 'DisplayName' }
+                                'Status'      { 'Status' }
+                                'StartType'   { 'StartType' }
+                            }
+                            $filteredServices = Get-ServiceListView -Source $allServices -Search $searchTerm `
+                                -StatusF $statusFilter -StartF $startFilter -SortProp $sortProperty -Desc $sortDesc
+                            $currentPage = 0
+                            $selectedRow = 0
+                        }
+                        $needsRedraw = $true
+                    }
+                    'I' {
+                        $sortDesc = -not $sortDesc
+                        $filteredServices = Get-ServiceListView -Source $allServices -Search $searchTerm `
+                            -StatusF $statusFilter -StartF $startFilter -SortProp $sortProperty -Desc $sortDesc
+                        $currentPage = 0
+                        $selectedRow = 0
+                        $needsRedraw = $true
+                    }
+                    'S' {
+                        Write-Host ''
+                        Write-Host '  Status: [R]unning  [P]arado  [A]paused  [T]odos' -ForegroundColor Cyan
+                        $sKey = [Console]::ReadKey($true)
+                        $statusFilter = switch ($sKey.KeyChar.ToString().ToUpperInvariant()) {
+                            'R' { 'Running' }
+                            'P' { 'Stopped' }
+                            'A' { 'Paused' }
+                            'T' { '' }
+                            default { $statusFilter }
+                        }
+                        $filteredServices = Get-ServiceListView -Source $allServices -Search $searchTerm `
+                            -StatusF $statusFilter -StartF $startFilter -SortProp $sortProperty -Desc $sortDesc
+                        $currentPage = 0
+                        $selectedRow = 0
+                        $needsRedraw = $true
+                    }
+                    'F' {
+                        Write-Host ''
+                        Write-Host '  Inicio: [A]utomatic  [M]anual  [D]isabled  [T]odos' -ForegroundColor Cyan
+                        $fKey = [Console]::ReadKey($true)
+                        $startFilter = switch ($fKey.KeyChar.ToString().ToUpperInvariant()) {
+                            'A' { 'Automatic' }
+                            'M' { 'Manual' }
+                            'D' { 'Disabled' }
+                            'T' { '' }
+                            default { $startFilter }
+                        }
+                        $filteredServices = Get-ServiceListView -Source $allServices -Search $searchTerm `
+                            -StatusF $statusFilter -StartF $startFilter -SortProp $sortProperty -Desc $sortDesc
+                        $currentPage = 0
+                        $selectedRow = 0
+                        $needsRedraw = $true
+                    }
+                    'T' {
+                        Write-Host ''
+                        $sizeInput = Read-Host "  Itens por pagina (5-100, atual: $pageSize)"
+                        if ($sizeInput -match '^\d+$') {
+                            $n = [int]$sizeInput
+                            if ($n -ge 5 -and $n -le 100) {
+                                $pageSize = $n
+                                $currentPage = 0
+                                $selectedRow = 0
+                            }
+                            else {
+                                $statusMsg = 'Tamanho invalido (use 5-100).'
+                            }
+                        }
+                        $needsRedraw = $true
+                    }
+                    'G' {
+                        Write-Host ''
+                        $tp = [Math]::Max(1, [Math]::Ceiling([double]$filteredServices.Count / $pageSize))
+                        $goInput = Read-Host "  Ir para pagina (1-$tp)"
+                        if ($goInput -match '^\d+$') {
+                            $go = [int]$goInput
+                            if ($go -ge 1 -and $go -le $tp) {
+                                $currentPage = $go - 1
+                                $selectedRow = 0
+                            }
+                            else {
+                                $statusMsg = "Pagina invalida (1-$tp)."
+                            }
+                        }
+                        $needsRedraw = $true
+                    }
+                    'C' {
+                        $searchTerm = ''
+                        $statusFilter = ''
+                        $startFilter = ''
+                        $filteredServices = Get-ServiceListView -Source $allServices -Search '' `
+                            -StatusF '' -StartF '' -SortProp $sortProperty -Desc $sortDesc
+                        $currentPage = 0
+                        $selectedRow = 0
+                        $statusMsg = 'Filtros limpos. Todos os servicos.'
+                        $needsRedraw = $true
+                    }
+                    'R' {
+                        $allServices = @(Get-WindowsServiceStatus)
+                        $filteredServices = Get-ServiceListView -Source $allServices -Search $searchTerm `
+                            -StatusF $statusFilter -StartF $startFilter -SortProp $sortProperty -Desc $sortDesc
+                        $currentPage = 0
+                        $selectedRow = 0
+                        $statusMsg = "Atualizado: $($allServices.Count) servicos."
+                        $needsRedraw = $true
+                    }
+                    'Q' {
+                        $exitList = $true
+                    }
                 }
             }
         }
+
+        Clear-Host
+        Write-Ok 'Listagem de servicos encerrada.'
     }
     else {
-        $displayServices = $filteredServices | Select-Object -First $Top
-        Write-Host ""
+        Write-Section 'Servicos Windows'
+        $filteredServices = Get-ServiceListView -Source $allServices -Search $searchTerm `
+            -StatusF $statusFilter -StartF $startFilter -SortProp $sortProperty -Desc $sortDesc
+
+        $running = @($filteredServices | Where-Object { $_.Status -eq 'Running' })
+        $stopped = @($filteredServices | Where-Object { $_.Status -eq 'Stopped' })
+
+        Write-Host ''
+        Write-Host "  Total: $($allServices.Count) | Filtrados: $($filteredServices.Count) | Exec: $($running.Count) | Parados: $($stopped.Count)" -ForegroundColor Cyan
+        Write-Host ''
         Write-Host ("  {0,-35} {1,-30} {2,-12} {3,-12}" -f 'NOME', 'DISPLAYNAME', 'STATUS', 'INICIO') -ForegroundColor White
         Write-Host "  $(('─' * 78))" -ForegroundColor DarkGray
 
+        $displayServices = @($filteredServices | Select-Object -First $Top)
         foreach ($s in $displayServices) {
             $statusColor = switch ($s.Status) {
                 'Running'      { 'Green' }
@@ -519,15 +750,15 @@ if ($Acao -eq 'Listar') {
                 'StartPending' { 'DarkYellow' }
                 default        { 'Gray' }
             }
-            Write-Host ("  {0,-35}" -f $s.Name) -NoNewline
-            Write-Host ("{0,-30}" -f $s.DisplayName) -NoNewline -ForegroundColor Gray
+            Write-Host ("  {0,-35}" -f (Format-ServiceCell $s.Name 35)) -NoNewline
+            Write-Host ("{0,-30}" -f (Format-ServiceCell $s.DisplayName 30)) -NoNewline -ForegroundColor Gray
             Write-Host ("{0,-12}" -f $s.Status) -NoNewline -ForegroundColor $statusColor
             Write-Host ("{0,-12}" -f $s.StartType) -ForegroundColor DarkGray
         }
 
         if ($filteredServices.Count -gt $Top) {
-            Write-Host ""
-            Write-Host "    ... e mais $($filteredServices.Count - $Top) servicos (use -Top ou -Interativo)" -ForegroundColor DarkGray
+            Write-Host ''
+            Write-Host "    ... e mais $($filteredServices.Count - $Top) (use -Interativo para navegar todos)" -ForegroundColor DarkGray
         }
     }
 }
