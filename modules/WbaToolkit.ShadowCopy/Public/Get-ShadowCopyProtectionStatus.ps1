@@ -1,4 +1,4 @@
-function Get-ShadowCopyProtectionStatus {
+﻿function Get-ShadowCopyProtectionStatus {
     <#
     .SYNOPSIS
         Verifica o status da Protecao do Sistema por volume.
@@ -16,25 +16,9 @@ function Get-ShadowCopyProtectionStatus {
 
     $results = foreach ($vol in $volumes) {
         $driveLetter = $vol.DriveLetter
-        $regPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore"
-        $srState = Get-ItemProperty -Path $regPath -Name "RPSessionInterval" -ErrorAction SilentlyContinue
 
-        $protEnabled = $false
-        $scope = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\VolSnapShot\Parameters" -ErrorAction SilentlyContinue
-
-        try {
-            $srConfig = Get-ComputerRestorePoint -ErrorAction SilentlyContinue
-        } catch { }
-
-        $regKey = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SRP\Volume\Volume{$(Get-Volume -DriveLetter $driveLetter -ErrorAction SilentlyContinue | ForEach-Object { $_.Path.Replace('\', '').Replace(':', '') })}"
-        if (Test-Path $regKey) {
-            $protEnabled = $true
-        } else {
-            $protCheck = & Enable-ComputerRestore -Drive "${driveLetter}:\" 2>&1
-            if ($protCheck -notmatch 'desabilitado|disabled|not supported') {
-                $protEnabled = $true
-            }
-        }
+        $srConfig = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore" -ErrorAction SilentlyContinue
+        $protEnabled = ($srConfig.RPSessionInterval -eq 1) -and ($srConfig.DisableSR -ne 1)
 
         $storageInfo = $null
         try {
