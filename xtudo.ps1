@@ -249,6 +249,14 @@ function New-XtudoCatalog {
             Quick    = $true
             Args     = @('-Acao', 'Diagnostico')
         }
+        [pscustomobject]@{
+            Id       = 'configurar-acesso-remoto'
+            Label    = 'Configurar acesso remoto (RDP)'
+            Category = 'Configuracao'
+            Path     = 'scripts/configurar-acesso-remoto.ps1'
+            Keywords = @('rdp', 'remoto', 'remote', 'desktop', 'area de trabalho', 'terminal', 'porta', 'firewall')
+            Quick    = $false
+        }
     )
 }
 
