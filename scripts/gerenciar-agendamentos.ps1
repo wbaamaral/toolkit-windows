@@ -1,5 +1,4 @@
-#Requires -Version 5.1
-<#
+﻿<#
 .SYNOPSIS
     Gerenciamento de tarefas agendadas (Task Scheduler).
 
@@ -60,6 +59,7 @@
     Autor: wbaamaral
     Modulos requeridos: WbaToolkit.Core, WbaToolkit.ScheduledTask
 #>
+#Requires -Version 5.1
 
 [CmdletBinding()]
 param(

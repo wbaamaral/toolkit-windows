@@ -1,5 +1,4 @@
-#Requires -Version 5.1
-<#
+﻿<#
 .SYNOPSIS
     Gerenciamento do OpenSSH Server, chaves e configuracao SSH no Windows.
 
@@ -63,6 +62,7 @@
     Autor: wbaamaral
     Modulos requeridos: WbaToolkit.Core, WbaToolkit.SSH
 #>
+#Requires -Version 5.1
 
 [CmdletBinding()]
 param(

@@ -1,5 +1,4 @@
-#Requires -Version 5.1
-<#
+﻿<#
 .SYNOPSIS
     Gerenciamento de copias de sombra (Volume Shadow Copy).
 
@@ -52,6 +51,7 @@
     Autor: wbaamaral
     Modulos requeridos: WbaToolkit.Core, WbaToolkit.ShadowCopy
 #>
+#Requires -Version 5.1
 
 [CmdletBinding()]
 param(

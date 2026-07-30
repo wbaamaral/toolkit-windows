@@ -1,5 +1,4 @@
-#Requires -Version 5.1
-<#
+﻿<#
 .SYNOPSIS
     Diagnóstico e gerenciamento do ciclo de licenciamento do Windows.
 
@@ -59,6 +58,7 @@
       - WbaToolkit.Licensing (obrigatório)
     ExecutionPolicy necessária: RemoteSigned ou Bypass
 #>
+#Requires -Version 5.1
 
 [CmdletBinding()]
 param(

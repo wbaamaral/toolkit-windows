@@ -1,5 +1,4 @@
-#Requires -Version 5.1
-<#
+﻿<#
 .SYNOPSIS
     Gerenciamento de copias e pontos de restauracao do sistema.
 
@@ -64,6 +63,7 @@
     Autor: wbaamaral
     Modulos requeridos: WbaToolkit.Core, WbaToolkit.Backup
 #>
+#Requires -Version 5.1
 
 [CmdletBinding()]
 param(
