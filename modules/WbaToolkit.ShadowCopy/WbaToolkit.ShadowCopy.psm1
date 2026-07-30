@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
     WbaToolkit.ShadowCopy - Modulo de gerenciamento VSS
     Carrega funcoes publicas e privadas do diretorio estruturado.

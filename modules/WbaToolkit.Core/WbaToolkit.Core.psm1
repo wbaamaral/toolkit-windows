@@ -1,13 +1,19 @@
-﻿[CmdletBinding()]
-param()
+﻿Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
 
-$publicPath  = Join-Path $PSScriptRoot 'Public'
 $privatePath = Join-Path $PSScriptRoot 'Private'
-
-Get-ChildItem -Path $publicPath, $privatePath -Filter '*.ps1' -ErrorAction SilentlyContinue |
-    ForEach-Object {
-        . $_.FullName
+if (Test-Path -LiteralPath $privatePath) {
+    foreach ($file in @(Get-ChildItem -LiteralPath $privatePath -Filter '*.ps1' -File)) {
+        . $file.FullName
     }
+}
+
+$publicPath = Join-Path $PSScriptRoot 'Public'
+if (Test-Path -LiteralPath $publicPath) {
+    foreach ($file in @(Get-ChildItem -LiteralPath $publicPath -Filter '*.ps1' -File)) {
+        . $file.FullName
+    }
+}
 
 Export-ModuleMember -Function @(
     'Test-IsAdministrator',

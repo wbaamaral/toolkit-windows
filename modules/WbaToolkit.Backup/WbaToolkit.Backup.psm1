@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
     WbaToolkit.Backup - Modulo de gerenciamento de backup e restore points
     Carrega funcoes publicas e privadas do diretorio estruturado.

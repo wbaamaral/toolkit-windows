@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
     WbaToolkit.ScheduledTask - Modulo de gerenciamento de tarefas agendadas
     Carrega funcoes publicas e privadas do diretorio estruturado.

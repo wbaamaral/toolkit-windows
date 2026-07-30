@@ -2,13 +2,17 @@
 $ErrorActionPreference = 'Stop'
 
 $privatePath = Join-Path $PSScriptRoot 'Private'
-foreach ($file in @(Get-ChildItem -LiteralPath $privatePath -Filter '*.ps1' -File -ErrorAction SilentlyContinue)) {
-    . $file.FullName
+if (Test-Path -LiteralPath $privatePath) {
+    foreach ($file in @(Get-ChildItem -LiteralPath $privatePath -Filter '*.ps1' -File)) {
+        . $file.FullName
+    }
 }
 
 $publicPath = Join-Path $PSScriptRoot 'Public'
-foreach ($file in @(Get-ChildItem -LiteralPath $publicPath -Filter '*.ps1' -File)) {
-    . $file.FullName
+if (Test-Path -LiteralPath $publicPath) {
+    foreach ($file in @(Get-ChildItem -LiteralPath $publicPath -Filter '*.ps1' -File)) {
+        . $file.FullName
+    }
 }
 
 Export-ModuleMember -Function @(
