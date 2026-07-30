@@ -113,8 +113,28 @@ $ScriptPath = $PSCommandPath
 $ScriptDir  = $PSScriptRoot
 $ToolkitRoot = Split-Path -Parent $ScriptDir
 
-Import-Module (Join-Path $ToolkitRoot 'modules\WbaToolkit.Core\WbaToolkit.Core.psd1') -Force
-Import-Module (Join-Path $ToolkitRoot 'modules\WbaToolkit.ShadowCopy\WbaToolkit.ShadowCopy.psd1') -Force
+# === Dependencias: validar e carregar modulos do toolkit ===
+$CoreModulePath      = Join-Path $ToolkitRoot 'modules\WbaToolkit.Core\WbaToolkit.Core.psd1'
+$ShadowCopyModulePath = Join-Path $ToolkitRoot 'modules\WbaToolkit.ShadowCopy\WbaToolkit.ShadowCopy.psd1'
+
+foreach ($mod in @($CoreModulePath, $ShadowCopyModulePath)) {
+    if (-not (Test-Path -LiteralPath $mod)) {
+        Write-Host "[FALHA] Modulo nao encontrado: $mod" -ForegroundColor Red
+        Write-Host "        Solucao: verifique o clone do repositorio em $ToolkitRoot" -ForegroundColor Yellow
+        exit 1
+    }
+}
+
+try {
+    Import-Module $CoreModulePath      -Force -ErrorAction Stop
+    Import-Module $ShadowCopyModulePath -Force -ErrorAction Stop
+}
+catch {
+    Write-Host "[FALHA] Nao foi possivel carregar os modulos do toolkit." -ForegroundColor Red
+    Write-Host "        Erro: $($_.Exception.Message)" -ForegroundColor Yellow
+    Write-Host "        Solucao: Set-ExecutionPolicy -Scope CurrentUser RemoteSigned -Force" -ForegroundColor Yellow
+    exit 1
+}
 
 if (-not (Test-IsAdministrator)) {
     Write-Warn 'Operacao requer privilegios de Administrador. Reabrindo elevado...'

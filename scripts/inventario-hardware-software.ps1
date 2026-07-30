@@ -152,10 +152,29 @@ $ScriptPath = $PSCommandPath
 $ScriptDir  = $PSScriptRoot
 
 $ToolkitRoot = Split-Path -Parent $PSScriptRoot
-$ToolkitModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
+
+# === Dependencias: validar e carregar modulos do toolkit ===
+$ToolkitModulePath   = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
 $InventoryModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Inventory/WbaToolkit.Inventory.psd1'
-Import-Module $ToolkitModulePath -Force -ErrorAction Stop
-Import-Module $InventoryModulePath -Force -ErrorAction Stop
+
+foreach ($mod in @($ToolkitModulePath, $InventoryModulePath)) {
+    if (-not (Test-Path -LiteralPath $mod)) {
+        Write-Host "[FALHA] Modulo nao encontrado: $mod" -ForegroundColor Red
+        Write-Host "        Solucao: verifique o clone do repositorio em $ToolkitRoot" -ForegroundColor Yellow
+        exit 1
+    }
+}
+
+try {
+    Import-Module $ToolkitModulePath   -Force -ErrorAction Stop
+    Import-Module $InventoryModulePath -Force -ErrorAction Stop
+}
+catch {
+    Write-Host "[FALHA] Nao foi possivel carregar os modulos do toolkit." -ForegroundColor Red
+    Write-Host "        Erro: $($_.Exception.Message)" -ForegroundColor Yellow
+    Write-Host "        Solucao: Set-ExecutionPolicy -Scope CurrentUser RemoteSigned -Force" -ForegroundColor Yellow
+    exit 1
+}
 
 # WBA-DOCS: Category=Inventory; Manual=Inventario de hardware software e drivers
 
