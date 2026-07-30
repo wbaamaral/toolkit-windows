@@ -154,21 +154,15 @@ function Get-RdpStatus {
     $svcStatus = if ($svc) { $svc.Status.ToString() } else { 'Nao encontrado' }
     $svcStartType = if ($svc) { $svc.StartType.ToString() } else { 'N/A' }
 
-    $rdpUsers = @()
-    try {
-        $group = [ADSI]"WinNT://./Remote Desktop Users,group"
-        $members = @($group.Invoke('Members'))
-        $rdpUsers = $members | ForEach-Object {
-            $_.GetType().InvokeMember('Name', 'GetProperty', $null, $_, $null)
-        }
-    } catch { }
+    $rdpUsers = Get-RdpGroupMembers
 
-    $fwRule = Get-NetFirewallRule -DisplayGroup 'Remote Desktop' -ErrorAction SilentlyContinue |
-        Where-Object { $_.Direction -eq 'Inbound' -and $_.Enabled -eq 'True' } |
+    $fwRule = Get-NetFirewallRule -ErrorAction SilentlyContinue |
+        Where-Object { $_.Direction -eq 'Inbound' -and $_.Enabled -eq 'True' -and
+            ($_.DisplayGroup -eq 'Remote Desktop' -or $_.DisplayName -match 'WBA RDP Custom') } |
         Select-Object -First 1
 
     $fwCustomPort = Get-NetFirewallRule -ErrorAction SilentlyContinue |
-        Where-Object { $_.Direction -eq 'Inbound' -and $_.Enabled -eq 'True' -and $_.DisplayName -match "RDP.*$portNumber" } |
+        Where-Object { $_.Direction -eq 'Inbound' -and $_.Enabled -eq 'True' -and $_.DisplayName -match "WBA RDP Custom.*$portNumber" } |
         Select-Object -First 1
 
     [pscustomobject]@{
@@ -209,7 +203,7 @@ function Set-RdpServiceState {
     $svc = Get-Service -Name TermService -ErrorAction SilentlyContinue
     if (-not $svc) { return }
     switch ($State) {
-        'Running'  { Start-Service -Name TermService -Force -ErrorAction Stop }
+        'Running'  { Start-Service -Name TermService -ErrorAction Stop }
         'Stopped'  { Stop-Service -Name TermService -Force -ErrorAction Stop }
         'Automatic' { Set-Service -Name TermService -StartupType Automatic -ErrorAction Stop }
         'Disabled'  { Set-Service -Name TermService -StartupType Disabled -ErrorAction Stop }
@@ -234,6 +228,22 @@ function Remove-RdpFirewallRule {
     if ($existing) {
         Remove-NetFirewallRule -DisplayName "WBA RDP Custom ($RulePort)" -ErrorAction SilentlyContinue
     }
+}
+
+function Get-RdpGroup {
+    $groups = Get-LocalGroup -ErrorAction SilentlyContinue
+    $rdpGroup = $groups | Where-Object { $_.SID -eq 'S-1-5-32-555' }
+    if (-not $rdpGroup) {
+        $rdpGroup = $groups | Where-Object { $_.Name -match 'Remote Desktop|trabalho remota' } | Select-Object -First 1
+    }
+    return $rdpGroup
+}
+
+function Get-RdpGroupMembers {
+    $group = Get-RdpGroup
+    if (-not $group) { return @() }
+    $members = Get-LocalGroupMember -Group $group -ErrorAction SilentlyContinue
+    return @($members | ForEach-Object { $_.Name })
 }
 
 # ---------------------------------------------------------------------------
@@ -297,7 +307,7 @@ try {
                     Write-Host "  - $u" -ForegroundColor Cyan
                 }
             } else {
-                Write-Info "Nenhum usuario no grupo Remote Desktop Users."
+                Write-Info "Nenhum usuario no grupo de acesso remoto."
             }
 
             Write-Host ""
@@ -365,15 +375,18 @@ try {
                 Write-Fail "Parametro -Usuario obrigatorio para acao AdicionarUsuario."
                 return
             }
-            Write-Section "Adicionando usuario ao grupo Remote Desktop Users"
+            $rdpGroup = Get-RdpGroup
+            if (-not $rdpGroup) {
+                Write-Fail "Grupo Remote Desktop Users nao encontrado."
+                return
+            }
+            Write-Section "Adicionando usuario ao grupo $($rdpGroup.Name)"
             if ($DryRun) {
                 Write-Info "[DRYRUN] Usuario '$Usuario' seria adicionado ao grupo."
             } else {
                 try {
-                    $group = [ADSI]"WinNT://./Remote Desktop Users,group"
-                    $user  = [ADSI]"WinNT://./$Usuario,user"
-                    $group.Invoke('Add', $user.Path)
-                    Write-Ok "Usuario '$Usuario' adicionado ao grupo Remote Desktop Users."
+                    Add-LocalGroupMember -Group $rdpGroup -Member $Usuario -ErrorAction Stop
+                    Write-Ok "Usuario '$Usuario' adicionado ao grupo $($rdpGroup.Name)."
                 } catch {
                     Write-Fail "Falha ao adicionar usuario: $($_.Exception.Message)"
                 }
@@ -385,15 +398,18 @@ try {
                 Write-Fail "Parametro -Usuario obrigatorio para acao RemoverUsuario."
                 return
             }
-            Write-Section "Removendo usuario do grupo Remote Desktop Users"
+            $rdpGroup = Get-RdpGroup
+            if (-not $rdpGroup) {
+                Write-Fail "Grupo Remote Desktop Users nao encontrado."
+                return
+            }
+            Write-Section "Removendo usuario do grupo $($rdpGroup.Name)"
             if ($DryRun) {
                 Write-Info "[DRYRUN] Usuario '$Usuario' seria removido do grupo."
             } else {
                 try {
-                    $group = [ADSI]"WinNT://./Remote Desktop Users,group"
-                    $user  = [ADSI]"WinNT://./$Usuario,user"
-                    $group.Invoke('Remove', $user.Path)
-                    Write-Ok "Usuario '$Usuario' removido do grupo Remote Desktop Users."
+                    Remove-LocalGroupMember -Group $rdpGroup -Member $Usuario -ErrorAction Stop
+                    Write-Ok "Usuario '$Usuario' removido do grupo $($rdpGroup.Name)."
                 } catch {
                     Write-Fail "Falha ao remover usuario: $($_.Exception.Message)"
                 }
