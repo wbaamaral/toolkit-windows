@@ -30,6 +30,9 @@
 .PARAMETER GerarHtml
     Gera relatorio HTML adicional.
 
+.PARAMETER AbrirRelatorio
+    Abre o relatorio ao final (HTML se -GerarHtml, senao TXT).
+
 .PARAMETER Path
     Diretorio raiz de relatorios.
 
@@ -76,6 +79,8 @@ param(
     [switch]$DryRun,
 
     [switch]$GerarHtml,
+
+    [switch]$AbrirRelatorio,
 
     [Alias('DiretorioSaida')]
     [string]$Path,
@@ -329,6 +334,9 @@ switch ($Acao) {
 
 # ── Relatorios ─────────────────────────────────────────────────────────────
 
+$jsonReport = $null
+$htmlReport = $null
+
 if ($Acao -in @('Diagnostico', 'Listar', 'Detalhar')) {
     $reportData = switch ($Acao) {
         'Diagnostico' { Invoke-ServiceManager -Acao Diagnostico }
@@ -338,8 +346,118 @@ if ($Acao -in @('Diagnostico', 'Listar', 'Detalhar')) {
 
     $jsonPath = Join-Path $ReportSession.Path "servicos-$($Acao.ToLower()).json"
     $reportData | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $jsonPath -Encoding UTF8
+    $jsonReport = $jsonPath
     Write-Host ""
     Write-Ok "Relatorio: $jsonPath"
+
+    if ($GerarHtml) {
+        $htmlPath = Join-Path $ReportSession.Path "servicos-$($Acao.ToLower()).html"
+
+        $bodyHtml = switch ($Acao) {
+            'Diagnostico' {
+                $diag = $reportData
+                @"
+<h2>Resumo</h2>
+<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">
+<tr><th>Em Execucao</th><th>Auto Parados</th><th>Desabilitados</th></tr>
+<tr>
+    <td style="background-color:#d4edda">$($diag.RunningCount)</td>
+    <td style="background-color:#fff3cd">$($diag.StoppedAuto.Count)</td>
+    <td style="background-color:#f8d7da">$($diag.DisabledCount)</td>
+</tr>
+</table>
+
+<h2>Servicos Automaticos Parados ($($diag.StoppedAuto.Count))</h2>
+<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">
+<tr><th>Nome</th><th>DisplayName</th><th>Status</th></tr>
+$($diag.StoppedAuto | ForEach-Object {
+    "<tr><td>$($_.Name)</td><td>$($_.DisplayName)</td><td style='background-color:#fff3cd'>$($_.Status)</td></tr>"
+} | Out-String)
+</table>
+"@
+            }
+
+            'Listar' {
+                $all = $reportData
+                $running = @($all | Where-Object { $_.Status -eq 'Running' })
+                $stopped = @($all | Where-Object { $_.Status -eq 'Stopped' })
+                $other   = @($all | Where-Object { $_.Status -notin @('Running', 'Stopped') })
+                @"
+<h2>Resumo</h2>
+<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">
+<tr><th>Total</th><th>Em Execucao</th><th>Parados</th><th>Outros</th></tr>
+<tr>
+    <td>$($all.Count)</td>
+    <td style="background-color:#d4edda">$($running.Count)</td>
+    <td style="background-color:#fff3cd">$($stopped.Count)</td>
+    <td>$($other.Count)</td>
+</tr>
+</table>
+
+<h2>Servicos em Execucao ($($running.Count))</h2>
+<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">
+<tr><th>Nome</th><th>DisplayName</th><th>StartType</th></tr>
+$($running | Sort-Object Name | ForEach-Object {
+    "<tr><td>$($_.Name)</td><td>$($_.DisplayName)</td><td>$($_.StartType)</td></tr>"
+} | Out-String)
+</table>
+
+<h2>Servicos Parados ($($stopped.Count))</h2>
+<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">
+<tr><th>Nome</th><th>DisplayName</th><th>StartType</th></tr>
+$($stopped | Sort-Object Name | ForEach-Object {
+    "<tr><td>$($_.Name)</td><td>$($_.DisplayName)</td><td>$($_.StartType)</td></tr>"
+} | Out-String)
+</table>
+"@
+            }
+
+            'Detalhar' {
+                $d = $reportData
+                $statusColor = switch ($d.Status) { 'Running' { '#d4edda' } 'Stopped' { '#fff3cd' } default { '#f8d7da' } }
+                @"
+<h2>Detalhe: $($d.Name)</h2>
+<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">
+<tr><th>Propriedade</th><th>Valor</th></tr>
+<tr><td>Nome</td><td>$($d.Name)</td></tr>
+<tr><td>DisplayName</td><td>$($d.DisplayName)</td></tr>
+<tr><td>Status</td><td style="background-color:$statusColor">$($d.Status)</td></tr>
+<tr><td>Inicializacao</td><td>$($d.StartType)</td></tr>
+<tr><td>Conta</td><td>$($d.Account)</td></tr>
+<tr><td>PID</td><td>$($d.ProcessId)</td></tr>
+<tr><td>Caminho</td><td style="word-break:break-all">$($d.Path)</td></tr>
+<tr><td>Descricao</td><td>$($d.Description)</td></tr>
+</table>
+
+$(if ($d.DependentCount -gt 0) {
+@"
+<h2>Servicos que dependem de $($d.Name) ($($d.DependentCount))</h2>
+<ul>$($d.DependentServices | ForEach-Object { "<li>$_</li>" } | Out-String)</ul>
+"@
+})
+
+$(if ($d.RequiredCount -gt 0) {
+@"
+<h2>Servicos requeridos por $($d.Name) ($($d.RequiredCount))</h2>
+<ul>$($d.RequiredServices | ForEach-Object { "<li>$_</li>" } | Out-String)</ul>
+"@
+})
+"@
+            }
+        }
+
+        $html = New-ToolkitHtmlReport -Title "Gerenciamento de Servicos" `
+            -Subtitle "$Acao - $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" `
+            -Icon "&#9881;" -Body $bodyHtml -FooterText "Gerado por WBA Windows Toolkit"
+        [System.IO.File]::WriteAllText($htmlPath, $html, [System.Text.UTF8Encoding]::new($true))
+        $htmlReport = $htmlPath
+        Write-Ok "HTML: $htmlPath"
+    }
+}
+
+if ($AbrirRelatorio) {
+    $target = if ($htmlReport) { $htmlReport } elseif ($jsonReport) { $jsonReport } else { $null }
+    if ($target -and (Test-Path -LiteralPath $target)) { Start-Process $target }
 }
 
 if ($transcriptActive) { Stop-Transcript }
