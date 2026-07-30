@@ -27,7 +27,7 @@
     }
 
     $config = Get-ToolkitConfiguration -ConfigPath $ConfigPath
-    if ($config.PSObject.Properties.Name -contains 'ReportsRoot' -and -not [string]::IsNullOrWhiteSpace($config.ReportsRoot)) {
+    if ($null -ne $config.PSObject.Properties['ReportsRoot'] -and -not [string]::IsNullOrWhiteSpace($config.ReportsRoot)) {
         return $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath([string]$config.ReportsRoot)
     }
 

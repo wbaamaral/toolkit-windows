@@ -33,7 +33,7 @@
         $config = [pscustomobject]@{}
     }
 
-    if (-not ($config.PSObject.Properties.Name -contains 'ConfigPath')) {
+    if ($null -eq $config.PSObject.Properties['ConfigPath']) {
         $config | Add-Member -MemberType NoteProperty -Name ConfigPath -Value $ConfigPath
     }
 

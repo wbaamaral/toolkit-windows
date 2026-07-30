@@ -63,8 +63,8 @@
     $range      = $Context.Range
     $iface      = if ($Context.Interface) { $Context.Interface } else { '<todas>' }
     $totalRange = $Context.TotalConsultado
-    $totalFound = if ($Context.PSObject.Properties.Name -contains 'TotalOcupados') { $Context.TotalOcupados } else { $Context.TotalEncontrado }
-    $totalFree  = if ($Context.PSObject.Properties.Name -contains 'TotalLivres') { $Context.TotalLivres } else { @($FreeIPs).Count }
+    $totalFound = if ($null -ne $Context.PSObject.Properties['TotalOcupados']) { $Context.TotalOcupados } else { $Context.TotalEncontrado }
+    $totalFree  = if ($null -ne $Context.PSObject.Properties['TotalLivres']) { $Context.TotalLivres } else { @($FreeIPs).Count }
     $freeIps    = @($FreeIPs)
     $totalDup   = $Context.TotalDuplicados
     $duplicates = @($Results | Where-Object Status -eq 'DUPLICADO')
