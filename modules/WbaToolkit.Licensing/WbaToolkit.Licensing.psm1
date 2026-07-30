@@ -6,4 +6,16 @@ foreach ($file in @(Get-ChildItem -LiteralPath $privatePath -Filter '*.ps1' -Fil
     . $file.FullName
 }
 
-Export-ModuleMember -Function @()
+Export-ModuleMember -Function @(
+    'Backup-LicenseState',
+    'ConvertTo-LicenseInfoObject',
+    'Get-LicenseCycleStatus',
+    'Get-LicenseHardwareContext',
+    'Get-OemProductKey',
+    'Get-SoftwareLicensingProduct',
+    'Get-SoftwareLicensingService',
+    'Invoke-Slmgr',
+    'Restore-LicenseState',
+    'Test-LicenseAdminContext',
+    'Test-ProductKeyFormat'
+)

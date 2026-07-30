@@ -208,24 +208,40 @@ function Show-Help {
 }
 
 function Invoke-DismComponentCleanupStep {
-    # Wrapper de apresentacao: executa a limpeza do Component Store sem o prompt de
-    # confirmacao oculto (o nivel Standard e seguro/reversivel) e exibe o resultado
-    # de forma clara, resolvendo a falta de feedback relatada apos a refatoracao.
+    # Wrapper de apresentacao: executa a limpeza do Component Store (WinSxS) via
+    # DISM StartComponentCleanup com output suprimido no console.
+    # O nivel Standard e seguro e reversivel.
     param([string]$StepMessage, [int]$Percent)
 
     Write-Step $StepMessage $Percent
-    Write-Host "    Limpeza do Component Store (WinSxS). Aguarde, pode levar varios minutos..." -ForegroundColor Yellow
 
-    $dismResult = Invoke-ComponentStoreCleanup -Level Standard -Confirm:$false
+    $diskBefore = Get-DiskInfo
 
-    if ($null -eq $dismResult) {
-        Write-Host "    DISM: nao foi possivel obter o resultado da limpeza." -ForegroundColor Yellow
+    $dismOutput = Show-Spinner "DISM StartComponentCleanup" -ScriptBlock {
+        $prevEncoding = [Console]::OutputEncoding
+        try {
+            [Console]::OutputEncoding = [System.Text.Encoding]::GetEncoding(
+                [System.Globalization.CultureInfo]::CurrentCulture.TextInfo.OEMCodePage)
+            $null = & dism.exe /Online /Cleanup-Image /StartComponentCleanup 2>&1
+        }
+        finally {
+            [Console]::OutputEncoding = $prevEncoding
+        }
     }
-    elseif ($dismResult.Success) {
-        Write-Ok "    DISM concluido (codigo $($dismResult.ExitCode)). Espaco liberado: $($dismResult.SpaceFreedMB) MB."
+
+    $exitCode = $global:LASTEXITCODE
+    $diskAfter = Get-DiskInfo
+    $spaceFreedMB = 0
+    if ($null -ne $diskBefore -and $null -ne $diskAfter) {
+        $delta = ($diskAfter.LivreGB - $diskBefore.LivreGB) * 1024
+        if ($delta -gt 0) { $spaceFreedMB = [math]::Round($delta, 1) }
+    }
+
+    if ($exitCode -eq 0) {
+        Write-Ok "    DISM concluido. Espaco liberado: $spaceFreedMB MB."
     }
     else {
-        Write-Host "    DISM retornou codigo $($dismResult.ExitCode). Verifique o log para detalhes." -ForegroundColor Yellow
+        Write-Host "    DISM retornou codigo $exitCode. Verifique o log para detalhes." -ForegroundColor Yellow
     }
 }
 
@@ -264,6 +280,8 @@ catch {
     Write-Warning "Nao foi possivel iniciar o log de transcricao: $($_.Exception.Message)"
 }
 
+$scriptStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host " Limpeza e manutenção segura do Windows - $ScriptVersion" -ForegroundColor Cyan
@@ -276,17 +294,23 @@ if ($RepararSistema) {
     Write-Host ""
 
     Write-Step "Executando verificacao de integridade SFC" 30
-    Write-Host "    SFC em execucao. Aguarde, pode levar varios minutos..." -ForegroundColor Yellow
-    Invoke-Safe "sfc /scannow" {
-        sfc /scannow
+    Show-Spinner "SFC /scannow" -ScriptBlock {
+        $null = & sfc /scannow 2>&1
     }
 
-    Invoke-DismComponentCleanupStep "Executando limpeza do Component Store via DISM" 60
+    Invoke-DismComponentCleanupStep "Executando limpeza do Component Store via DISM" 50
 
-    Write-Step "Executando restauracao de integridade via DISM" 90
-    Write-Host "    DISM RestoreHealth em execucao. Aguarde, pode levar varios minutos..." -ForegroundColor Yellow
-    Invoke-Safe "DISM RestoreHealth" {
-        dism.exe /Online /Cleanup-Image /RestoreHealth
+    Write-Step "Executando restauracao de integridade via DISM" 70
+    Show-Spinner "DISM RestoreHealth" -ScriptBlock {
+        $prevEncoding = [Console]::OutputEncoding
+        try {
+            [Console]::OutputEncoding = [System.Text.Encoding]::GetEncoding(
+                [System.Globalization.CultureInfo]::CurrentCulture.TextInfo.OEMCodePage)
+            $null = & dism.exe /Online /Cleanup-Image /RestoreHealth 2>&1
+        }
+        finally {
+            [Console]::OutputEncoding = $prevEncoding
+        }
     }
 
     Write-Step "Verificacao de integridade concluida" 100
@@ -425,18 +449,24 @@ Invoke-Safe "cleanmgr silencioso (sageset:99 + sagerun:99)" {
 }
 
 if (-not $NoSfc) {
-    Write-Step "Executando verificação de integridade SFC" 84
-    Write-Host "    SFC em execucao. Aguarde, pode levar varios minutos..." -ForegroundColor Yellow
-    Invoke-Safe "sfc /scannow" {
-        sfc /scannow
+    Write-Step "Executando verificacao de integridade SFC" 84
+    Show-Spinner "SFC /scannow" -ScriptBlock {
+        $null = & sfc /scannow 2>&1
     }
 
     Invoke-DismComponentCleanupStep "Executando limpeza do Component Store via DISM" 88
 
-    Write-Step "Executando restauração de integridade via DISM" 91
-    Write-Host "    DISM RestoreHealth em execucao. Aguarde, pode levar varios minutos..." -ForegroundColor Yellow
-    Invoke-Safe "DISM RestoreHealth" {
-        dism.exe /Online /Cleanup-Image /RestoreHealth
+    Write-Step "Executando restauracao de integridade via DISM" 91
+    Show-Spinner "DISM RestoreHealth" -ScriptBlock {
+        $prevEncoding = [Console]::OutputEncoding
+        try {
+            [Console]::OutputEncoding = [System.Text.Encoding]::GetEncoding(
+                [System.Globalization.CultureInfo]::CurrentCulture.TextInfo.OEMCodePage)
+            $null = & dism.exe /Online /Cleanup-Image /RestoreHealth 2>&1
+        }
+        finally {
+            [Console]::OutputEncoding = $prevEncoding
+        }
     }
 }
 
@@ -503,6 +533,12 @@ catch {
 }
 
 Write-Step "Finalizado" 100
+
+$scriptStopwatch.Stop()
+$elapsed = $scriptStopwatch.Elapsed
+$elapsedStr = '{0:00}:{1:00}:{2:00}' -f $elapsed.Hours, $elapsed.Minutes, $elapsed.Seconds
+Write-Host ""
+Write-Ok "Tempo total: $elapsedStr"
 
 if ($transcriptActive) { Stop-Transcript }
 

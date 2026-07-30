@@ -40,10 +40,10 @@ Import-Module $ToolkitModulePath -Force -ErrorAction Stop
 # WBA-DOCS: Category=Updates; Manual=Atualização geral do Windows com backend resolvido
 
 <#
-.SINOPSE
+.SYNOPSIS
     Atualização geral do Windows com suporte a múltiplos backends.
 
-.DESCRIÇÃO
+.DESCRIPTION
     Executa uma rotina de atualização geral com backend resolvido automaticamente ou
     definido pelo operador. Suporta WinGet, Chocolatey e Windows Update como etapa final.
 
@@ -52,7 +52,7 @@ Import-Module $ToolkitModulePath -Force -ErrorAction Stop
 
     O script nunca reinicia automaticamente a máquina.
 
-.PARÂMETROS
+.PARAMETERS
     -Backend          Backend de pacotes: Auto (padrão), WinGet, Chocolatey, All.
     -Action           Ação: UpgradeAll (padrão), ListOnly, Select.
     -NoWinGet         Impede uso do WinGet.
@@ -64,7 +64,7 @@ Import-Module $ToolkitModulePath -Force -ErrorAction Stop
     -Version          Exibe versão.
     -Path             Raiz de relatórios. Padrão: configuração global ou C:\WBA\Relatorios.
 
-.FORMA DE USO
+.EXAMPLE
     Set-ExecutionPolicy Bypass -Scope Process -Force
 
     .\atualizar-windows.ps1
@@ -74,7 +74,7 @@ Import-Module $ToolkitModulePath -Force -ErrorAction Stop
     .\atualizar-windows.ps1 -Backend All -Action UpgradeAll
     .\atualizar-windows.ps1 -NoWindowsUpdate
 
-.OBSERVAÇÃO
+.NOTES
     Salve este arquivo como UTF-8 BOM para uso com o Windows PowerShell 5.1.
 #>
 

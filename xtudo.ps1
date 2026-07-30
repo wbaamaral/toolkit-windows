@@ -172,6 +172,83 @@ function New-XtudoCatalog {
             Quick    = $false
             Args     = @('-Modo', 'Diagnostico')
         }
+        [pscustomobject]@{
+            Id       = 'detectar-ip-duplicado'
+            Label    = 'Detectar IP duplicado'
+            Category = 'Rede'
+            Path     = 'scripts/detectar-ip-duplicado.ps1'
+            Keywords = @('ip', 'duplicado', 'mac', 'arp', 'rede', 'conflito')
+            Quick    = $false
+        }
+        [pscustomobject]@{
+            Id       = 'testar-conectividade-internet'
+            Label    = 'Testar conectividade internet'
+            Category = 'Rede'
+            Path     = 'scripts/testar-conectividade-internet.ps1'
+            Keywords = @('internet', 'conectividade', 'dns', 'ping', 'rede', 'http')
+            Quick    = $true
+        }
+        [pscustomobject]@{
+            Id       = 'limpar-winsxs'
+            Label    = 'Limpar WinSxS (Component Store)'
+            Category = 'Limpeza'
+            Path     = 'scripts/limpar-winsxs.ps1'
+            Keywords = @('winsxs', 'component store', 'dism', 'limpeza', 'espaco')
+            Quick    = $false
+        }
+        [pscustomobject]@{
+            Id       = 'verificar-atualizacoes-hardware'
+            Label    = 'Verificar atualizacoes de hardware'
+            Category = 'Manutencao'
+            Path     = 'scripts/verificar-atualizacoes-hardware.ps1'
+            Keywords = @('bios', 'driver', 'atualizacao', 'hardware', 'windows update', 'firmware')
+            Quick    = $false
+        }
+        [pscustomobject]@{
+            Id       = 'gerenciar-licenciamento'
+            Label    = 'Gerenciar licenciamento'
+            Category = 'Configuracao'
+            Path     = 'scripts/gerenciar-licenciamento.ps1'
+            Keywords = @('licenca', 'licenciamento', 'ativacao', 'slmgr', 'kms', 'rearm', 'product key', 'genuino')
+            Quick    = $true
+            Args     = @('-Acao', 'Diagnostico')
+        }
+        [pscustomobject]@{
+            Id       = 'gerenciar-ssh'
+            Label    = 'Gerenciar SSH Server'
+            Category = 'Rede'
+            Path     = 'scripts/gerenciar-ssh.ps1'
+            Keywords = @('ssh', 'sshd', 'openssh', 'chave', 'authorized_keys', 'remoto', 'conexao remota')
+            Quick    = $true
+            Args     = @('-Acao', 'Diagnostico')
+        }
+        [pscustomobject]@{
+            Id       = 'gerenciar-copia-sombra'
+            Label    = 'Gerenciar copia de sombra (VSS)'
+            Category = 'Backup'
+            Path     = 'scripts/gerenciar-copia-sombra.ps1'
+            Keywords = @('vss', 'shadow', 'copia sombra', 'snapshot', 'volume shadow', 'protecao sistema')
+            Quick    = $true
+            Args     = @('-Acao', 'Diagnostico')
+        }
+        [pscustomobject]@{
+            Id       = 'gerenciar-agendamentos'
+            Label    = 'Gerenciar agendamentos'
+            Category = 'Manutencao'
+            Path     = 'scripts/gerenciar-agendamentos.ps1'
+            Keywords = @('agendamento', 'tarefa', 'scheduled task', 'task scheduler', 'automacao')
+            Quick    = $false
+            Args     = @('-Acao', 'Diagnostico')
+        }
+        [pscustomobject]@{
+            Id       = 'gerenciar-copias'
+            Label    = 'Gerenciar copias e pontos de restauracao'
+            Category = 'Backup'
+            Path     = 'scripts/gerenciar-copias.ps1'
+            Keywords = @('restore point', 'ponto restauracao', 'backup', 'usuario', 'rsync', 'restaurar', 'ciclo copia')
+            Quick    = $true
+            Args     = @('-Acao', 'Diagnostico')
+        }
     )
 }
 
