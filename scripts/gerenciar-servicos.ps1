@@ -15,6 +15,27 @@
 .PARAMETER Servico
     Nome do servico para operacoes especificas.
 
+.PARAMETER Filtro
+    Filtra servicos por nome (wildcard). Ex.: 'W32*', '*网络*'.
+
+.PARAMETER FiltroStatus
+    Filtra por status: Running, Stopped, Paused.
+
+.PARAMETER FiltroInicio
+    Filtra por tipo de inicializacao: Automatic, Manual, Disabled.
+
+.PARAMETER OrdenarPor
+    Ordena por coluna: Nome, DisplayName, Status, StartType. Padrao: Nome.
+
+.PARAMETER Decrescente
+    Inverte a ordem de classificacao.
+
+.PARAMETER Top
+    Limita o numero de resultados exibidos. Padrao: 50.
+
+.PARAMETER Interativo
+    Modo interativo com scroll, busca, ordenacao e filtro para Listar.
+
 .PARAMETER StartupType
     Tipo de inicializacao para ConfigurarInicializacao: Automatic, Manual, Disabled.
 
@@ -46,6 +67,15 @@
     .\gerenciar-servicos.ps1 -Acao Listar
 
 .EXAMPLE
+    .\gerenciar-servicos.ps1 -Acao Listar -Filtro 'W32*' -FiltroStatus Running
+
+.EXAMPLE
+    .\gerenciar-servicos.ps1 -Acao Listar -OrdenarPor Status -Decrescente -Top 20
+
+.EXAMPLE
+    .\gerenciar-servicos.ps1 -Acao Listar -Interativo
+
+.EXAMPLE
     .\gerenciar-servicos.ps1 -Acao Parar -Servico Spooler
 
 .EXAMPLE
@@ -75,6 +105,24 @@ param(
     [string]$Conta,
 
     [string]$Senha,
+
+    [string]$Filtro,
+
+    [ValidateSet('Running', 'Stopped', 'Paused')]
+    [string]$FiltroStatus,
+
+    [ValidateSet('Automatic', 'Manual', 'Disabled')]
+    [string]$FiltroInicio,
+
+    [ValidateSet('Nome', 'DisplayName', 'Status', 'StartType')]
+    [string]$OrdenarPor = 'Nome',
+
+    [switch]$Decrescente,
+
+    [ValidateRange(5, 500)]
+    [int]$Top = 50,
+
+    [switch]$Interativo,
 
     [switch]$DryRun,
 
@@ -209,24 +257,278 @@ if ($Acao -eq 'Diagnostico') {
 if ($Acao -eq 'Listar') {
     Write-Section "Servicos Windows"
 
-    $services = @(Get-WindowsServiceStatus)
-    Write-Host ""
-    Write-Host "  Total: $($services.Count) servicos" -ForegroundColor Cyan
-    Write-Host ""
+    $allServices = @(Get-WindowsServiceStatus)
+    $totalAll = $allServices.Count
 
-    $running = @($services | Where-Object { $_.Status -eq 'Running' })
-    $stopped = @($services | Where-Object { $_.Status -eq 'Stopped' })
+    $filteredServices = $allServices
 
+    if ($Filtro) {
+        $filteredServices = @($filteredServices | Where-Object { $_.Name -like $Filtro -or $_.DisplayName -like $Filtro })
+    }
+    if ($FiltroStatus) {
+        $filteredServices = @($filteredServices | Where-Object { $_.Status -eq $FiltroStatus })
+    }
+    if ($FiltroInicio) {
+        $filteredServices = @($filteredServices | Where-Object { $_.StartType -eq $FiltroInicio })
+    }
+
+    $sortProperty = switch ($OrdenarPor) {
+        'Nome'        { 'Name' }
+        'DisplayName' { 'DisplayName' }
+        'Status'      { 'Status' }
+        'StartType'   { 'StartType' }
+    }
+    if ($Decrescente) {
+        $filteredServices = @($filteredServices | Sort-Object $sortProperty -Descending)
+    }
+    else {
+        $filteredServices = @($filteredServices | Sort-Object $sortProperty)
+    }
+
+    $running = @($filteredServices | Where-Object { $_.Status -eq 'Running' })
+    $stopped = @($filteredServices | Where-Object { $_.Status -eq 'Stopped' })
+
+    Write-Host ""
+    Write-Host "  Total: $totalAll servicos | Filtrados: $($filteredServices.Count)" -ForegroundColor Cyan
     Write-Host "  Em execucao: $($running.Count)" -ForegroundColor Green
     Write-Host "  Parados:     $($stopped.Count)" -ForegroundColor Yellow
     Write-Host ""
 
-    Write-Host "  Servicos em execucao:" -ForegroundColor Green
-    foreach ($s in ($running | Sort-Object Name | Select-Object -First 30)) {
-        Write-Host "    $($s.Name) ($($s.DisplayName))" -ForegroundColor Gray
+    if ($Interativo) {
+        $pageSize = [Math]::Min($Top, 25)
+        $currentPage = 0
+        $sortLabel = $OrdenarPor
+        $sortDir = if ($Decrescente) { 'DESC' } else { 'ASC' }
+        $searchTerm = if ($Filtro) { $Filtro } else { '' }
+        $statusFilter = if ($FiltroStatus) { $FiltroStatus } else { '' }
+        $startFilter = if ($FiltroInicio) { $FiltroInicio } else { '' }
+
+        function Show-ServicePage {
+            param(
+                [object[]]$Services,
+                [int]$Page,
+                [int]$Size,
+                [string]$SortBy,
+                [string]$Dir,
+                [string]$Search,
+                [string]$StatusF,
+                [string]$StartF
+            )
+
+            $totalPages = [Math]::Max(1, [Math]::Ceiling($Services.Count / $Size))
+            if ($Page -ge $totalPages) { $Page = $totalPages - 1 }
+            if ($Page -lt 0) { $Page = 0 }
+
+            $offset = $Page * $Size
+            $pageItems = @($Services | Select-Object -Skip $offset -First $Size)
+
+            $runningPage = @($pageItems | Where-Object { $_.Status -eq 'Running' }).Count
+            $stoppedPage = @($pageItems | Where-Object { $_.Status -eq 'Stopped' }).Count
+
+            $filterParts = @()
+            if ($Search) { $filterParts += "Busca: $Search" }
+            if ($StatusF) { $filterParts += "Status: $StatusF" }
+            if ($StartF) { $filterParts += "Inicio: $StartF" }
+            $filterStr = if ($filterParts.Count -gt 0) { " | $($filterParts -join ' | ')" } else { '' }
+
+            Write-Host ""
+            Write-Host "  Pagina $($Page + 1)/$totalPages | $($Services.Count) servicos | Exec: $runningPage | Parados: $stoppedPage | Ordenar: $SortBy $Dir$filterStr" -ForegroundColor Cyan
+            Write-Host "  $(('─' * 78))" -ForegroundColor DarkGray
+            Write-Host ("  {0,-35} {1,-30} {2,-12} {3,-12}" -f 'NOME', 'DISPLAYNAME', 'STATUS', 'INICIO') -ForegroundColor White
+            Write-Host "  $(('─' * 78))" -ForegroundColor DarkGray
+
+            foreach ($s in $pageItems) {
+                $statusColor = switch ($s.Status) {
+                    'Running'      { 'Green' }
+                    'Stopped'      { 'Yellow' }
+                    'Paused'       { 'Red' }
+                    'StartPending' { 'DarkYellow' }
+                    default        { 'Gray' }
+                }
+                $nameDisplay = if ($s.Name.Length -gt 33) { $s.Name.Substring(0, 30) + '...' } else { $s.Name }
+                $dispDisplay = if ($s.DisplayName.Length -gt 28) { $s.DisplayName.Substring(0, 25) + '...' } else { $s.DisplayName }
+
+                Write-Host ("  {0,-35}" -f $nameDisplay) -NoNewline
+                Write-Host ("{0,-30}" -f $dispDisplay) -NoNewline -ForegroundColor Gray
+                Write-Host ("{0,-12}" -f $s.Status) -NoNewline -ForegroundColor $statusColor
+                Write-Host ("{0,-12}" -f $s.StartType) -ForegroundColor DarkGray
+            }
+
+            Write-Host ""
+            Write-Host "  Comandos: [E]squerda [D]ireita [B]uscar [O]rdenar [F]iltrar [T]amanho [S]tatus [I]nicio [C]lear [R]efresh [Q]uit" -ForegroundColor DarkCyan
+            Write-Host "  Pagina atual: $($Page + 1) de $totalPages" -ForegroundColor DarkGray
+
+            return @{ Page = $Page; TotalPages = $totalPages }
+        }
+
+        $state = Show-ServicePage -Services $filteredServices -Page $currentPage -Size $pageSize `
+            -SortBy $sortLabel -Dir $sortDir -Search $searchTerm -StatusF $statusFilter -StartF $startFilter
+
+        while ($true) {
+            $key = [Console]::ReadKey($true)
+            $char = $key.KeyChar.ToString().ToUpper()
+
+            switch ($char) {
+                'D' {
+                    if ($state.Page -lt $state.TotalPages - 1) {
+                        $currentPage++
+                        $state = Show-ServicePage -Services $filteredServices -Page $currentPage -Size $pageSize `
+                            -SortBy $sortLabel -Dir $sortDir -Search $searchTerm -StatusF $statusFilter -StartF $startFilter
+                    }
+                }
+                'E' {
+                    if ($currentPage -gt 0) {
+                        $currentPage--
+                        $state = Show-ServicePage -Services $filteredServices -Page $currentPage -Size $pageSize `
+                            -SortBy $sortLabel -Dir $sortDir -Search $searchTerm -StatusF $statusFilter -StartF $startFilter
+                    }
+                }
+                'B' {
+                    Write-Host ""
+                    $search = Read-Host "  Buscar (nome/display, *wildcard*): "
+                    $searchTerm = $search
+                    $filteredServices = @($allServices | Where-Object {
+                        $_.Name -like "*$search*" -or $_.DisplayName -like "*$search*"
+                    })
+                    if ($statusFilter) { $filteredServices = @($filteredServices | Where-Object { $_.Status -eq $statusFilter }) }
+                    if ($startFilter) { $filteredServices = @($filteredServices | Where-Object { $_.StartType -eq $startFilter }) }
+                    $filteredServices = @($filteredServices | Sort-Object $sortProperty)
+                    $currentPage = 0
+                    $state = Show-ServicePage -Services $filteredServices -Page $currentPage -Size $pageSize `
+                        -SortBy $sortLabel -Dir $sortDir -Search $searchTerm -StatusF $statusFilter -StartF $startFilter
+                }
+                'O' {
+                    Write-Host ""
+                    Write-Host "  Ordenar por: [1] Nome [2] DisplayName [3] Status [4] StartType" -ForegroundColor Cyan
+                    $oKey = [Console]::ReadKey($true)
+                    $sortLabel = switch ($oKey.KeyChar.ToString()) {
+                        '1' { 'Nome' }
+                        '2' { 'DisplayName' }
+                        '3' { 'Status' }
+                        '4' { 'StartType' }
+                        default { $sortLabel }
+                    }
+                    $sortProperty = switch ($sortLabel) {
+                        'Nome'        { 'Name' }
+                        'DisplayName' { 'DisplayName' }
+                        'Status'      { 'Status' }
+                        'StartType'   { 'StartType' }
+                    }
+                    $filteredServices = @($filteredServices | Sort-Object $sortProperty)
+                    $currentPage = 0
+                    $state = Show-ServicePage -Services $filteredServices -Page $currentPage -Size $pageSize `
+                        -SortBy $sortLabel -Dir $sortDir -Search $searchTerm -StatusF $statusFilter -StartF $startFilter
+                }
+                'F' {
+                    Write-Host ""
+                    Write-Host "  Filtrar por Inicio: [A] Automatic [M] Manual [D] Disabled [T] Todos" -ForegroundColor Cyan
+                    $fKey = [Console]::ReadKey($true)
+                    $startFilter = switch ($fKey.KeyChar.ToString().ToUpper()) {
+                        'A' { 'Automatic' }
+                        'M' { 'Manual' }
+                        'D' { 'Disabled' }
+                        'T' { '' }
+                        default { $startFilter }
+                    }
+                    $filteredServices = @($allServices)
+                    if ($searchTerm) { $filteredServices = @($filteredServices | Where-Object { $_.Name -like "*$searchTerm*" -or $_.DisplayName -like "*$searchTerm*" }) }
+                    if ($statusFilter) { $filteredServices = @($filteredServices | Where-Object { $_.Status -eq $statusFilter }) }
+                    if ($startFilter) { $filteredServices = @($filteredServices | Where-Object { $_.StartType -eq $startFilter }) }
+                    $filteredServices = @($filteredServices | Sort-Object $sortProperty)
+                    $currentPage = 0
+                    $state = Show-ServicePage -Services $filteredServices -Page $currentPage -Size $pageSize `
+                        -SortBy $sortLabel -Dir $sortDir -Search $searchTerm -StatusF $statusFilter -StartF $startFilter
+                }
+                'S' {
+                    Write-Host ""
+                    Write-Host "  Filtrar por Status: [R]unning [S]topped [P]aused [T]odos" -ForegroundColor Cyan
+                    $sKey = [Console]::ReadKey($true)
+                    $statusFilter = switch ($sKey.KeyChar.ToString().ToUpper()) {
+                        'R' { 'Running' }
+                        'S' { 'Stopped' }
+                        'P' { 'Paused' }
+                        'T' { '' }
+                        default { $statusFilter }
+                    }
+                    $filteredServices = @($allServices)
+                    if ($searchTerm) { $filteredServices = @($filteredServices | Where-Object { $_.Name -like "*$searchTerm*" -or $_.DisplayName -like "*$searchTerm*" }) }
+                    if ($statusFilter) { $filteredServices = @($filteredServices | Where-Object { $_.Status -eq $statusFilter }) }
+                    if ($startFilter) { $filteredServices = @($filteredServices | Where-Object { $_.StartType -eq $startFilter }) }
+                    $filteredServices = @($filteredServices | Sort-Object $sortProperty)
+                    $currentPage = 0
+                    $state = Show-ServicePage -Services $filteredServices -Page $currentPage -Size $pageSize `
+                        -SortBy $sortLabel -Dir $sortDir -Search $searchTerm -StatusF $statusFilter -StartF $startFilter
+                }
+                'I' {
+                    $sortDir = if ($sortDir -eq 'ASC') { 'DESC' } else { 'ASC' }
+                    if ($sortDir -eq 'DESC') {
+                        $filteredServices = @($filteredServices | Sort-Object $sortProperty -Descending)
+                    }
+                    else {
+                        $filteredServices = @($filteredServices | Sort-Object $sortProperty)
+                    }
+                    $currentPage = 0
+                    $state = Show-ServicePage -Services $filteredServices -Page $currentPage -Size $pageSize `
+                        -SortBy $sortLabel -Dir $sortDir -Search $searchTerm -StatusF $statusFilter -StartF $startFilter
+                }
+                'T' {
+                    Write-Host ""
+                    $sizeInput = Read-Host "  Itens por pagina (atual: $pageSize): "
+                    if ($sizeInput -match '^\d+$' -and [int]$sizeInput -ge 5 -and [int]$sizeInput -le 500) {
+                        $pageSize = [int]$sizeInput
+                    }
+                    $currentPage = 0
+                    $state = Show-ServicePage -Services $filteredServices -Page $currentPage -Size $pageSize `
+                        -SortBy $sortLabel -Dir $sortDir -Search $searchTerm -StatusF $statusFilter -StartF $startFilter
+                }
+                'C' {
+                    $searchTerm = ''
+                    $statusFilter = ''
+                    $startFilter = ''
+                    $filteredServices = @($allServices | Sort-Object $sortProperty)
+                    $currentPage = 0
+                    $state = Show-ServicePage -Services $filteredServices -Page $currentPage -Size $pageSize `
+                        -SortBy $sortLabel -Dir $sortDir -Search '' -StatusF '' -StartF ''
+                }
+                'R' {
+                    $allServices = @(Get-WindowsServiceStatus)
+                    $filteredServices = @($allServices | Sort-Object $sortProperty)
+                    $currentPage = 0
+                    $state = Show-ServicePage -Services $filteredServices -Page $currentPage -Size $pageSize `
+                        -SortBy $sortLabel -Dir $sortDir -Search $searchTerm -StatusF $statusFilter -StartF $startFilter
+                }
+                'Q' {
+                    Write-Host ""
+                    Write-Ok "Saindo do modo interativo."
+                    break
+                }
+            }
+        }
     }
-    if ($running.Count -gt 30) {
-        Write-Host "    ... e mais $($running.Count - 30)" -ForegroundColor DarkGray
+    else {
+        $displayServices = $filteredServices | Select-Object -First $Top
+        Write-Host ""
+        Write-Host ("  {0,-35} {1,-30} {2,-12} {3,-12}" -f 'NOME', 'DISPLAYNAME', 'STATUS', 'INICIO') -ForegroundColor White
+        Write-Host "  $(('─' * 78))" -ForegroundColor DarkGray
+
+        foreach ($s in $displayServices) {
+            $statusColor = switch ($s.Status) {
+                'Running'      { 'Green' }
+                'Stopped'      { 'Yellow' }
+                'Paused'       { 'Red' }
+                'StartPending' { 'DarkYellow' }
+                default        { 'Gray' }
+            }
+            Write-Host ("  {0,-35}" -f $s.Name) -NoNewline
+            Write-Host ("{0,-30}" -f $s.DisplayName) -NoNewline -ForegroundColor Gray
+            Write-Host ("{0,-12}" -f $s.Status) -NoNewline -ForegroundColor $statusColor
+            Write-Host ("{0,-12}" -f $s.StartType) -ForegroundColor DarkGray
+        }
+
+        if ($filteredServices.Count -gt $Top) {
+            Write-Host ""
+            Write-Host "    ... e mais $($filteredServices.Count - $Top) servicos (use -Top ou -Interativo)" -ForegroundColor DarkGray
+        }
     }
 }
 
@@ -356,24 +658,35 @@ if ($Acao -in @('Diagnostico', 'Listar', 'Detalhar')) {
         $bodyHtml = switch ($Acao) {
             'Diagnostico' {
                 $diag = $reportData
+                $autoStopped = @($diag.StoppedAuto)
                 @"
-<h2>Resumo</h2>
-<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">
-<tr><th>Em Execucao</th><th>Auto Parados</th><th>Desabilitados</th></tr>
-<tr>
-    <td style="background-color:#d4edda">$($diag.RunningCount)</td>
-    <td style="background-color:#fff3cd">$($diag.StoppedAuto.Count)</td>
-    <td style="background-color:#f8d7da">$($diag.DisabledCount)</td>
-</tr>
-</table>
+<div class="cards">
+<div class="card" style="border-left-color:#16a34a"><div class="card-icon">&#9654;</div><div class="card-label">Executando</div><div class="card-value" style="color:#16a34a">$($diag.RunningCount)</div></div>
+<div class="card" style="border-left-color:#d97706"><div class="card-icon">&#9724;</div><div class="card-label">Auto Parados</div><div class="card-value" style="color:#d97706">$($autoStopped.Count)</div></div>
+<div class="card" style="border-left-color:#dc2626"><div class="card-icon">&#10006;</div><div class="card-label">Desabilitados</div><div class="card-value" style="color:#dc2626">$($diag.DisabledCount)</div></div>
+</div>
 
-<h2>Servicos Automaticos Parados ($($diag.StoppedAuto.Count))</h2>
-<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">
-<tr><th>Nome</th><th>DisplayName</th><th>Status</th></tr>
-$($diag.StoppedAuto | ForEach-Object {
-    "<tr><td>$($_.Name)</td><td>$($_.DisplayName)</td><td style='background-color:#fff3cd'>$($_.Status)</td></tr>"
+$(if ($autoStopped.Count -gt 0) {
+@"
+<div class="section" style="margin-bottom:1rem">
+<div class="section-hdr" style="background-color:#d97706">&#9888; Servicos Automaticos Parados ($($autoStopped.Count))</div>
+<div class="section-body" style="padding:0">
+<table class="data-table">
+<thead><tr><th>Nome</th><th>DisplayName</th><th>Status</th></tr></thead>
+<tbody>
+$($autoStopped | Sort-Object Name | ForEach-Object {
+    "<tr><td class=`"mono`">$($_.Name)</td><td>$($_.DisplayName)</td><td><span class=`"badge badge-yellow`">$($_.Status)</span></td></tr>"
 } | Out-String)
+</tbody>
 </table>
+</div>
+</div>
+"@
+} else {
+@"
+<div class="alert" style="background-color:#d4edda;border-color:#16a34a;color:#166534">&#10004; Todos os servicos automaticos estao em execucao.</div>
+"@
+})
 "@
             }
 
@@ -382,64 +695,120 @@ $($diag.StoppedAuto | ForEach-Object {
                 $running = @($all | Where-Object { $_.Status -eq 'Running' })
                 $stopped = @($all | Where-Object { $_.Status -eq 'Stopped' })
                 $other   = @($all | Where-Object { $_.Status -notin @('Running', 'Stopped') })
+                $autoStopped = @($all | Where-Object { $_.Status -eq 'Stopped' -and $_.StartType -eq 'Automatic' })
+                $disabled = @($all | Where-Object { $_.StartType -eq 'Disabled' })
+                $manual = @($all | Where-Object { $_.StartType -eq 'Manual' })
                 @"
-<h2>Resumo</h2>
-<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">
-<tr><th>Total</th><th>Em Execucao</th><th>Parados</th><th>Outros</th></tr>
-<tr>
-    <td>$($all.Count)</td>
-    <td style="background-color:#d4edda">$($running.Count)</td>
-    <td style="background-color:#fff3cd">$($stopped.Count)</td>
-    <td>$($other.Count)</td>
-</tr>
-</table>
+<div class="cards">
+<div class="card"><div class="card-icon">&#128202;</div><div class="card-label">Total</div><div class="card-value">$($all.Count)</div></div>
+<div class="card" style="border-left-color:#16a34a"><div class="card-icon">&#9654;</div><div class="card-label">Executando</div><div class="card-value" style="color:#16a34a">$($running.Count)</div></div>
+<div class="card" style="border-left-color:#d97706"><div class="card-icon">&#9724;</div><div class="card-label">Parados</div><div class="card-value" style="color:#d97706">$($stopped.Count)</div></div>
+<div class="card" style="border-left-color:#dc2626"><div class="card-icon">&#10006;</div><div class="card-label">Desabilitados</div><div class="card-value" style="color:#dc2626">$($disabled.Count)</div></div>
+</div>
 
-<h2>Servicos em Execucao ($($running.Count))</h2>
-<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">
-<tr><th>Nome</th><th>DisplayName</th><th>StartType</th></tr>
-$($running | Sort-Object Name | ForEach-Object {
-    "<tr><td>$($_.Name)</td><td>$($_.DisplayName)</td><td>$($_.StartType)</td></tr>"
-} | Out-String)
+<div class="section" style="margin-bottom:1rem">
+<div class="section-hdr">&#128203; Servicos por Status</div>
+<div class="section-body" style="padding:0">
+<table class="data-table">
+<thead><tr><th>Status</th><th>Quantidade</th><th>%</th></tr></thead>
+<tbody>
+<tr><td><span class="badge badge-green">Running</span></td><td>$($running.Count)</td><td>$([Math]::Round($running.Count / $all.Count * 100, 1))%</td></tr>
+<tr><td><span class="badge badge-yellow">Stopped</span></td><td>$($stopped.Count)</td><td>$([Math]::Round($stopped.Count / $all.Count * 100, 1))%</td></tr>
+$(if ($other.Count -gt 0) { "<tr><td><span class=`"badge badge-blue`">Outros</span></td><td>$($other.Count)</td><td>$([Math]::Round($other.Count / $all.Count * 100, 1))%</td></tr>" })
+</tbody>
 </table>
+</div>
+</div>
 
-<h2>Servicos Parados ($($stopped.Count))</h2>
-<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">
-<tr><th>Nome</th><th>DisplayName</th><th>StartType</th></tr>
-$($stopped | Sort-Object Name | ForEach-Object {
-    "<tr><td>$($_.Name)</td><td>$($_.DisplayName)</td><td>$($_.StartType)</td></tr>"
-} | Out-String)
+<div class="section" style="margin-bottom:1rem">
+<div class="section-hdr">&#9881; Servicos por Inicializacao</div>
+<div class="section-body" style="padding:0">
+<table class="data-table">
+<thead><tr><th>Tipo</th><th>Quantidade</th><th>%</th></tr></thead>
+<tbody>
+<tr><td><span class="badge badge-green">Automatic</span></td><td>$(@($all | Where-Object { $_.StartType -eq 'Automatic' }).Count)</td><td>$([Math]::Round(@($all | Where-Object { $_.StartType -eq 'Automatic' }).Count / $all.Count * 100, 1))%</td></tr>
+<tr><td><span class="badge badge-yellow">Manual</span></td><td>$($manual.Count)</td><td>$([Math]::Round($manual.Count / $all.Count * 100, 1))%</td></tr>
+<tr><td><span class="badge badge-red">Disabled</span></td><td>$($disabled.Count)</td><td>$([Math]::Round($disabled.Count / $all.Count * 100, 1))%</td></tr>
+</tbody>
 </table>
+</div>
+</div>
+
+$(if ($autoStopped.Count -gt 0) {
+@"
+<div class="section" style="margin-bottom:1rem">
+<div class="section-hdr" style="background-color:#d97706">&#9888; Servicos Automaticos Parados ($($autoStopped.Count))</div>
+<div class="section-body" style="padding:0">
+<table class="data-table">
+<thead><tr><th>Nome</th><th>DisplayName</th><th>Status</th></tr></thead>
+<tbody>
+$($autoStopped | Sort-Object Name | ForEach-Object {
+    "<tr><td class=`"mono`">$($_.Name)</td><td>$($_.DisplayName)</td><td><span class=`"badge badge-yellow`">$($_.Status)</span></td></tr>"
+} | Out-String)
+</tbody>
+</table>
+</div>
+</div>
+"@
+})
+
+<div class="section">
+<div class="section-hdr">&#128203; Todos os Servicos ($($all.Count))</div>
+<div class="section-body" style="padding:0">
+<table class="data-table">
+<thead><tr><th>Nome</th><th>DisplayName</th><th>Status</th><th>StartType</th></tr></thead>
+<tbody>
+$($all | Sort-Object Name | ForEach-Object {
+    $sc = switch ($_.Status) { 'Running' { 'badge-green' } 'Stopped' { 'badge-yellow' } default { 'badge-gray' } }
+    "<tr><td class=`"mono`">$($_.Name)</td><td>$($_.DisplayName)</td><td><span class=`"badge $sc`">$($_.Status)</span></td><td>$($_.StartType)</td></tr>"
+} | Out-String)
+</tbody>
+</table>
+</div>
+</div>
 "@
             }
 
             'Detalhar' {
                 $d = $reportData
-                $statusColor = switch ($d.Status) { 'Running' { '#d4edda' } 'Stopped' { '#fff3cd' } default { '#f8d7da' } }
+                $sc = switch ($d.Status) { 'Running' { 'badge-green' } 'Stopped' { 'badge-yellow' } default { 'badge-red' } }
+                $ic = switch ($d.StartType) { 'Automatic' { 'badge-green' } 'Manual' { 'badge-yellow' } 'Disabled' { 'badge-red' } default { 'badge-gray' } }
                 @"
-<h2>Detalhe: $($d.Name)</h2>
-<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">
-<tr><th>Propriedade</th><th>Valor</th></tr>
-<tr><td>Nome</td><td>$($d.Name)</td></tr>
+<div class="section" style="margin-bottom:1rem">
+<div class="section-hdr">&#128269; Detalhe: $($d.Name)</div>
+<div class="section-body" style="padding:0">
+<table class="kv-table">
+<tr><td>Nome</td><td class="mono">$($d.Name)</td></tr>
 <tr><td>DisplayName</td><td>$($d.DisplayName)</td></tr>
-<tr><td>Status</td><td style="background-color:$statusColor">$($d.Status)</td></tr>
-<tr><td>Inicializacao</td><td>$($d.StartType)</td></tr>
-<tr><td>Conta</td><td>$($d.Account)</td></tr>
+<tr><td>Status</td><td><span class="badge $sc">$($d.Status)</span></td></tr>
+<tr><td>Inicializacao</td><td><span class="badge $ic">$($d.StartType)</span></td></tr>
+<tr><td>Conta</td><td class="mono">$($d.Account)</td></tr>
 <tr><td>PID</td><td>$($d.ProcessId)</td></tr>
-<tr><td>Caminho</td><td style="word-break:break-all">$($d.Path)</td></tr>
+<tr><td>Caminho</td><td class="mono" style="word-break:break-all">$($d.Path)</td></tr>
 <tr><td>Descricao</td><td>$($d.Description)</td></tr>
 </table>
+</div>
+</div>
 
 $(if ($d.DependentCount -gt 0) {
 @"
-<h2>Servicos que dependem de $($d.Name) ($($d.DependentCount))</h2>
-<ul>$($d.DependentServices | ForEach-Object { "<li>$_</li>" } | Out-String)</ul>
+<div class="section" style="margin-bottom:1rem">
+<div class="section-hdr">&#128279; Servicos que dependem de $($d.Name) ($($d.DependentCount))</div>
+<div class="section-body">
+<ul>$($d.DependentServices | ForEach-Object { "<li class=`"mono`">$_</li>" } | Out-String)</ul>
+</div>
+</div>
 "@
 })
 
 $(if ($d.RequiredCount -gt 0) {
 @"
-<h2>Servicos requeridos por $($d.Name) ($($d.RequiredCount))</h2>
-<ul>$($d.RequiredServices | ForEach-Object { "<li>$_</li>" } | Out-String)</ul>
+<div class="section">
+<div class="section-hdr">&#128279; Servicos requeridos por $($d.Name) ($($d.RequiredCount))</div>
+<div class="section-body">
+<ul>$($d.RequiredServices | ForEach-Object { "<li class=`"mono`">$_</li>" } | Out-String)</ul>
+</div>
+</div>
 "@
 })
 "@
