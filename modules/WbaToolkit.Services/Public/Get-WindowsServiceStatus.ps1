@@ -60,7 +60,7 @@
         $wmi = $wmiMap[$svc.Name]
 
         $rawStartType = if ($wmi) { $wmi.StartMode } else { 'Unknown' }
-        $startType = switch ($rawStartType) {
+        $resolvedStartType = switch ($rawStartType) {
             'Auto'     { 'Automatic' }
             'Manual'   { 'Manual' }
             'Disabled' { 'Disabled' }
@@ -75,7 +75,7 @@
             Name        = $svc.Name
             DisplayName = $svc.DisplayName
             Status      = $svc.Status.ToString()
-            StartType   = $startType
+            StartType   = $resolvedStartType
             Path        = $path
         }
     }

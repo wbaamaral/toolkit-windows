@@ -247,6 +247,7 @@ if ($Acao -eq 'Diagnostico') {
     Write-Section "Diagnostico de Servicos"
 
     $result = Invoke-ServiceManager -Acao Diagnostico
+    $script:DiagnosticoResult = $result
 
     Write-Host ""
     if ($result.StoppedAuto.Count -gt 0) {
@@ -293,7 +294,7 @@ if ($Acao -eq 'Listar') {
         else {
             $view = @($view | Sort-Object $SortProp)
         }
-        return $view
+        return ,$view
     }
 
     function Format-ServiceCell {
@@ -872,7 +873,7 @@ $htmlReport = $null
 
 if ($Acao -in @('Diagnostico', 'Listar', 'Detalhar')) {
     $reportData = switch ($Acao) {
-        'Diagnostico' { Invoke-ServiceManager -Acao Diagnostico }
+        'Diagnostico' { if ($script:DiagnosticoResult) { $script:DiagnosticoResult } else { Invoke-ServiceManager -Acao Diagnostico } }
         'Listar'      { @(Get-WindowsServiceStatus) }
         'Detalhar'    { Get-WindowsServiceDetail -Name $Servico }
     }
