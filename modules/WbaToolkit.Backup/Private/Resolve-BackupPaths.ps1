@@ -1,4 +1,4 @@
-function Resolve-BackupPaths {
+﻿function Resolve-BackupPaths {
     [CmdletBinding()]
     param()
 

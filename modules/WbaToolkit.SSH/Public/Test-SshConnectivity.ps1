@@ -1,4 +1,4 @@
-function Test-SshConnectivity {
+﻿function Test-SshConnectivity {
     <#
     .SYNOPSIS
         Testa conectividade SSH local (servico respondendo na porta).

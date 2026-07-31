@@ -1,4 +1,4 @@
-function Enable-SshServer {
+﻿function Enable-SshServer {
     <#
     .SYNOPSIS
         Habilita e inicia o servico sshd com regra de firewall.

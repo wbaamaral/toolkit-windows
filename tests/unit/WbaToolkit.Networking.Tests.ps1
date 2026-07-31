@@ -25,8 +25,8 @@ Describe 'Xtudo rotas de rede' {
     It 'Mantem os scripts oficiais de rede em scripts/' {
         Test-Path -LiteralPath (Join-Path (Get-XtudoScriptsRoot) 'testar-conectividade-internet.ps1') | Should -BeTrue
         Test-Path -LiteralPath (Join-Path (Get-XtudoScriptsRoot) 'verificar-atualizacoes-hardware.ps1') | Should -BeTrue
-        $script:connectivityContent | Should -Match 'WbaToolkit\.Networking\.psd1'
-        $script:hardwareContent | Should -Match 'WbaToolkit\.Core\.psd1'
+        $script:connectivityContent | Should -Match 'modules/WbaToolkit\.Networking'
+        $script:hardwareContent | Should -Match 'WbaToolkit\.Core'
         $script:connectivityModuleContent | Should -Match 'RootModule'
         $script:coreModuleContent | Should -Match 'RootModule'
     }
@@ -289,13 +289,16 @@ Describe 'detectar-ip-duplicado.ps1 (wrapper operacional)' {
         $script:scriptWrapper | Should -Match 'PSModulePath'
     }
 
-    It 'Importa WbaToolkit.Core e WbaToolkit.Networking' {
-        $script:scriptWrapper | Should -Match 'WbaToolkit\.Core\.psd1'
-        $script:scriptWrapper | Should -Match 'WbaToolkit\.Networking\.psd1'
+    It 'Carrega WbaToolkit.Core e WbaToolkit.Networking por dot-source' {
+        $script:scriptWrapper | Should -Match 'modules/WbaToolkit\.Core'
+        $script:scriptWrapper | Should -Match 'modules/WbaToolkit\.Networking'
+        $script:scriptWrapper | Should -Match "Get-ChildItem -LiteralPath .* -Filter '\*\.ps1' -File"
+        $script:scriptWrapper | Should -Match 'ForEach-Object \{ \. \$_\.FullName \}'
     }
 
-    It 'Suprime apenas o aviso de verbo não aprovado do nome histórico' {
-        $script:scriptWrapper | Should -Match 'DisableNameChecking'
+    It 'Nao depende de opcoes legadas de Import-Module' {
+        $script:scriptWrapper | Should -Not -Match 'Import-Module'
+        $script:scriptWrapper | Should -Not -Match 'DisableNameChecking'
     }
 
     It 'Delega a sessao padronizada ao modulo' {

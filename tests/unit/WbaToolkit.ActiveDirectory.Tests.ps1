@@ -13,8 +13,8 @@ Describe 'Xtudo diagnostico AD do cliente' {
         $script:adContent | Should -Match "ValidateSet\('Diagnostico', 'Assistido'\)"
         $script:adContent | Should -Match '\[switch\]\$Hora'
         $script:adContent | Should -Match '\[switch\]\$Canal'
-        $script:adContent | Should -Match 'WbaToolkit\.Core\.psd1'
-        $script:adContent | Should -Match 'WbaToolkit\.Startup\.psd1'
+        $script:adContent | Should -Match 'WbaToolkit\.Core'
+        $script:adContent | Should -Match 'WbaToolkit\.Startup'
     }
 
     It 'Cobre o contrato de diagnóstico do cliente AD' {

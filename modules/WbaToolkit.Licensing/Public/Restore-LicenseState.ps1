@@ -1,4 +1,4 @@
-function Restore-LicenseState {
+﻿function Restore-LicenseState {
     <#
     .SYNOPSIS
         Restaura configuracao de licenciamento a partir de um snapshot salvo.
@@ -40,7 +40,7 @@ function Restore-LicenseState {
     .EXAMPLE
         Restore-LicenseState -BackupPath '.\license-backup.json' -Force
     #>
-    [CmdletBinding(SupportsShouldProcess = $true)]
+    [CmdletBinding(SupportsShouldProcess = $true, DefaultParameterSetName = 'Path')]
     param(
         [Parameter(Mandatory = $false, ParameterSetName = 'Path')]
         [string]$BackupPath,

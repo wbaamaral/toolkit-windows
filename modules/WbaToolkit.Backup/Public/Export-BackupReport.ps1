@@ -1,4 +1,4 @@
-function Export-BackupReport {
+﻿function Export-BackupReport {
     <#
     .SYNOPSIS
         Gera relatorio de backup e restore points.

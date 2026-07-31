@@ -1,4 +1,4 @@
-function Disable-SystemProtection {
+﻿function Disable-SystemProtection {
     <#
     .SYNOPSIS
         Desabilita a Protecao do Sistema em um volume.

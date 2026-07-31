@@ -64,7 +64,9 @@
     Gerar relatorio a partir da execucao mais recente:
         .\diagnosticar-disco-100.ps1 -Modo Relatorio -GerarHtml
 
-.NOTAS
+.NOTES
+    Projeto: wba-windows-toolkit
+    Autor: wbaamaral
     Requer PowerShell 5.1 ou superior e Administrador local.
     O problema de disco 100% deve ser tratado como sintoma, nao como causa unica.
 #>
@@ -108,11 +110,29 @@ else {
 
 $ScriptPath = $PSCommandPath
 $ScriptDir  = $PSScriptRoot
-$ToolkitRoot = Split-Path -Parent $PSScriptRoot
-$ToolkitModulePath        = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
-$ToolkitStartupModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Startup/WbaToolkit.Startup.psd1'
-Import-Module $ToolkitModulePath        -Force -ErrorAction Stop
-Import-Module $ToolkitStartupModulePath -Force -ErrorAction Stop
+$ToolkitRoot      = Split-Path -Parent $PSScriptRoot
+$coreModuleRoot   = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core'
+$startupModuleRoot = Join-Path $ToolkitRoot 'modules/WbaToolkit.Startup'
+
+foreach ($moduleRoot in @($coreModuleRoot, $startupModuleRoot)) {
+    if (-not (Test-Path -LiteralPath $moduleRoot)) {
+        throw "Modulo nao encontrado: $moduleRoot"
+    }
+}
+
+try {
+    foreach ($moduleRoot in @($coreModuleRoot, $startupModuleRoot)) {
+        foreach ($sub in @('Private', 'Public')) {
+            $dir = Join-Path $moduleRoot $sub
+            if (Test-Path -LiteralPath $dir) {
+                Get-ChildItem -LiteralPath $dir -Filter '*.ps1' -File | ForEach-Object { . $_.FullName }
+            }
+        }
+    }
+}
+catch {
+    throw "Nao foi possivel carregar os modulos do toolkit: $($_.Exception.Message)"
+}
 
 $ScriptVersion = 'v1.0.0'
 $script:HD100Session = $null

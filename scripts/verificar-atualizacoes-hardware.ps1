@@ -84,8 +84,29 @@ $ScriptName = if ($MyInvocation.MyCommand.Name) {
 $ScriptPath = $PSCommandPath
 $ScriptDir  = $PSScriptRoot
 
+# === Dependencias: dot-source direto (ADR 0032) ===
 $ToolkitRoot = Split-Path -Parent $PSScriptRoot
-Import-Module (Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1') -Force -ErrorAction Stop
+$coreRoot    = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core'
+
+if (-not (Test-Path -LiteralPath $coreRoot)) {
+    Write-Host "[FALHA] Modulo nao encontrado: $coreRoot" -ForegroundColor Red
+    exit 1
+}
+
+try {
+    foreach ($sub in @('Private', 'Public')) {
+        $dir = Join-Path $coreRoot $sub
+        if (Test-Path -LiteralPath $dir) {
+            Get-ChildItem -LiteralPath $dir -Filter '*.ps1' -File |
+                ForEach-Object { . $_.FullName }
+        }
+    }
+}
+catch {
+    Write-Host "[FALHA] Nao foi possivel carregar o WbaToolkit.Core." -ForegroundColor Red
+    Write-Host "        Erro: $($_.Exception.Message)" -ForegroundColor Yellow
+    exit 1
+}
 
 $ScriptVersion = 'v1.0.0'
 $script:HwSession = $null

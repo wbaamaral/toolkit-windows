@@ -1,4 +1,4 @@
-function Remove-SshAuthorizedKey {
+﻿function Remove-SshAuthorizedKey {
     <#
     .SYNOPSIS
         Remove uma chave publica do authorized_keys.

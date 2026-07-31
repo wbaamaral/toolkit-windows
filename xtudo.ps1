@@ -371,7 +371,7 @@ function Invoke-XtudoScript {
     Write-Host ''
 
     $invokeArgs = @()
-    if ($Entry.PSObject.Properties.Name -contains 'Args' -and $null -ne $Entry.Args) {
+    if ($null -ne $Entry.PSObject.Properties['Args']) {
         foreach ($arg in @($Entry.Args)) {
             if ($null -eq $arg -or $arg -eq '') {
                 continue

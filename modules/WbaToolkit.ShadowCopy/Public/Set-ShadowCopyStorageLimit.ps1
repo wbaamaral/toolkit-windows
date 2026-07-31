@@ -1,4 +1,4 @@
-function Set-ShadowCopyStorageLimit {
+﻿function Set-ShadowCopyStorageLimit {
     <#
     .SYNOPSIS
         Define o limite de espaco do shadow storage.

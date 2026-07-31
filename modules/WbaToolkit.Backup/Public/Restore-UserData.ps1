@@ -1,4 +1,4 @@
-function Restore-UserData {
+﻿function Restore-UserData {
     <#
     .SYNOPSIS
         Restaura dados do usuario a partir de um backup.

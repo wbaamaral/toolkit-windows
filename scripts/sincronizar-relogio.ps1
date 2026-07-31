@@ -25,6 +25,11 @@
 
 .PARAMETER Help
     Exibe esta ajuda e encerra.
+
+.NOTES
+    Projeto: wba-windows-toolkit
+    Autor: wbaamaral
+    Módulos requeridos: WbaToolkit.Core, WbaToolkit.Maintenance.
 #>
 [CmdletBinding()]
 param(
@@ -73,9 +78,34 @@ function Show-Help {
 
 if ($Help) { Show-Help; exit 0 }
 
+# === Dependencias: dot-source direto (ADR 0032) ===
 $toolkitRoot = Split-Path -Parent $PSScriptRoot
-Import-Module (Join-Path $toolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1') -Force -ErrorAction Stop
-Import-Module (Join-Path $toolkitRoot 'modules/WbaToolkit.Maintenance/WbaToolkit.Maintenance.psd1') -Force -ErrorAction Stop
+$coreRoot    = Join-Path $toolkitRoot 'modules/WbaToolkit.Core'
+$maintRoot   = Join-Path $toolkitRoot 'modules/WbaToolkit.Maintenance'
+
+foreach ($dir in @($coreRoot, $maintRoot)) {
+    if (-not (Test-Path -LiteralPath $dir)) {
+        Write-Host "[FALHA] Modulo nao encontrado: $dir" -ForegroundColor Red
+        exit 1
+    }
+}
+
+try {
+    foreach ($moduleRoot in @($coreRoot, $maintRoot)) {
+        foreach ($sub in @('Private', 'Public')) {
+            $subDir = Join-Path $moduleRoot $sub
+            if (Test-Path -LiteralPath $subDir) {
+                Get-ChildItem -LiteralPath $subDir -Filter '*.ps1' -File |
+                    ForEach-Object { . $_.FullName }
+            }
+        }
+    }
+}
+catch {
+    Write-Host "[FALHA] Nao foi possivel carregar os modulos do toolkit." -ForegroundColor Red
+    Write-Host "        Erro: $($_.Exception.Message)" -ForegroundColor Yellow
+    exit 1
+}
 
 if ($Corrigir -and -not (Test-IsAdministrator)) {
     Write-Warning 'A correção exige privilégios administrativos. Solicitando elevação...'

@@ -1,4 +1,4 @@
-@{
+﻿@{
     RootModule        = 'WbaToolkit.Backup.psm1'
     ModuleVersion     = '1.0.0'
     GUID              = 'd5e6f7a8-9012-3456-d5e6-f7a890123456'

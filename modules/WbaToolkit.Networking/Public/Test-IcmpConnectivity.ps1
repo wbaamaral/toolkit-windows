@@ -43,7 +43,7 @@
         $latency = $null
         if ($reply) {
             # Windows PowerShell 5.1 expoe 'ResponseTime'; PowerShell 7+ expoe 'Latency'.
-            $latencyProperty = if ((@($reply)[0].PSObject.Properties.Name) -contains 'Latency') { 'Latency' } else { 'ResponseTime' }
+            $latencyProperty = if ($null -ne (@($reply)[0]).PSObject.Properties['Latency']) { 'Latency' } else { 'ResponseTime' }
             $avgLatency = ($reply | Measure-Object -Property $latencyProperty -Average).Average
             if ($null -ne $avgLatency) { $latency = [math]::Round($avgLatency, 1) }
         }

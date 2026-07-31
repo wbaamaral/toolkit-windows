@@ -1,4 +1,4 @@
-function Test-DownloadSpeed {
+﻿function Test-DownloadSpeed {
     <#
     .SYNOPSIS
         Testa velocidade de download da internet.

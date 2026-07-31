@@ -1,4 +1,4 @@
-function Remove-RestorePoint {
+﻿function Remove-RestorePoint {
     <#
     .SYNOPSIS
         Remove pontos de restauracao.

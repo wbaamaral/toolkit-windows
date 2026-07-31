@@ -1,4 +1,4 @@
-function Get-FileHashSha256 {
+﻿function Get-FileHashSha256 {
     <#
     .SYNOPSIS
         Calcula o hash SHA256 de um arquivo e opcionalmente salva em arquivo .sha256sum.

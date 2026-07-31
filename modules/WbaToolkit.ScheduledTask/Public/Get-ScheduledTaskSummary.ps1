@@ -1,4 +1,4 @@
-function Get-ScheduledTaskSummary {
+﻿function Get-ScheduledTaskSummary {
     <#
     .SYNOPSIS
         Retorna resumo geral das tarefas agendadas.

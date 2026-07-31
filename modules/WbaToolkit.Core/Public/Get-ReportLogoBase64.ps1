@@ -1,4 +1,4 @@
-function Get-ReportLogoBase64 {
+﻿function Get-ReportLogoBase64 {
     <#
     .SYNOPSIS
         Retorna o logo do toolkit como data URI base64 para embutir em HTML.

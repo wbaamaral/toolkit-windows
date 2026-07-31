@@ -1,4 +1,4 @@
-function Remove-ShadowCopy {
+﻿function Remove-ShadowCopy {
     <#
     .SYNOPSIS
         Remove shadow copies.

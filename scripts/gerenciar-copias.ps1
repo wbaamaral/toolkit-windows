@@ -116,10 +116,10 @@ $ScriptDir  = $PSScriptRoot
 $ToolkitRoot = Split-Path -Parent $ScriptDir
 
 # === Dependencias: validar e carregar modulos do toolkit ===
-$CoreModulePath   = Join-Path $ToolkitRoot 'modules\WbaToolkit.Core\WbaToolkit.Core.psd1'
-$BackupModulePath = Join-Path $ToolkitRoot 'modules\WbaToolkit.Backup\WbaToolkit.Backup.psd1'
+$coreModuleRoot   = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core'
+$backupModuleRoot = Join-Path $ToolkitRoot 'modules/WbaToolkit.Backup'
 
-foreach ($mod in @($CoreModulePath, $BackupModulePath)) {
+foreach ($mod in @($coreModuleRoot, $backupModuleRoot)) {
     if (-not (Test-Path -LiteralPath $mod)) {
         Write-Host "[FALHA] Modulo nao encontrado: $mod" -ForegroundColor Red
         Write-Host "        Solucao: verifique o clone do repositorio em $ToolkitRoot" -ForegroundColor Yellow
@@ -128,8 +128,14 @@ foreach ($mod in @($CoreModulePath, $BackupModulePath)) {
 }
 
 try {
-    Import-Module $CoreModulePath   -Force -ErrorAction Stop
-    Import-Module $BackupModulePath -Force -ErrorAction Stop
+    foreach ($moduleRoot in @($coreModuleRoot, $backupModuleRoot)) {
+        foreach ($sub in @('Private', 'Public')) {
+            $dir = Join-Path $moduleRoot $sub
+            if (Test-Path -LiteralPath $dir) {
+                Get-ChildItem -LiteralPath $dir -Filter '*.ps1' -File | ForEach-Object { . $_.FullName }
+            }
+        }
+    }
 }
 catch {
     Write-Host "[FALHA] Nao foi possivel carregar os modulos do toolkit." -ForegroundColor Red

@@ -1,4 +1,4 @@
-function Export-ScheduledTaskXml {
+﻿function Export-ScheduledTaskXml {
     <#
     .SYNOPSIS
         Exporta uma tarefa agendada como XML.

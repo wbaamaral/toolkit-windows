@@ -1,4 +1,4 @@
-function New-SshUserKey {
+﻿function New-SshUserKey {
     <#
     .SYNOPSIS
         Gera par de chaves SSH para um usuario.

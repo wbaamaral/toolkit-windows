@@ -1,4 +1,4 @@
-function New-ShadowCopy {
+﻿function New-ShadowCopy {
     <#
     .SYNOPSIS
         Cria um novo shadow copy (snapshot de volume).

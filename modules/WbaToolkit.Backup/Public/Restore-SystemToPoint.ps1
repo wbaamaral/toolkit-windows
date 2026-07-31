@@ -1,4 +1,4 @@
-function Restore-SystemToPoint {
+﻿function Restore-SystemToPoint {
     <#
     .SYNOPSIS
         Restaura o sistema para um ponto de restauracao.

@@ -1,4 +1,4 @@
-function Disable-ScheduledTaskByName {
+﻿function Disable-ScheduledTaskByName {
     <#
     .SYNOPSIS
         Desabilita uma tarefa agendada por nome.

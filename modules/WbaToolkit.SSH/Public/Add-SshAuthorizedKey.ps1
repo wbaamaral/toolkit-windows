@@ -1,4 +1,4 @@
-function Add-SshAuthorizedKey {
+﻿function Add-SshAuthorizedKey {
     <#
     .SYNOPSIS
         Adiciona chave publica ao authorized_keys com ACL correto.

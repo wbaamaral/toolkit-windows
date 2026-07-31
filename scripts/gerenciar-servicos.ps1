@@ -43,8 +43,8 @@
 .PARAMETER Conta
     Conta de logon para ConfigurarConta. Built-in: LocalSystem, LocalService, NetworkService.
 
-.PARAMETER Senha
-    Senha da conta (necessario para contas de dominio).
+.PARAMETER Credencial
+    Credencial segura da conta (necessaria para contas de dominio).
 
 .PARAMETER DryRun
     Simula a acao sem executar.
@@ -106,7 +106,7 @@ param(
 
     [string]$Conta,
 
-    [string]$Senha,
+    [pscredential]$Credencial,
 
     [string]$Filtro,
 
@@ -858,7 +858,7 @@ switch ($Acao) {
         }
         else {
             $params = @{ Name = $Servico; Account = $Conta }
-            if ($Senha) { $params['Password'] = $Senha }
+            if ($Credencial) { $params['Credential'] = $Credencial }
             $result = Set-WindowsServiceAccount @params
             if ($result.Success) { Write-Ok $result.Message }
             else { Write-Fail $result.Message }

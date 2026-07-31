@@ -1,4 +1,4 @@
-function Get-RestorePointInfo {
+﻿function Get-RestorePointInfo {
     <#
     .SYNOPSIS
         Lista pontos de restauracao do sistema.

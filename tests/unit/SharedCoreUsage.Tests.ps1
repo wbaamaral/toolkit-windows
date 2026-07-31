@@ -8,8 +8,8 @@ BeforeAll {
 }
 
 Describe 'Xtudo estrutura do toolkit' {
-    It 'Mantem dezoito scripts oficiais em scripts/' {
-        $script:scriptPaths.Count | Should -Be 18
+    It 'Mantem vinte e seis scripts oficiais em scripts/' {
+        $script:scriptPaths.Count | Should -Be 26
         foreach ($path in $script:scriptPaths) {
             Split-Path -Parent $path | Should -Be (Get-XtudoScriptsRoot)
         }
@@ -27,6 +27,24 @@ Describe 'Xtudo estrutura do toolkit' {
             $errors = $null
             [System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$tokens, [ref]$errors) | Out-Null
             @($errors).Count | Should -Be 0
+        }
+    }
+
+    It 'Nao usa Import-Module por variavel para dependencias do toolkit' {
+        foreach ($path in $script:scriptPaths) {
+            $content = Get-Content -LiteralPath $path -Raw
+            $content | Should -Not -Match '(?im)^\s*Import-Module\s+\$[A-Za-z_][A-Za-z0-9_]*'
+        }
+    }
+
+    It 'Carrega dependencias do toolkit por dot-source com verificacao de caminho' {
+        foreach ($path in $script:scriptPaths) {
+            $content = Get-Content -LiteralPath $path -Raw
+            if ($content -match 'modules/WbaToolkit\.') {
+                $content | Should -Match 'Test-Path\s+-LiteralPath'
+                $content | Should -Match 'Get-ChildItem\s+-LiteralPath\s+\$[A-Za-z_][A-Za-z0-9_]*\s+-Filter\s+''\*\.ps1''\s+-File'
+                $content | Should -Match 'ForEach-Object\s+\{\s*\.\s+\$_.FullName\s*\}'
+            }
         }
     }
 

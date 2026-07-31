@@ -1,4 +1,4 @@
-function Remove-BackupAntigo {
+﻿function Remove-BackupAntigo {
     <#
     .SYNOPSIS
         Remove backups antigos por retencao.

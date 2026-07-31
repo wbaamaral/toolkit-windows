@@ -1,4 +1,4 @@
-function Find-ScheduledTask {
+﻿function Find-ScheduledTask {
     <#
     .SYNOPSIS
         Busca tarefas agendadas por nome, caminho ou descricao.

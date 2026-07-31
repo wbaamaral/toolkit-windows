@@ -1,4 +1,4 @@
-function Enable-SystemProtection {
+﻿function Enable-SystemProtection {
     <#
     .SYNOPSIS
         Habilita a Protecao do Sistema em um volume.

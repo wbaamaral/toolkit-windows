@@ -1,4 +1,4 @@
-function New-SshHostKey {
+﻿function New-SshHostKey {
     <#
     .SYNOPSIS
         Gera ou regenera chaves de host do SSH.

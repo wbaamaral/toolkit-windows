@@ -104,17 +104,22 @@ $ScriptPath = $PSCommandPath
 $ScriptDir  = $PSScriptRoot
 $ToolkitRoot = Split-Path -Parent $ScriptDir
 
-# === Dependencias: validar e carregar modulos do toolkit ===
-$CoreModulePath = Join-Path $ToolkitRoot 'modules\WbaToolkit.Core\WbaToolkit.Core.psd1'
+# === Dependencias: dot-source direto (nao depende de Import-Module) ===
+$coreModuleRoot = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core'
 
-if (-not (Test-Path -LiteralPath $CoreModulePath)) {
-    Write-Host "[FALHA] Modulo nao encontrado: $CoreModulePath" -ForegroundColor Red
+if (-not (Test-Path -LiteralPath $coreModuleRoot)) {
+    Write-Host "[FALHA] Modulo nao encontrado: $coreModuleRoot" -ForegroundColor Red
     Write-Host "        Solucao: verifique o clone do repositorio em $ToolkitRoot" -ForegroundColor Yellow
     exit 1
 }
 
 try {
-    Import-Module $CoreModulePath -Force -ErrorAction Stop
+    foreach ($sub in @('Private', 'Public')) {
+        $dir = Join-Path $coreModuleRoot $sub
+        if (Test-Path -LiteralPath $dir) {
+            Get-ChildItem -LiteralPath $dir -Filter '*.ps1' -File | ForEach-Object { . $_.FullName }
+        }
+    }
 }
 catch {
     Write-Host "[FALHA] Nao foi possivel carregar os modulos do toolkit." -ForegroundColor Red

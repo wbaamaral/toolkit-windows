@@ -1,4 +1,4 @@
-function Write-BackupLog {
+﻿function Write-BackupLog {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]

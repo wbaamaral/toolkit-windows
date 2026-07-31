@@ -1,4 +1,4 @@
-function Resolve-ScheduledTask {
+﻿function Resolve-ScheduledTask {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]

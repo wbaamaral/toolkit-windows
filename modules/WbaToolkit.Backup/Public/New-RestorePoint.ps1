@@ -1,4 +1,4 @@
-function New-RestorePoint {
+﻿function New-RestorePoint {
     <#
     .SYNOPSIS
         Cria um ponto de restauracao do sistema.

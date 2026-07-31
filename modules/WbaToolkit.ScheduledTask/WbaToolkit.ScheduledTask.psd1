@@ -1,4 +1,4 @@
-@{
+﻿@{
     RootModule        = 'WbaToolkit.ScheduledTask.psm1'
     ModuleVersion     = '1.0.0'
     GUID              = 'c4d5e6f7-a890-1234-c4d5-e6f7a8901234'

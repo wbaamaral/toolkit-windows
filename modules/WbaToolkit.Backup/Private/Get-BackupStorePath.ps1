@@ -1,4 +1,4 @@
-function Get-BackupStorePath {
+﻿function Get-BackupStorePath {
     [CmdletBinding()]
     param(
         [string]$ModuleName = 'backup'

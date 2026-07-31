@@ -1,4 +1,4 @@
-function Set-SshdConfig {
+﻿function Set-SshdConfig {
     <#
     .SYNOPSIS
         Altera diretrizes do sshd_config com backup automatico.

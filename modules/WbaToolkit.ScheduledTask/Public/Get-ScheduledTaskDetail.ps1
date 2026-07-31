@@ -1,4 +1,4 @@
-function Get-ScheduledTaskDetail {
+﻿function Get-ScheduledTaskDetail {
     <#
     .SYNOPSIS
         Retorna detalhes completos de uma tarefa agendada.

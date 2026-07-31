@@ -1,4 +1,4 @@
-function Get-SshdConfig {
+﻿function Get-SshdConfig {
     <#
     .SYNOPSIS
         Le e retorna o sshd_config como hashtable estruturado.

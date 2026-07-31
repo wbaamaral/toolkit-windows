@@ -1,4 +1,4 @@
-function Get-ShadowCopy {
+﻿function Get-ShadowCopy {
     <#
     .SYNOPSIS
         Lista shadow copies existentes.

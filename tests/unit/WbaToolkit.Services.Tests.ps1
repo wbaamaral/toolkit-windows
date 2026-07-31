@@ -1,4 +1,11 @@
-#requires -version 5.1
+﻿#requires -version 5.1
+
+if ($env:OS -ne 'Windows_NT') {
+    Describe 'WbaToolkit.Services - requisito de plataforma' {
+        It 'Ignorado fora do Windows: requer Service Control Manager e CIM Windows' -Skip { }
+    }
+    return
+}
 
 BeforeAll {
     . (Join-Path $PSScriptRoot 'Xtudo.TestSupport.ps1')
@@ -77,6 +84,16 @@ Describe 'WbaToolkit.Services - estrutura do modulo' {
 }
 
 Describe 'WbaToolkit.Services - contratos das funcoes' {
+    Context 'Set-WindowsServiceAccount - seguranca de credenciais' {
+        It 'Exige PSCredential e suporta WhatIf para conta de dominio' {
+            $source = Get-Content -LiteralPath (Join-Path $script:publicDir 'Set-WindowsServiceAccount.ps1') -Raw
+            $source | Should -Match '\[pscredential\]\$Credential'
+            $source | Should -Not -Match '\[string\]\$Password'
+            $source | Should -Match 'SupportsShouldProcess\s*=\s*\$true'
+            $source | Should -Match 'GetNetworkCredential\(\)\.Password'
+        }
+    }
+
     Context 'Get-WindowsServiceStatus' {
         It 'Retorna objetos com propriedades esperadas' {
             $result = @(Get-WindowsServiceStatus -Name 'W32Time')

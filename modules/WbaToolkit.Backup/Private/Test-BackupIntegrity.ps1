@@ -1,4 +1,4 @@
-function Test-BackupIntegrity {
+﻿function Test-BackupIntegrity {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]

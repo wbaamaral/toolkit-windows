@@ -20,8 +20,8 @@
     .PARAMETER Account
         Conta de logon (para ConfigurarConta).
 
-    .PARAMETER Password
-        Senha da conta (para ConfigurarConta).
+    .PARAMETER Credential
+        Credencial segura da conta (para ConfigurarConta).
 
     .OUTPUTS
         PSCustomObject com: Success, Message, ServiceName, Changes.
@@ -45,7 +45,7 @@
 
         [string]$Account,
 
-        [string]$Password
+        [pscredential]$Credential
     )
 
     switch ($Acao) {
@@ -120,7 +120,7 @@
                 return Format-ServiceResult -Success $false -Message 'Acao ConfigurarConta requer -Account.'
             }
             $params = @{ Name = $ServiceName; Account = $Account }
-            if ($Password) { $params['Password'] = $Password }
+            if ($Credential) { $params['Credential'] = $Credential }
             return Set-WindowsServiceAccount @params
         }
     }

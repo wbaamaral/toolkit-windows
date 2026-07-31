@@ -1,4 +1,4 @@
-function Backup-LicenseState {
+﻿function Backup-LicenseState {
     <#
     .SYNOPSIS
         Salva snapshot completo do estado de licenciamento antes de operacoes de escrita.

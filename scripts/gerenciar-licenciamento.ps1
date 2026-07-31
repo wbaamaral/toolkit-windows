@@ -117,10 +117,10 @@ if ($Acao -in @('Ativar', 'InstalarChave', 'Rearm', 'DefinirKMS', 'Restaurar') -
     exit 0
 }
 
-$CoreModulePath    = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
-$LicensingModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Licensing/WbaToolkit.Licensing.psd1'
+$coreModuleRoot = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core'
+$licModuleRoot  = Join-Path $ToolkitRoot 'modules/WbaToolkit.Licensing'
 
-foreach ($mod in @($CoreModulePath, $LicensingModulePath)) {
+foreach ($mod in @($coreModuleRoot, $licModuleRoot)) {
     if (-not (Test-Path -LiteralPath $mod)) {
         Write-Host "[FALHA] Modulo nao encontrado: $mod" -ForegroundColor Red
         exit 1
@@ -128,8 +128,14 @@ foreach ($mod in @($CoreModulePath, $LicensingModulePath)) {
 }
 
 try {
-    Import-Module $CoreModulePath      -Force -ErrorAction Stop
-    Import-Module $LicensingModulePath -Force -ErrorAction Stop
+    foreach ($moduleRoot in @($coreModuleRoot, $licModuleRoot)) {
+        foreach ($sub in @('Private', 'Public')) {
+            $dir = Join-Path $moduleRoot $sub
+            if (Test-Path -LiteralPath $dir) {
+                Get-ChildItem -LiteralPath $dir -Filter '*.ps1' -File | ForEach-Object { . $_.FullName }
+            }
+        }
+    }
 }
 catch {
     Write-Host "[FALHA] Nao foi possivel carregar os modulos do toolkit." -ForegroundColor Red

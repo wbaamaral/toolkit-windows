@@ -113,10 +113,10 @@ $ScriptDir  = $PSScriptRoot
 $ToolkitRoot = Split-Path -Parent $ScriptDir
 
 # === Dependencias: validar e carregar modulos do toolkit ===
-$CoreModulePath        = Join-Path $ToolkitRoot 'modules\WbaToolkit.Core\WbaToolkit.Core.psd1'
-$ScheduledTaskModulePath = Join-Path $ToolkitRoot 'modules\WbaToolkit.ScheduledTask\WbaToolkit.ScheduledTask.psd1'
+$coreModuleRoot  = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core'
+$schedModuleRoot = Join-Path $ToolkitRoot 'modules/WbaToolkit.ScheduledTask'
 
-foreach ($mod in @($CoreModulePath, $ScheduledTaskModulePath)) {
+foreach ($mod in @($coreModuleRoot, $schedModuleRoot)) {
     if (-not (Test-Path -LiteralPath $mod)) {
         Write-Host "[FALHA] Modulo nao encontrado: $mod" -ForegroundColor Red
         Write-Host "        Solucao: verifique o clone do repositorio em $ToolkitRoot" -ForegroundColor Yellow
@@ -125,8 +125,14 @@ foreach ($mod in @($CoreModulePath, $ScheduledTaskModulePath)) {
 }
 
 try {
-    Import-Module $CoreModulePath        -Force -ErrorAction Stop
-    Import-Module $ScheduledTaskModulePath -Force -ErrorAction Stop
+    foreach ($moduleRoot in @($coreModuleRoot, $schedModuleRoot)) {
+        foreach ($sub in @('Private', 'Public')) {
+            $dir = Join-Path $moduleRoot $sub
+            if (Test-Path -LiteralPath $dir) {
+                Get-ChildItem -LiteralPath $dir -Filter '*.ps1' -File | ForEach-Object { . $_.FullName }
+            }
+        }
+    }
 }
 catch {
     Write-Host "[FALHA] Nao foi possivel carregar os modulos do toolkit." -ForegroundColor Red

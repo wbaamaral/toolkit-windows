@@ -1,4 +1,4 @@
-function Get-BackupConfiguration {
+﻿function Get-BackupConfiguration {
     <#
     .SYNOPSIS
         Retorna a configuracao atual de backup.

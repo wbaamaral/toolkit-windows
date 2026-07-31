@@ -62,7 +62,9 @@
 
     Desabilita o autologon e limpa a senha do segredo LSA.
 
-.NOTAS
+.NOTES
+    Projeto: wba-windows-toolkit
+    Autor: wbaamaral
     Requer execucao como Administrador.
     Autologon reduz a seguranca fisica da estacao; use com criterio.
     Modulos WbaToolkit.Core e WbaToolkit.Identity sao carregados automaticamente.
@@ -102,9 +104,35 @@ $ScriptPath = $PSCommandPath
 $ScriptDir  = $PSScriptRoot
 
 $ScriptVersion = 'v1.0.0'
+
+# === Dependencias: dot-source direto (ADR 0032) ===
 $ToolkitRoot   = Split-Path -Parent $PSScriptRoot
-Import-Module (Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1')     -Force -ErrorAction Stop
-Import-Module (Join-Path $ToolkitRoot 'modules/WbaToolkit.Identity/WbaToolkit.Identity.psd1') -Force -ErrorAction Stop
+$coreRoot      = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core'
+$identityRoot  = Join-Path $ToolkitRoot 'modules/WbaToolkit.Identity'
+
+foreach ($dir in @($coreRoot, $identityRoot)) {
+    if (-not (Test-Path -LiteralPath $dir)) {
+        Write-Host "[FALHA] Modulo nao encontrado: $dir" -ForegroundColor Red
+        exit 1
+    }
+}
+
+try {
+    foreach ($moduleRoot in @($coreRoot, $identityRoot)) {
+        foreach ($sub in @('Private', 'Public')) {
+            $subDir = Join-Path $moduleRoot $sub
+            if (Test-Path -LiteralPath $subDir) {
+                Get-ChildItem -LiteralPath $subDir -Filter '*.ps1' -File |
+                    ForEach-Object { . $_.FullName }
+            }
+        }
+    }
+}
+catch {
+    Write-Host "[FALHA] Nao foi possivel carregar os modulos do toolkit." -ForegroundColor Red
+    Write-Host "        Erro: $($_.Exception.Message)" -ForegroundColor Yellow
+    exit 1
+}
 
 # WBA-DOCS: Category=Identidade; Manual=Gerenciamento de login automatico do Windows
 

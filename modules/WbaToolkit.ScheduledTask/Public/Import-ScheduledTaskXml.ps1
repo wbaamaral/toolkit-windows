@@ -1,4 +1,4 @@
-function Import-ScheduledTaskXml {
+﻿function Import-ScheduledTaskXml {
     <#
     .SYNOPSIS
         Importa uma tarefa agendada a partir de um arquivo XML.

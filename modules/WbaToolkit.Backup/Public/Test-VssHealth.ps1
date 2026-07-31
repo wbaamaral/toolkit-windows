@@ -1,4 +1,4 @@
-function Test-VssHealth {
+﻿function Test-VssHealth {
     <#
     .SYNOPSIS
         Verifica a saude do servico VSS e espaco em disco.

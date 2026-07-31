@@ -1,4 +1,4 @@
-@{
+﻿@{
     RootModule        = 'WbaToolkit.ShadowCopy.psm1'
     ModuleVersion     = '1.0.0'
     GUID              = 'b3c4d5e6-f7a8-9012-b3c4-d5e6f7a89012'

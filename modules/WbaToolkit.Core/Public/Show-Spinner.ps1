@@ -1,4 +1,4 @@
-function Show-Spinner {
+﻿function Show-Spinner {
     <#
     .SYNOPSIS
         Exibe um spinner com timer durante operacoes demoradas.

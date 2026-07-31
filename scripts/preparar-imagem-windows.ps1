@@ -45,7 +45,9 @@
     Fluxo completo (tweaks + oferta de sysprep.exe):
         .\preparar-imagem-windows.ps1
 
-.NOTAS
+.NOTES
+    Projeto: wba-windows-toolkit
+    Autor: wbaamaral
     Requer execucao como Administrador.
     O backup do perfil Default e gravado em BackupsPath da sessao de relatorios.
 #>
@@ -80,14 +82,31 @@ else {
 $ScriptPath = $PSCommandPath
 $ScriptDir  = $PSScriptRoot
 
-$ScriptVersion = 'v1.0.0'
+$ScriptVersion       = 'v1.0.0'
 $ToolkitRoot         = Split-Path -Parent $PSScriptRoot
-$coreModulePath      = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
-$maintenancePath     = Join-Path $ToolkitRoot 'modules/WbaToolkit.Maintenance/WbaToolkit.Maintenance.psd1'
+$coreModuleRoot      = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core'
+$maintModuleRoot     = Join-Path $ToolkitRoot 'modules/WbaToolkit.Maintenance'
 $regfilesSysprepDir  = Join-Path $ToolkitRoot 'regfiles/sysprep'
 
-Import-Module $coreModulePath  -Force -ErrorAction Stop
-Import-Module $maintenancePath -Force -ErrorAction Stop
+foreach ($moduleRoot in @($coreModuleRoot, $maintModuleRoot)) {
+    if (-not (Test-Path -LiteralPath $moduleRoot)) {
+        throw "Modulo nao encontrado: $moduleRoot"
+    }
+}
+
+try {
+    foreach ($moduleRoot in @($coreModuleRoot, $maintModuleRoot)) {
+        foreach ($sub in @('Private', 'Public')) {
+            $dir = Join-Path $moduleRoot $sub
+            if (Test-Path -LiteralPath $dir) {
+                Get-ChildItem -LiteralPath $dir -Filter '*.ps1' -File | ForEach-Object { . $_.FullName }
+            }
+        }
+    }
+}
+catch {
+    throw "Nao foi possivel carregar os modulos do toolkit: $($_.Exception.Message)"
+}
 
 # WBA-DOCS: Category=Maintenance; Manual=Preparacao de Imagem Windows
 

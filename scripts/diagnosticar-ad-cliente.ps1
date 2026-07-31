@@ -46,6 +46,11 @@
 
 .EXAMPLE
     .\diagnosticar-ad-cliente.ps1 -Modo Assistido -Hora -Canal -DomainFQDN wba.test
+
+.NOTES
+    Projeto: wba-windows-toolkit
+    Autor: wbaamaral
+    Módulos requeridos: WbaToolkit.Core, WbaToolkit.Startup, WbaToolkit.Maintenance.
 #>
 [CmdletBinding()]
 param(
@@ -86,10 +91,35 @@ $ScriptName = if ($MyInvocation.MyCommand.Name) { $MyInvocation.MyCommand.Name }
 $ScriptPath = $PSCommandPath
 $ScriptDir  = $PSScriptRoot
 
+# === Dependencias: dot-source direto (ADR 0032) ===
 $ToolkitRoot = Split-Path -Parent $PSScriptRoot
-Import-Module (Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1') -Force -ErrorAction Stop
-Import-Module (Join-Path $ToolkitRoot 'modules/WbaToolkit.Startup/WbaToolkit.Startup.psd1') -Force -ErrorAction Stop
-Import-Module (Join-Path $ToolkitRoot 'modules/WbaToolkit.Maintenance/WbaToolkit.Maintenance.psd1') -Force -ErrorAction Stop
+$coreRoot    = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core'
+$startupRoot = Join-Path $ToolkitRoot 'modules/WbaToolkit.Startup'
+$maintRoot   = Join-Path $ToolkitRoot 'modules/WbaToolkit.Maintenance'
+
+foreach ($dir in @($coreRoot, $startupRoot, $maintRoot)) {
+    if (-not (Test-Path -LiteralPath $dir)) {
+        Write-Host "[FALHA] Modulo nao encontrado: $dir" -ForegroundColor Red
+        exit 1
+    }
+}
+
+try {
+    foreach ($moduleRoot in @($coreRoot, $startupRoot, $maintRoot)) {
+        foreach ($sub in @('Private', 'Public')) {
+            $subDir = Join-Path $moduleRoot $sub
+            if (Test-Path -LiteralPath $subDir) {
+                Get-ChildItem -LiteralPath $subDir -Filter '*.ps1' -File |
+                    ForEach-Object { . $_.FullName }
+            }
+        }
+    }
+}
+catch {
+    Write-Host "[FALHA] Nao foi possivel carregar os modulos do toolkit." -ForegroundColor Red
+    Write-Host "        Erro: $($_.Exception.Message)" -ForegroundColor Yellow
+    exit 1
+}
 
 $ScriptVersion = 'v1.0.0'
 $script:Checks = New-Object 'System.Collections.Generic.List[object]'
@@ -105,7 +135,7 @@ function Show-Help {
     [CmdletBinding()]
     param()
     Write-Host ""
-    Write-Host "Diagnóstico de Cliente de Domínio (AD) — $ScriptVersion" -ForegroundColor Cyan
+    Write-Title "Diagnóstico de Cliente de Domínio (AD) — $ScriptVersion"
     Write-Host ""
     Write-Host "Uso:  .\$ScriptName [opcoes]"
     Write-Host ""
@@ -263,7 +293,7 @@ function Test-AdConnectivity {
 
     $ping = Test-Connection -ComputerName $script:TargetDc -Count 2 -ErrorAction SilentlyContinue
     if ($ping) {
-        $rttProperty = if ((@($ping)[0].PSObject.Properties.Name) -contains 'Latency') { 'Latency' } else { 'ResponseTime' }
+        $rttProperty = if ($null -ne (@($ping)[0]).PSObject.Properties['Latency']) { 'Latency' } else { 'ResponseTime' }
         $rtt = [math]::Round((($ping | Measure-Object -Property $rttProperty -Average).Average), 1)
         Add-AdCheck -Category 'Conectividade' -Name 'Ping ao DC' -Status 'OK' -Detail "RTT médio para $script:TargetDc: $rtt ms" -Penalty 0
     }
@@ -712,13 +742,10 @@ if ($context.PartOfDomain -and -not [string]::IsNullOrWhiteSpace($context.Domain
 }
 
 $summary = Get-AdHealthSummary
-Write-Host ''
-Write-Host '============================================================' -ForegroundColor Cyan
-Write-Host " Resumo AD - $($summary.Label)" -ForegroundColor Cyan
-Write-Host '============================================================' -ForegroundColor Cyan
-Write-Host "Reputação : $($summary.Score)/100" -ForegroundColor Yellow
-Write-Host "Críticas  : $($summary.CriticalCount)" -ForegroundColor Yellow
-Write-Host "Avisos    : $($summary.WarningCount)" -ForegroundColor Yellow
+Write-Title "Resumo AD - $($summary.Label)"
+Write-Info "Reputação : $($summary.Score)/100"
+Write-Info "Críticas  : $($summary.CriticalCount)"
+Write-Info "Avisos    : $($summary.WarningCount)"
 Write-Host ''
 
 Write-AdReport -Summary $summary

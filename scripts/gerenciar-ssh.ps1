@@ -130,10 +130,10 @@ if ($Acao -in $actionRequiresAdmin -and -not (Test-IsAdministrator)) {
     exit 0
 }
 
-$CoreModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
-$SshModulePath  = Join-Path $ToolkitRoot 'modules/WbaToolkit.SSH/WbaToolkit.SSH.psd1'
+$coreModuleRoot = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core'
+$sshModuleRoot  = Join-Path $ToolkitRoot 'modules/WbaToolkit.SSH'
 
-foreach ($mod in @($CoreModulePath, $SshModulePath)) {
+foreach ($mod in @($coreModuleRoot, $sshModuleRoot)) {
     if (-not (Test-Path -LiteralPath $mod)) {
         Write-Host "[FALHA] Modulo nao encontrado: $mod" -ForegroundColor Red
         exit 1
@@ -141,8 +141,14 @@ foreach ($mod in @($CoreModulePath, $SshModulePath)) {
 }
 
 try {
-    Import-Module $CoreModulePath -Force -ErrorAction Stop
-    Import-Module $SshModulePath  -Force -ErrorAction Stop
+    foreach ($moduleRoot in @($coreModuleRoot, $sshModuleRoot)) {
+        foreach ($sub in @('Private', 'Public')) {
+            $dir = Join-Path $moduleRoot $sub
+            if (Test-Path -LiteralPath $dir) {
+                Get-ChildItem -LiteralPath $dir -Filter '*.ps1' -File | ForEach-Object { . $_.FullName }
+            }
+        }
+    }
 }
 catch {
     Write-Host "[FALHA] Nao foi possivel carregar os modulos do toolkit." -ForegroundColor Red

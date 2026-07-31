@@ -888,13 +888,13 @@ if ($GerarResumoHardwareDrivers -or $SomenteHardwareDrivers) {
 
     if ($SomenteHardwareDrivers) {
         Write-Title 'RESUMO CONCLUIDO'
-        if ($HardwareDriverSummaryFiles.PSObject.Properties.Name -contains 'Txt') {
+        if ($null -ne $HardwareDriverSummaryFiles.PSObject.Properties['Txt']) {
             Write-Ok "Resumo TXT:       $($HardwareDriverSummaryFiles.Txt)"
         }
-        if ($HardwareDriverSummaryFiles.PSObject.Properties.Name -contains 'Markdown') {
+        if ($null -ne $HardwareDriverSummaryFiles.PSObject.Properties['Markdown']) {
             Write-Ok "Resumo Markdown:  $($HardwareDriverSummaryFiles.Markdown)"
         }
-        if ($HardwareDriverSummaryFiles.PSObject.Properties.Name -contains 'Json') {
+        if ($null -ne $HardwareDriverSummaryFiles.PSObject.Properties['Json']) {
             Write-Ok "Resumo JSON:      $($HardwareDriverSummaryFiles.Json)"
         }
         Write-Info "Log:              $LogFile"
@@ -1547,13 +1547,13 @@ if (-not $NaoPDF -and (Test-Path $PdfFile)) {
     Write-Ok  "PDF   : $PdfFile"
 }
 if ($HardwareDriverSummaryFiles) {
-    if ($HardwareDriverSummaryFiles.PSObject.Properties.Name -contains 'Txt') {
+    if ($null -ne $HardwareDriverSummaryFiles.PSObject.Properties['Txt']) {
         Write-Ok "Resumo TXT:       $($HardwareDriverSummaryFiles.Txt)"
     }
-    if ($HardwareDriverSummaryFiles.PSObject.Properties.Name -contains 'Markdown') {
+    if ($null -ne $HardwareDriverSummaryFiles.PSObject.Properties['Markdown']) {
         Write-Ok "Resumo Markdown:  $($HardwareDriverSummaryFiles.Markdown)"
     }
-    if ($HardwareDriverSummaryFiles.PSObject.Properties.Name -contains 'Json') {
+    if ($null -ne $HardwareDriverSummaryFiles.PSObject.Properties['Json']) {
         Write-Ok "Resumo JSON:      $($HardwareDriverSummaryFiles.Json)"
     }
 }

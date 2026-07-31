@@ -1,4 +1,4 @@
-function Get-SshServerStatus {
+﻿function Get-SshServerStatus {
     <#
     .SYNOPSIS
         Verifica o estado completo do OpenSSH Server no Windows.

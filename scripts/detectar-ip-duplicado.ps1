@@ -140,10 +140,10 @@ if ($env:PSModulePath -notlike "*$moduleRoot*") {
     $env:PSModulePath = "$moduleRoot;$env:PSModulePath"
 }
 
-$CoreModulePath      = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
-$NetworkingModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Networking/WbaToolkit.Networking.psd1'
+$coreModuleRoot = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core'
+$netModuleRoot  = Join-Path $ToolkitRoot 'modules/WbaToolkit.Networking'
 
-foreach ($mod in @($CoreModulePath, $NetworkingModulePath)) {
+foreach ($mod in @($coreModuleRoot, $netModuleRoot)) {
     if (-not (Test-Path -LiteralPath $mod)) {
         Write-Host "[FALHA] Modulo nao encontrado: $mod" -ForegroundColor Red
         Write-Host "        Solucao: verifique o clone do repositorio em $ToolkitRoot" -ForegroundColor Yellow
@@ -152,10 +152,14 @@ foreach ($mod in @($CoreModulePath, $NetworkingModulePath)) {
 }
 
 try {
-    Import-Module $CoreModulePath       -Force -ErrorAction Stop
-    # Detect-DuplicateIp é nome público histórico da funcionalidade; suprime
-    # apenas o aviso de verbo não aprovado, sem esconder erros de importação.
-    Import-Module $NetworkingModulePath -Force -DisableNameChecking -ErrorAction Stop
+    foreach ($moduleRoot in @($coreModuleRoot, $netModuleRoot)) {
+        foreach ($sub in @('Private', 'Public')) {
+            $dir = Join-Path $moduleRoot $sub
+            if (Test-Path -LiteralPath $dir) {
+                Get-ChildItem -LiteralPath $dir -Filter '*.ps1' -File | ForEach-Object { . $_.FullName }
+            }
+        }
+    }
 }
 catch {
     Write-Host "[FALHA] Nao foi possivel carregar os modulos do toolkit." -ForegroundColor Red
@@ -209,7 +213,7 @@ if ($totalDup -gt 0) {
     Write-Ok "Nenhuma duplicacao detectada."
 }
 
-if ($results.Count -gt 0 -and $results[0].PSObject.Properties.Name -contains 'ReportFiles') {
+if ($results.Count -gt 0 -and $null -ne $results[0].PSObject.Properties['ReportFiles']) {
     Write-Info "Relatorios gerados:"
     foreach ($p in $results[0].ReportFiles) {
         Write-Host "  $p" -ForegroundColor Cyan

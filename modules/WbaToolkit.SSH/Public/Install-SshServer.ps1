@@ -1,4 +1,4 @@
-function Install-SshServer {
+﻿function Install-SshServer {
     <#
     .SYNOPSIS
         Instala o OpenSSH Server como feature opcional do Windows.

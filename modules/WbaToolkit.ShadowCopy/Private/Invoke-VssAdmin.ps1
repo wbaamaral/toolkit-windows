@@ -1,4 +1,4 @@
-function Invoke-VssAdmin {
+﻿function Invoke-VssAdmin {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]

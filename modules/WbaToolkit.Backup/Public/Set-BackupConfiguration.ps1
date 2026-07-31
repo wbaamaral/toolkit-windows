@@ -1,4 +1,4 @@
-function Set-BackupConfiguration {
+﻿function Set-BackupConfiguration {
     <#
     .SYNOPSIS
         Atualiza a configuracao de backup.

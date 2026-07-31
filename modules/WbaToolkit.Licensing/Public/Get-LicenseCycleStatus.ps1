@@ -1,4 +1,4 @@
-function Get-LicenseCycleStatus {
+﻿function Get-LicenseCycleStatus {
     <#
     .SYNOPSIS
         Analisa o ciclo de licenciamento do Windows e retorna estado, dias

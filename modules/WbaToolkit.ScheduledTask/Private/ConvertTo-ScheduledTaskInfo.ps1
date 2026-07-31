@@ -1,4 +1,4 @@
-function ConvertTo-ScheduledTaskInfo {
+﻿function ConvertTo-ScheduledTaskInfo {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]

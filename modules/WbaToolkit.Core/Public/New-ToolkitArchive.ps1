@@ -1,4 +1,4 @@
-function New-ToolkitArchive {
+﻿function New-ToolkitArchive {
     <#
     .SYNOPSIS
         Cria pacote ZIP a partir de um diretorio e opcionalmente gera hash SHA256.

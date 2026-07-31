@@ -1,5 +1,12 @@
 ﻿#requires -version 5.1
 
+if ($env:OS -ne 'Windows_NT') {
+    Describe 'WbaToolkit.Maintenance - requisito de plataforma' {
+        It 'Ignorado fora do Windows: requer Registro, DISM, AppX e servicos Windows' -Skip { }
+    }
+    return
+}
+
 Describe 'WbaToolkit.Maintenance' {
 
     BeforeAll {

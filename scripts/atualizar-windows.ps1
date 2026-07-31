@@ -33,9 +33,24 @@ $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
 
 chcp 65001 | Out-Null
 
-$ToolkitRoot      = Split-Path -Parent $PSScriptRoot
-$ToolkitModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
-Import-Module $ToolkitModulePath -Force -ErrorAction Stop
+$ToolkitRoot    = Split-Path -Parent $PSScriptRoot
+$coreModuleRoot = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core'
+
+if (-not (Test-Path -LiteralPath $coreModuleRoot)) {
+    throw "Modulo nao encontrado: $coreModuleRoot"
+}
+
+try {
+    foreach ($sub in @('Private', 'Public')) {
+        $dir = Join-Path $coreModuleRoot $sub
+        if (Test-Path -LiteralPath $dir) {
+            Get-ChildItem -LiteralPath $dir -Filter '*.ps1' -File | ForEach-Object { . $_.FullName }
+        }
+    }
+}
+catch {
+    throw "Nao foi possivel carregar WbaToolkit.Core: $($_.Exception.Message)"
+}
 
 # WBA-DOCS: Category=Updates; Manual=Atualização geral do Windows com backend resolvido
 

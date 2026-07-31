@@ -1,4 +1,4 @@
-﻿@{
+﻿﻿@{
     RootModule        = 'WbaToolkit.Licensing.psm1'
     ModuleVersion     = '0.4.0'
     GUID              = '89bdf78c-2e42-4b5e-a9e0-6c9f3a87b2d1'
@@ -12,16 +12,10 @@
     )
     FunctionsToExport = @(
         'Backup-LicenseState',
-        'ConvertTo-LicenseInfoObject',
         'Get-LicenseCycleStatus',
-        'Get-LicenseHardwareContext',
-        'Get-OemProductKey',
-        'Get-SoftwareLicensingProduct',
-        'Get-SoftwareLicensingService',
-        'Invoke-Slmgr',
-        'Restore-LicenseState',
-        'Test-LicenseAdminContext',
-        'Test-ProductKeyFormat'
+        'Get-WindowsLicenseInfo',
+        'Resolve-LicenseError',
+        'Restore-LicenseState'
     )
     CmdletsToExport   = @()
     VariablesToExport = @()

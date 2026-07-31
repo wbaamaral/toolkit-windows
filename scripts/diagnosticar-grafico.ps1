@@ -132,9 +132,24 @@ else {
 
 $ScriptPath = $PSCommandPath
 $ScriptDir  = $PSScriptRoot
-$ToolkitRoot = Split-Path -Parent $PSScriptRoot
-$ToolkitModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
-Import-Module $ToolkitModulePath -Force -ErrorAction Stop
+$ToolkitRoot    = Split-Path -Parent $PSScriptRoot
+$coreModuleRoot = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core'
+
+if (-not (Test-Path -LiteralPath $coreModuleRoot)) {
+    throw "Modulo nao encontrado: $coreModuleRoot"
+}
+
+try {
+    foreach ($sub in @('Private', 'Public')) {
+        $dir = Join-Path $coreModuleRoot $sub
+        if (Test-Path -LiteralPath $dir) {
+            Get-ChildItem -LiteralPath $dir -Filter '*.ps1' -File | ForEach-Object { . $_.FullName }
+        }
+    }
+}
+catch {
+    throw "Nao foi possivel carregar WbaToolkit.Core: $($_.Exception.Message)"
+}
 
 $ScriptVersion = 'v1.0.0'
 $script:GfxSession = $null
@@ -465,7 +480,7 @@ function Get-GfxTdrRegistry {
     try {
         $item = Get-ItemProperty -LiteralPath $path -ErrorAction Stop
         $values = foreach ($name in $properties) {
-            if ($item.PSObject.Properties.Name -contains $name) {
+            if ($null -ne $item.PSObject.Properties[$name]) {
                 [pscustomobject]@{ Name = $name; Value = $item.$name; Present = $true }
             }
             else {
@@ -984,7 +999,7 @@ function ConvertTo-GfxHtmlRows {
     $body = foreach ($row in $Rows) {
         $cells = foreach ($column in $Columns) {
             $value = $null
-            if ($row.PSObject.Properties.Name -contains $column) {
+            if ($null -ne $row.PSObject.Properties[$column]) {
                 $value = $row.$column
             }
             '<td>' + (ConvertTo-HtmlSafe $value) + '</td>'

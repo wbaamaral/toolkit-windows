@@ -1,4 +1,4 @@
-function Enable-ScheduledTaskByName {
+﻿function Enable-ScheduledTaskByName {
     <#
     .SYNOPSIS
         Habilita uma tarefa agendada por nome.

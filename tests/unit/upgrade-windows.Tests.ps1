@@ -10,7 +10,9 @@ BeforeAll {
 Describe 'Xtudo rotas de update' {
     It 'Mantem o script oficial de update em scripts/' {
         Test-Path -LiteralPath $script:updatePath | Should -BeTrue
-        $script:updateContent | Should -Match 'WbaToolkit\.Core\.psd1'
+        $script:updateContent | Should -Match "modules/WbaToolkit\.Core"
+        $script:updateContent | Should -Match "Get-ChildItem -LiteralPath .* -Filter '\*\.ps1' -File"
+        $script:updateContent | Should -Match 'ForEach-Object \{ \. \$_\.FullName \}'
         $script:updateContent | Should -Match "ValidateSet\('Auto', 'WinGet', 'Chocolatey', 'All'\)"
         $script:updateContent | Should -Match 'Invoke-WindowsUpdateStep'
     }

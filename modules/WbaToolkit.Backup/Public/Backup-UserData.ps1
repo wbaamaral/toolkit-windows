@@ -1,4 +1,4 @@
-function Backup-UserData {
+﻿function Backup-UserData {
     <#
     .SYNOPSIS
         Realiza backup dos dados do usuario.

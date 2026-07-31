@@ -1,4 +1,4 @@
-function Get-BackupConfigurationInternal {
+﻿function Get-BackupConfigurationInternal {
     [CmdletBinding()]
     param()
 

@@ -1,4 +1,4 @@
-function Get-SshConfigPath {
+﻿function Get-SshConfigPath {
     <#
     .SYNOPSIS
         Retorna os caminhos padrao dos arquivos de configuracao SSH no Windows.

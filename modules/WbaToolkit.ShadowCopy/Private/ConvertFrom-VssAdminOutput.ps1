@@ -1,4 +1,4 @@
-function ConvertFrom-VssAdminOutput {
+﻿function ConvertFrom-VssAdminOutput {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]

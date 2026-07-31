@@ -1,4 +1,4 @@
-function Disable-SshServer {
+﻿function Disable-SshServer {
     <#
     .SYNOPSIS
         Para e desabilita o servico sshd.

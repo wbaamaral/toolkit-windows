@@ -1,4 +1,4 @@
-function Resolve-VolumePath {
+﻿function Resolve-VolumePath {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]

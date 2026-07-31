@@ -1,4 +1,4 @@
-function Get-BackupHistory {
+﻿function Get-BackupHistory {
     <#
     .SYNOPSIS
         Retorna historico de backups realizados.

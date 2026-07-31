@@ -101,7 +101,9 @@
     Caso a política de execução bloqueie o script, execute antes:
         Set-ExecutionPolicy Bypass -Scope Process -Force
 
-.NOTAS
+.NOTES
+    Projeto: wba-windows-toolkit
+    Autor: wbaamaral
     Recomendado executar em PowerShell como Administrador.
     Testado conceitualmente para Windows 10 Pro com PowerShell 5.1 ou superior.
 #>
@@ -144,11 +146,29 @@ $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
 
 chcp 65001 | Out-Null
 
-$ToolkitRoot           = Split-Path -Parent $PSScriptRoot
-$CoreModulePath        = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
-$MaintenanceModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Maintenance/WbaToolkit.Maintenance.psd1'
-Import-Module $CoreModulePath        -Force -ErrorAction Stop
-Import-Module $MaintenanceModulePath -Force -ErrorAction Stop
+$ToolkitRoot        = Split-Path -Parent $PSScriptRoot
+$coreModuleRoot     = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core'
+$maintModuleRoot    = Join-Path $ToolkitRoot 'modules/WbaToolkit.Maintenance'
+
+foreach ($moduleRoot in @($coreModuleRoot, $maintModuleRoot)) {
+    if (-not (Test-Path -LiteralPath $moduleRoot)) {
+        throw "Modulo nao encontrado: $moduleRoot"
+    }
+}
+
+try {
+    foreach ($moduleRoot in @($coreModuleRoot, $maintModuleRoot)) {
+        foreach ($sub in @('Private', 'Public')) {
+            $dir = Join-Path $moduleRoot $sub
+            if (Test-Path -LiteralPath $dir) {
+                Get-ChildItem -LiteralPath $dir -Filter '*.ps1' -File | ForEach-Object { . $_.FullName }
+            }
+        }
+    }
+}
+catch {
+    throw "Nao foi possivel carregar os modulos do toolkit: $($_.Exception.Message)"
+}
 
 # WBA-DOCS: Category=Maintenance; Related=limpar-winsxs.ps1; Manual=Limpeza de arquivos temporarios e logs do Windows
 

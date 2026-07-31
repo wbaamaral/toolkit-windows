@@ -1,4 +1,4 @@
-function Get-ShadowCopyStorage {
+﻿function Get-ShadowCopyStorage {
     <#
     .SYNOPSIS
         Retorna informacoes de uso do shadow storage por volume.

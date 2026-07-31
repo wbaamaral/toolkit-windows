@@ -115,11 +115,28 @@ $ScriptDir  = $PSScriptRoot
 $ScriptVersion = 'v1.0.0'
 $ToolkitRoot   = Split-Path -Parent $PSScriptRoot
 
-$coreModulePath    = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
-$startupModulePath = Join-Path $ToolkitRoot 'modules/WbaToolkit.Startup/WbaToolkit.Startup.psd1'
+$coreModuleRoot    = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core'
+$startupModuleRoot = Join-Path $ToolkitRoot 'modules/WbaToolkit.Startup'
 
-Import-Module $coreModulePath    -Force -ErrorAction Stop
-Import-Module $startupModulePath -Force -ErrorAction Stop
+foreach ($moduleRoot in @($coreModuleRoot, $startupModuleRoot)) {
+    if (-not (Test-Path -LiteralPath $moduleRoot)) {
+        throw "Modulo nao encontrado: $moduleRoot"
+    }
+}
+
+try {
+    foreach ($moduleRoot in @($coreModuleRoot, $startupModuleRoot)) {
+        foreach ($sub in @('Private', 'Public')) {
+            $dir = Join-Path $moduleRoot $sub
+            if (Test-Path -LiteralPath $dir) {
+                Get-ChildItem -LiteralPath $dir -Filter '*.ps1' -File | ForEach-Object { . $_.FullName }
+            }
+        }
+    }
+}
+catch {
+    throw "Nao foi possivel carregar os modulos do toolkit: $($_.Exception.Message)"
+}
 
 # WBA-DOCS: Category=Startup; Manual=Gerenciamento de inicializacao e servicos do Windows
 

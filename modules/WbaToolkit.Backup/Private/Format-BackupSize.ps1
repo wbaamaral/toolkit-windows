@@ -1,4 +1,4 @@
-function Format-BackupSize {
+﻿function Format-BackupSize {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]

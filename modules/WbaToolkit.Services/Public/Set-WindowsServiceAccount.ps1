@@ -13,8 +13,8 @@
     .PARAMETER Account
         Conta de logon: 'LocalSystem', 'LocalService', 'NetworkService' ou 'DOMINIO\usuario'.
 
-    .PARAMETER Password
-        Senha da conta (necessario para contas que nao sejam Built-in).
+    .PARAMETER Credential
+        Credencial segura da conta. Obrigatoria para contas que nao sejam Built-in.
 
     .OUTPUTS
         PSCustomObject com: Success, Message, ServiceName, Changes.
@@ -23,9 +23,10 @@
         Set-WindowsServiceAccount -Name 'MeuServico' -Account 'NETWORK SERVICE'
 
     .EXAMPLE
-        Set-WindowsServiceAccount -Name 'MeuServico' -Account 'DOMINIO\svc_meu' -Password 'S3nh@'
+        $credential = Get-Credential -UserName 'DOMINIO\svc_meu'
+        Set-WindowsServiceAccount -Name 'MeuServico' -Account 'DOMINIO\svc_meu' -Credential $credential
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -35,7 +36,7 @@
         [ValidateNotNullOrEmpty()]
         [string]$Account,
 
-        [string]$Password
+        [pscredential]$Credential
     )
 
     if (-not (Test-IsAdministrator)) {
@@ -56,15 +57,23 @@
 
     $needsPassword = ($Account -notin $builtIn) -and ($Account -ne 'LocalSystem')
 
-    if ($needsPassword -and [string]::IsNullOrWhiteSpace($Password)) {
-        return Format-ServiceResult -Success $false -Message "Conta '$Account' requer -Password." -ServiceName $Name
+    if ($needsPassword -and $null -eq $Credential) {
+        return Format-ServiceResult -Success $false -Message "Conta '$Account' requer -Credential." -ServiceName $Name
+    }
+
+    if ($needsPassword -and $Credential.UserName -ne $Account) {
+        return Format-ServiceResult -Success $false -Message 'O usuário de -Credential deve corresponder a -Account.' -ServiceName $Name
     }
 
     try {
+        if (-not $PSCmdlet.ShouldProcess($Name, "Alterar conta de logon para $Account")) {
+            return Format-ServiceResult -Success $true -Message 'WhatIf: nenhuma alteração aplicada.' -ServiceName $Name
+        }
+
         if ($needsPassword) {
             $wmi | Invoke-CimMethod -MethodName Change -Arguments @{
                 StartName = $Account
-                StartPassword = $Password
+                StartPassword = $Credential.GetNetworkCredential().Password
             } | Out-Null
         }
         else {

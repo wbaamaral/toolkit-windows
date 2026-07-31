@@ -1,4 +1,4 @@
-function New-ToolkitHtmlReport {
+﻿function New-ToolkitHtmlReport {
     <#
     .SYNOPSIS
         Gera esqueleto HTML padronizado para relatorios do toolkit.

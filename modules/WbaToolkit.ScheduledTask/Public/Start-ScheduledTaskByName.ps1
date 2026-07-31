@@ -1,4 +1,4 @@
-function Start-ScheduledTaskByName {
+﻿function Start-ScheduledTaskByName {
     <#
     .SYNOPSIS
         Executa uma tarefa agendada manualmente.
