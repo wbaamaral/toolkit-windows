@@ -179,7 +179,7 @@ if ($DryRun) {
 
 if ($Acao -eq 'Configurar') {
     if ([string]::IsNullOrWhiteSpace($ConfigKey)) {
-        Write-Host "[FALHA] Acao Configurar requer -ConfigKey." -ForegroundColor Red
+        Write-Fail "Acao Configurar requer -ConfigKey."
         if ($transcriptActive) { Stop-Transcript }
         exit 1
     }
@@ -187,7 +187,7 @@ if ($Acao -eq 'Configurar') {
 
 if ($Acao -eq 'AdicionarChave') {
     if ([string]::IsNullOrWhiteSpace($PublicKeyPath)) {
-        Write-Host "[FALHA] Acao AdicionarChave requer -PublicKeyPath." -ForegroundColor Red
+        Write-Fail "Acao AdicionarChave requer -PublicKeyPath."
         if ($transcriptActive) { Stop-Transcript }
         exit 1
     }
@@ -254,7 +254,7 @@ if ($Acao -eq 'Diagnostico') {
         Write-Warn "SSH Server instalado mas servico $($status.ServiceStatus)."
     }
     else {
-        Write-Host "  [INFO] SSH Server nao instalado. Use -Acao Instalar." -ForegroundColor Yellow
+        Write-Warn "SSH Server nao instalado. Use -Acao Instalar."
     }
 }
 
@@ -264,72 +264,72 @@ switch ($Acao) {
     'Instalar' {
         Write-Title "Instalando OpenSSH Server"
         if ($DryRun) {
-            Write-Host "  DRY-RUN: Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0" -ForegroundColor Yellow
+            Write-Warn "DRY-RUN: Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0"
         }
         else {
             $result = Install-SshServer
             if ($result.Success) { Write-Ok $result.Message }
-            else { Write-Host "  [FALHA] $($result.Message)" -ForegroundColor Red }
+        else { Write-Fail $result.Message }
         }
     }
 
     'Habilitar' {
         Write-Title "Habilitando SSH Server"
         if ($DryRun) {
-            Write-Host "  DRY-RUN: Set-Service sshd -StartupType Automatic; Start-Service sshd" -ForegroundColor Yellow
-            Write-Host "  DRY-RUN: New-NetFirewallRule 'OpenSSH Server (sshd)' Port $Port" -ForegroundColor Yellow
+            Write-Warn "DRY-RUN: Set-Service sshd -StartupType Automatic; Start-Service sshd"
+            Write-Warn "DRY-RUN: New-NetFirewallRule 'OpenSSH Server (sshd)' Port $Port"
         }
         else {
             $result = Enable-SshServer -Port $Port
             if ($result.Success) { Write-Ok $result.Message }
-            else { Write-Host "  [FALHA] $($result.Message)" -ForegroundColor Red }
+        else { Write-Fail $result.Message }
         }
     }
 
     'Desabilitar' {
         Write-Title "Desabilitando SSH Server"
         if ($DryRun) {
-            Write-Host "  DRY-RUN: Stop-Service sshd; Set-Service sshd -StartupType Manual" -ForegroundColor Yellow
+            Write-Warn "DRY-RUN: Stop-Service sshd; Set-Service sshd -StartupType Manual"
         }
         else {
             $result = Disable-SshServer
             if ($result.Success) { Write-Ok $result.Message }
-            else { Write-Host "  [FALHA] $($result.Message)" -ForegroundColor Red }
+        else { Write-Fail $result.Message }
         }
     }
 
     'Parar' {
         Write-Title "Parando SSH Server"
         if ($DryRun) {
-            Write-Host "  DRY-RUN: Stop-Service sshd" -ForegroundColor Yellow
+            Write-Warn "DRY-RUN: Stop-Service sshd"
         }
         else {
             try {
                 Stop-Service -Name sshd -Force -ErrorAction Stop
                 Write-Ok "Servico sshd parado."
             }
-            catch { Write-Host "  [FALHA] $($_.Exception.Message)" -ForegroundColor Red }
+            catch { Write-Fail $_.Exception.Message }
         }
     }
 
     'Iniciar' {
         Write-Title "Iniciando SSH Server"
         if ($DryRun) {
-            Write-Host "  DRY-RUN: Start-Service sshd" -ForegroundColor Yellow
+            Write-Warn "DRY-RUN: Start-Service sshd"
         }
         else {
             try {
                 Start-Service -Name sshd -ErrorAction Stop
                 Write-Ok "Servico sshd iniciado."
             }
-            catch { Write-Host "  [FALHA] $($_.Exception.Message)" -ForegroundColor Red }
+            catch { Write-Fail $_.Exception.Message }
         }
     }
 
     'Configurar' {
         Write-Title "Configurando sshd_config"
         if ($DryRun) {
-            Write-Host "  DRY-RUN: $ConfigKey = $ConfigValue" -ForegroundColor Yellow
+            Write-Warn "DRY-RUN: $ConfigKey = $ConfigValue"
         }
         else {
             $settings = @{ $ConfigKey = $ConfigValue }
@@ -344,14 +344,14 @@ switch ($Acao) {
                     Write-Host "  Reinicie o servico sshd para aplicar." -ForegroundColor Yellow
                 }
             }
-            else { Write-Host "  [FALHA] $($result.Message)" -ForegroundColor Red }
+        else { Write-Fail $result.Message }
         }
     }
 
     'GerarChaveHost' {
         Write-Title "Gerando chave de host $KeyType"
         if ($DryRun) {
-            Write-Host "  DRY-RUN: ssh-keygen -t $KeyType" -ForegroundColor Yellow
+            Write-Warn "DRY-RUN: ssh-keygen -t $KeyType"
         }
         else {
             $result = New-SshHostKey -KeyType $KeyType
@@ -362,7 +362,7 @@ switch ($Acao) {
                     Write-Host "  $($result.PublicKey)" -ForegroundColor DarkGray
                 }
             }
-            else { Write-Host "  [FALHA] $($result.Message)" -ForegroundColor Red }
+        else { Write-Fail $result.Message }
         }
     }
 
@@ -370,7 +370,7 @@ switch ($Acao) {
         $targetUser = if ($UserName) { $UserName } else { $env:USERNAME }
         Write-Title "Gerando chave $KeyType para $targetUser"
         if ($DryRun) {
-            Write-Host "  DRY-RUN: ssh-keygen -t $KeyType -f C:\Users\$targetUser\.ssh\id_$KeyType" -ForegroundColor Yellow
+            Write-Warn "DRY-RUN: ssh-keygen -t $KeyType -f C:\Users\$targetUser\.ssh\id_$KeyType"
         }
         else {
             $result = New-SshUserKey -UserName $targetUser -KeyType $KeyType
@@ -382,7 +382,7 @@ switch ($Acao) {
                     Write-Host "  $($result.PublicKey)" -ForegroundColor DarkGray
                 }
             }
-            else { Write-Host "  [FALHA] $($result.Message)" -ForegroundColor Red }
+        else { Write-Fail $result.Message }
         }
     }
 
@@ -390,12 +390,12 @@ switch ($Acao) {
         $targetUser = if ($UserName) { $UserName } else { $env:USERNAME }
         Write-Title "Adicionando chave publica para $targetUser"
         if ($DryRun) {
-            Write-Host "  DRY-RUN: Add-SshAuthorizedKey -PublicKeyPath $PublicKeyPath -UserName $targetUser" -ForegroundColor Yellow
+            Write-Warn "DRY-RUN: Add-SshAuthorizedKey -PublicKeyPath $PublicKeyPath -UserName $targetUser"
         }
         else {
             $result = Add-SshAuthorizedKey -PublicKeyPath $PublicKeyPath -UserName $targetUser
             if ($result.Success) { Write-Ok $result.Message }
-            else { Write-Host "  [FALHA] $($result.Message)" -ForegroundColor Red }
+        else { Write-Fail $result.Message }
         }
     }
 
@@ -403,7 +403,7 @@ switch ($Acao) {
         $targetUser = if ($UserName) { $UserName } else { $env:USERNAME }
         Write-Title "Removendo chave publica de $targetUser"
         if ($DryRun) {
-            Write-Host "  DRY-RUN: Remove-SshAuthorizedKey -UserName $targetUser" -ForegroundColor Yellow
+            Write-Warn "DRY-RUN: Remove-SshAuthorizedKey -UserName $targetUser"
         }
         else {
             $keys = Get-SshAuthorizedKey -UserName $targetUser
@@ -421,10 +421,10 @@ switch ($Acao) {
                 if ($idx -match '^\d+$') {
                     $removeResult = Remove-SshAuthorizedKey -Index ([int]$idx) -UserName $targetUser
                     if ($removeResult.Success) { Write-Ok $removeResult.Message }
-                    else { Write-Host "  [FALHA] $($removeResult.Message)" -ForegroundColor Red }
+                else { Write-Fail $removeResult.Message }
                 }
                 else {
-                    Write-Host "  Operacao cancelada." -ForegroundColor Yellow
+                Write-Warn "Operacao cancelada."
                 }
             }
         }
@@ -465,7 +465,7 @@ switch ($Acao) {
             Write-Ok "SSH Server respondendo na porta $Port."
         }
         else {
-            Write-Host "  [INFO] SSH Server nao respondeu na porta $Port." -ForegroundColor Yellow
+            Write-Warn "SSH Server nao respondeu na porta $Port."
         }
     }
 }

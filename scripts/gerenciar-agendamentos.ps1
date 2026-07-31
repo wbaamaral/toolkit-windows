@@ -188,7 +188,7 @@ try {
                 Write-Host ""
                 Write-Section "Ultimas Falhas"
                 foreach ($f in $summary.RecentFailures) {
-                    Write-Host "  [FALHA] $($f.TaskName) ( resultado: $($f.LastResult) )" -ForegroundColor Red
+            Write-Fail "$($f.TaskName) (resultado: $($f.LastResult))"
                 }
             }
         }

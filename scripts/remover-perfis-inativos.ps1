@@ -498,7 +498,7 @@ function Invoke-InteractiveMenu {
             Write-Host ""
             Write-Host "  Total: $($selected.Count) perfil(s) | Espaco a recuperar: $(Format-FileSize $totalSelSize)" -ForegroundColor Yellow
             if (-not $script:DryRun) {
-                Write-Host "  ATENCAO: esta acao NAO pode ser desfeita!" -ForegroundColor Red
+    Write-Warn "Esta acao NAO pode ser desfeita!"
             }
             Write-Host ""
 

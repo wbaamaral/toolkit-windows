@@ -590,7 +590,7 @@ function Invoke-DriverRestore {
         if (-not $drv.HardwarePresent) {
             $deviceLabel = if ($drv.DeviceNames -and $drv.DeviceNames.Count -gt 0) { $drv.DeviceNames[0] } else { $drv.ClassName }
             Write-Host ''
-            Write-Host '  [AVISO] Hardware nao detectado para este driver:' -ForegroundColor Yellow
+                Write-Warn 'Hardware nao detectado para este driver:'
             Write-Host ("    Driver  : {0} ({1})" -f $deviceLabel, $drv.ClassName) -ForegroundColor Yellow
             Write-Host ("    Provider: {0} | Versao: {1}" -f $drv.Provider, $drv.Version) -ForegroundColor Yellow
             Write-Host ''

@@ -278,13 +278,8 @@ try {
     if (-not (Test-RdpSupport)) {
         $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
         $caption = if ($os) { $os.Caption } else { 'desconhecida' }
-        Write-Host ""
-        Write-Host "  [ERRO] Esta versao do Windows ($caption) nao suporta" -ForegroundColor Red
-        Write-Host "          hospedagem de Area de Trabalho Remota (RDP)." -ForegroundColor Red
-        Write-Host ""
-        Write-Host "  RDP requer Windows Pro, Enterprise ou Education." -ForegroundColor Yellow
-        Write-Host "  Windows Home so permite CONEXAO remota, nao hospedagem." -ForegroundColor Yellow
-        Write-Host ""
+        Write-Fail "Esta versao do Windows ($caption) nao suporta hospedagem de Area de Trabalho Remota (RDP)."
+        Write-Warn "RDP requer Windows Pro, Enterprise ou Education. Windows Home permite somente conexao remota."
         Write-Fail "Operacao encerrada. Versao incompativel: $caption"
         return
     }

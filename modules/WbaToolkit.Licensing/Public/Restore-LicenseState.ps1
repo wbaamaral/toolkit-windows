@@ -275,7 +275,7 @@
 
     if ($DryRun) {
         Write-Host ""
-        Write-Host "  DRY-RUN: operacoes que seriam executadas:" -ForegroundColor Yellow
+        Write-Warn "DRY-RUN: operacoes que seriam executadas:"
         foreach ($r in $restorable) {
             switch ($r.Field) {
                 'KmsServer' {
@@ -286,7 +286,7 @@
                 }
             }
         }
-        Write-Host "  Nenhuma alteracao aplicada." -ForegroundColor Yellow
+        Write-Warn "Nenhuma alteracao aplicada."
         [pscustomobject]@{
             Success    = $true
             Restored   = @()
@@ -302,7 +302,7 @@
         Write-Host ""
         $confirm = Read-Host "  Confirmar restauracao das configuracoes? (s/N)"
         if ($confirm -notmatch '^[SsYy]$') {
-            Write-Host "  Restauracao cancelada pelo operador." -ForegroundColor Yellow
+        Write-Warn "Restauracao cancelada pelo operador."
             [pscustomobject]@{
                 Success    = $false
                 Restored   = @()
@@ -330,7 +330,7 @@
                     $restored.Add('KmsServer')
                 }
                 else {
-                    Write-Host "    [FALHA] slmgr retornou codigo $($result.ExitCode)" -ForegroundColor Red
+                Write-Fail "slmgr retornou codigo $($result.ExitCode)"
                     $skipped.Add($r)
                 }
             }
@@ -345,7 +345,7 @@
                         $restored.Add('KmsPort')
                     }
                     else {
-                        Write-Host "    [FALHA] slmgr retornou codigo $($result.ExitCode)" -ForegroundColor Red
+                Write-Fail "slmgr retornou codigo $($result.ExitCode)"
                         $skipped.Add($r)
                     }
                 }

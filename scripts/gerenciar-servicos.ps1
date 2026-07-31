@@ -223,20 +223,20 @@ if ($DryRun) {
 
 if ($Acao -in @('Iniciar', 'Parar', 'Reiniciar', 'ConfigurarInicializacao', 'ConfigurarConta', 'Detalhar')) {
     if ([string]::IsNullOrWhiteSpace($Servico)) {
-        Write-Host "[FALHA] Acao '$Acao' requer -Servico." -ForegroundColor Red
+        Write-Fail "Acao '$Acao' requer -Servico."
         if ($transcriptActive) { Stop-Transcript }
         exit 1
     }
 }
 
 if ($Acao -eq 'ConfigurarInicializacao' -and [string]::IsNullOrWhiteSpace($StartupType)) {
-    Write-Host "[FALHA] Acao 'ConfigurarInicializacao' requer -StartupType." -ForegroundColor Red
+        Write-Fail "Acao 'ConfigurarInicializacao' requer -StartupType."
     if ($transcriptActive) { Stop-Transcript }
     exit 1
 }
 
 if ($Acao -eq 'ConfigurarConta' -and [string]::IsNullOrWhiteSpace($Conta)) {
-    Write-Host "[FALHA] Acao 'ConfigurarConta' requer -Conta." -ForegroundColor Red
+        Write-Fail "Acao 'ConfigurarConta' requer -Conta."
     if ($transcriptActive) { Stop-Transcript }
     exit 1
 }
@@ -806,7 +806,7 @@ switch ($Acao) {
     'Iniciar' {
         Write-Section "Iniciando: $Servico"
         if ($DryRun) {
-            Write-Host "  DRY-RUN: Start-Service $Servico" -ForegroundColor Yellow
+            Write-Warn "DRY-RUN: Start-Service $Servico"
         }
         else {
             $result = Start-WindowsService -Name $Servico
@@ -818,7 +818,7 @@ switch ($Acao) {
     'Parar' {
         Write-Section "Parando: $Servico"
         if ($DryRun) {
-            Write-Host "  DRY-RUN: Stop-Service $Servico" -ForegroundColor Yellow
+            Write-Warn "DRY-RUN: Stop-Service $Servico"
         }
         else {
             $result = Stop-WindowsService -Name $Servico
@@ -830,7 +830,7 @@ switch ($Acao) {
     'Reiniciar' {
         Write-Section "Reiniciando: $Servico"
         if ($DryRun) {
-            Write-Host "  DRY-RUN: Stop-Service $Servico; Start-Service $Servico" -ForegroundColor Yellow
+            Write-Warn "DRY-RUN: Stop-Service $Servico; Start-Service $Servico"
         }
         else {
             $result = Restart-WindowsService -Name $Servico
@@ -842,7 +842,7 @@ switch ($Acao) {
     'ConfigurarInicializacao' {
         Write-Section "Configurando inicializacao: $Servico -> $StartupType"
         if ($DryRun) {
-            Write-Host "  DRY-RUN: Set-Service $Servico -StartupType $StartupType" -ForegroundColor Yellow
+            Write-Warn "DRY-RUN: Set-Service $Servico -StartupType $StartupType"
         }
         else {
             $result = Set-WindowsServiceStartup -Name $Servico -StartupType $StartupType
@@ -854,7 +854,7 @@ switch ($Acao) {
     'ConfigurarConta' {
         Write-Section "Configurando conta: $Servico -> $Conta"
         if ($DryRun) {
-            Write-Host "  DRY-RUN: Change $Servico StartName=$Conta" -ForegroundColor Yellow
+            Write-Warn "DRY-RUN: Change $Servico StartName=$Conta"
         }
         else {
             $params = @{ Name = $Servico; Account = $Conta }

@@ -166,12 +166,12 @@ if ($DryRun) {
 
 if ($Acao -eq 'InstalarChave') {
     if ([string]::IsNullOrWhiteSpace($ProductKey)) {
-        Write-Host "[FALHA] Acao InstalarChave requer o parametro -ProductKey." -ForegroundColor Red
+        Write-Fail "Acao InstalarChave requer o parametro -ProductKey."
         if ($transcriptActive) { Stop-Transcript }
         exit 1
     }
     if (-not (Test-ProductKeyFormat -ProductKey $ProductKey)) {
-        Write-Host "[FALHA] Formato de product key invalido. Use: XXXXX-XXXXX-XXXXX-XXXXX-XXXXX" -ForegroundColor Red
+        Write-Fail "Formato de product key invalido. Use: XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"
         if ($transcriptActive) { Stop-Transcript }
         exit 1
     }
@@ -179,7 +179,7 @@ if ($Acao -eq 'InstalarChave') {
 
 if ($Acao -eq 'DefinirKMS') {
     if ([string]::IsNullOrWhiteSpace($KmsServer)) {
-        Write-Host "[FALHA] Acao DefinirKMS requer o parametro -KmsServer." -ForegroundColor Red
+        Write-Fail "Acao DefinirKMS requer o parametro -KmsServer."
         if ($transcriptActive) { Stop-Transcript }
         exit 1
     }
@@ -187,7 +187,7 @@ if ($Acao -eq 'DefinirKMS') {
 
 if ($Acao -eq 'Restaurar') {
     if ([string]::IsNullOrWhiteSpace($BackupPath)) {
-        Write-Host "[FALHA] Acao Restaurar requer o parametro -BackupPath." -ForegroundColor Red
+        Write-Fail "Acao Restaurar requer o parametro -BackupPath."
         Write-Host "        Informe o caminho do diretorio do backup ou do arquivo license-backup.json." -ForegroundColor Yellow
         if ($transcriptActive) { Stop-Transcript }
         exit 1
@@ -284,7 +284,7 @@ if ($Acao -ne 'Diagnostico') {
             }
         }
         else {
-            Write-Host "  [INFO] $($restoreResult.Message)" -ForegroundColor Yellow
+            Write-Warn $restoreResult.Message
         }
     }
     else {
@@ -307,15 +307,15 @@ if ($Acao -ne 'Diagnostico') {
         }
 
         if ($DryRun) {
-            Write-Host "  DRY-RUN: slmgr.vbs $($slmgrArgs -join ' ')" -ForegroundColor Yellow
-            Write-Host "  Nenhuma alteracao aplicada." -ForegroundColor Yellow
+        Write-Warn "DRY-RUN: slmgr.vbs $($slmgrArgs -join ' ')"
+        Write-Warn "Nenhuma alteracao aplicada."
         }
         else {
             Write-Host "  Executando: slmgr.vbs $($slmgrArgs -join ' ')" -ForegroundColor Cyan
             $result = Invoke-Slmgr -ArgumentList $slmgrArgs -TimeoutSeconds 120
 
             if ($result.TimedOut) {
-                Write-Host "  [FALHA] Timeout ao executar slmgr.vbs." -ForegroundColor Red
+        Write-Fail "Timeout ao executar slmgr.vbs."
             }
             elseif ($result.ExitCode -eq 0) {
                 Write-Ok "  Operacao concluida com sucesso."
@@ -327,9 +327,9 @@ if ($Acao -ne 'Diagnostico') {
                 }
             }
             else {
-                Write-Host "  [FALHA] slmgr.vbs retornou codigo $($result.ExitCode)." -ForegroundColor Red
+        Write-Fail "slmgr.vbs retornou codigo $($result.ExitCode)."
                 if ($result.StdErr) {
-                    Write-Host "    Erro: $($result.StdErr)" -ForegroundColor Yellow
+            Write-Warn "Erro: $($result.StdErr)"
                 }
                 if ($result.Lines.Count -gt 0) {
                     foreach ($line in $result.Lines) {

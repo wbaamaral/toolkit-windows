@@ -47,12 +47,12 @@
     $fsCount  = @($fsEvents).Count
 
     if ($fsCount -eq 0) {
-        Write-Host "Sistema de arquivos: nenhum evento de falha detectado nos ultimos 30 dias." -ForegroundColor Green
+        Write-Ok "Sistema de arquivos: nenhum evento de falha detectado nos ultimos 30 dias."
         return
     }
 
     Write-Host ""
-    Write-Host "ATENCAO: $fsCount evento(s) de falha no sistema de arquivos (ultimos 30 dias):" -ForegroundColor Yellow
+    Write-Warn "$fsCount evento(s) de falha no sistema de arquivos (ultimos 30 dias):"
     @($fsEvents) | Select-Object TimeCreated, Id, ProviderName,
         @{N = 'Mensagem'; E = {
             $m = $_.Message -replace "`r`n", ' '
@@ -77,7 +77,7 @@
         'Schedule' { $schedule = $true }
         default {
             Write-Host ""
-            Write-Host "AVISO: Falhas detectadas. Para agendar verificacao use:" -ForegroundColor Yellow
+        Write-Warn "Falhas detectadas. Para agendar verificacao use:"
             if ($CallerScript) {
                 Write-Host "       .\$CallerScript -ChkdskAction Schedule" -ForegroundColor Yellow
             }
@@ -96,7 +96,7 @@
         }
     }
     catch {
-        Write-Host "Falha ao agendar chkdsk: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Fail "Falha ao agendar chkdsk: $($_.Exception.Message)"
         Write-Warning "ERRO ao agendar chkdsk: $($_.Exception.Message)"
         return
     }

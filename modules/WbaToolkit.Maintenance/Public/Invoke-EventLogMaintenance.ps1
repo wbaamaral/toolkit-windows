@@ -78,7 +78,7 @@
                     Write-Host "Log '$log' limpo." -ForegroundColor Green
                 }
                 catch {
-                    Write-Host "Falha ao limpar log '$log': $($_.Exception.Message)" -ForegroundColor Red
+                Write-Fail "Falha ao limpar log '$log': $($_.Exception.Message)"
                     Write-Warning "ERRO ao limpar '$log': $($_.Exception.Message)"
                 }
             }
@@ -92,12 +92,12 @@
                     $filter   = @{ LogName = $log; Level = @(1, 2) }
                     $hasErrors = Get-WinEvent -FilterHashtable $filter -MaxEvents 1 -ErrorAction SilentlyContinue
                     if (-not $hasErrors) {
-                        Write-Host "Log '$log': sem eventos de erro/falha — ignorado." -ForegroundColor DarkGray
+                Write-Info "Log '$log': sem eventos de erro/falha - ignorado."
                         continue
                     }
                     $ts     = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
                     $backup = Join-Path $BackupPath "eventos-$log-$ts.evtx"
-                    Write-Host "Executando: Exportar erros de '$log' e limpar" -ForegroundColor Green
+            Write-Info "Exportando erros de '$log' e limpando o log."
                     wevtutil.exe epl $log $backup "/q:*[System[Level<=2]]" 2>&1 | Out-Null
                     if ($LASTEXITCODE -ne 0) {
                         throw "wevtutil epl retornou codigo $LASTEXITCODE — backup nao foi criado, log '$log' NAO sera limpo"
@@ -106,11 +106,11 @@
                     if ($LASTEXITCODE -ne 0) {
                         throw "wevtutil cl retornou codigo $LASTEXITCODE apos backup em $backup"
                     }
-                    Write-Host "Log '$log' limpo. Backup de erros: $backup" -ForegroundColor Green
+                Write-Ok "Log '$log' limpo. Backup de erros: $backup"
                     $cleaned += $log
                 }
                 catch {
-                    Write-Host "Falha ao processar log '$log': $($_.Exception.Message)" -ForegroundColor Red
+                Write-Fail "Falha ao processar log '$log': $($_.Exception.Message)"
                     Write-Warning "ERRO ao processar '$log': $($_.Exception.Message)"
                 }
             }

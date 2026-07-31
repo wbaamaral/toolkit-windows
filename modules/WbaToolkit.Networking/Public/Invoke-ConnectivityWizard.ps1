@@ -26,7 +26,7 @@
             $report
         }
         default {
-            Write-Host 'Operacao cancelada.' -ForegroundColor Yellow
+        Write-Warn 'Operacao cancelada.'
             return
         }
     }

@@ -152,7 +152,7 @@ try {
     $report = Invoke-ConnectivityTest -Detailed:$Detalhado -ErrorAction Stop
 }
 catch {
-    Write-Host "[FALHA] Erro durante os testes de conectividade: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Fail "Erro durante os testes de conectividade: $($_.Exception.Message)"
     if ($transcriptActive) { Stop-Transcript }
     exit 1
 }

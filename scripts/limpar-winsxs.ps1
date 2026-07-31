@@ -202,7 +202,7 @@ switch ($Modo) {
 
         if ($ResetBase) {
             Write-Host ""
-            Write-Host "ATENCAO: /ResetBase remove backups de updates instalados." -ForegroundColor Red
+    Write-Warn "/ResetBase remove backups de updates instalados."
             Write-Host "         Rollback de Service Packs sera IMPOSSIVEL apos esta operacao." -ForegroundColor Red
             Write-Host "         Esta operacao e IRREVERSIVEL." -ForegroundColor Red
             Write-Host ""
