@@ -1,0 +1,20 @@
+﻿================================================================================
+  WBA Windows Toolkit - Backup e Restauracao de Drivers
+  Versao : v1.1.0
+  Data   : 2026-07-31 17:31:30
+  Modo   : Backup
+  DryRun : False
+  Host   : DESKTOP-9QHD8H2
+================================================================================
+
+BACKUP — 1 de 15 drivers exportados
+Pasta  : C:\dev\wba-windows-workspace\toolkit\wba-windows-toolkit\validation\bck-033\drivers\31072026_173130
+Pacote : C:\dev\wba-windows-workspace\toolkit\wba-windows-toolkit\validation\bck-033\drv_desktop-9qhd8h2-31072026-v01.zip
+Hash   : 19B31240EBB0AC3DA50C11E8EDD496BB4BA5ACB9BBBAEDF3416BA44C9401296A
+
+RESULTADOS:
+  Status       Classe       Provider            Versao         Dispositivo
+  ----------------------------------------------------------------------------
+  OK           Display      Red Hat, Inc.       10.0.0.21000   Red Hat QXL controller
+
+================================================================================

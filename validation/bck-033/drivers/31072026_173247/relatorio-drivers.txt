@@ -1,0 +1,18 @@
+﻿================================================================================
+  WBA Windows Toolkit - Backup e Restauracao de Drivers
+  Versao : v1.1.0
+  Data   : 2026-07-31 17:32:47
+  Modo   : Restore
+  DryRun : True
+  Host   : DESKTOP-9QHD8H2
+================================================================================
+
+RESTORE — 1 de 1 drivers processados
+Backup : C:\dev\wba-windows-workspace\toolkit\wba-windows-toolkit\validation\bck-033\drivers\31072026_173130
+
+RESULTADOS:
+  Status       Classe       Provider            Versao         Dispositivo
+  ----------------------------------------------------------------------------
+  DryRun       Display      Red Hat, Inc.       10.0.0.21000   Red Hat QXL controller
+
+================================================================================

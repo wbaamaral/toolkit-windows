@@ -1,0 +1,19 @@
+{
+    "InfOriginal":  "oem15.inf",
+    "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\qxldod.inf_amd64_6199f9ecf2339133\\qxldod.inf",
+    "Provider":  "Red Hat, Inc.",
+    "ClassName":  "Display",
+    "Version":  "10.0.0.21000",
+    "Date":  "2020-11-20",
+    "DeviceNames":  [
+                        "Red Hat QXL controller"
+                    ],
+    "HardwareIds":  [
+                        "PCI\\VEN_1B36\u0026DEV_0100\u0026SUBSYS_11001AF4\u0026REV_05",
+                        "PCI\\VEN_1B36\u0026DEV_0100\u0026SUBSYS_11001AF4",
+                        "PCI\\VEN_1B36\u0026DEV_0100\u0026CC_030000",
+                        "PCI\\VEN_1B36\u0026DEV_0100\u0026CC_0300"
+                    ],
+    "BackupFolder":  "oem15_Red_Hat_Inc__Display",
+    "BackupDate":  "2026-07-31 17:31:30"
+}

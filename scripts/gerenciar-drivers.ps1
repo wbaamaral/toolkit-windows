@@ -1240,18 +1240,18 @@ if ($Modo -eq 'Backup') {
         $baseName  = "drv_$hostname-$dateStr"
 
         # Determinar versao (v01, v02, ...)
-        $version = 1
+        $archiveVersion = 1
         $reportsRoot = if (-not [string]::IsNullOrEmpty($Path)) { $Path } else { Get-ToolkitReportsRoot }
         $existingPackages = Get-ChildItem -Path $reportsRoot -Filter "$baseName-v*.zip" -ErrorAction SilentlyContinue |
             Sort-Object Name -Descending | Select-Object -First 1
 
         if ($existingPackages) {
             if ($existingPackages.Name -match 'v(\d+)\.zip$') {
-                $version = [int]$Matches[1] + 1
+                $archiveVersion = [int]$Matches[1] + 1
             }
         }
 
-        $versionStr = "v{0:D2}" -f $version
+        $versionStr = "v{0:D2}" -f $archiveVersion
         $zipName    = "$baseName-$versionStr.zip"
         $zipPath    = Join-Path $reportsRoot $zipName
 
