@@ -5,9 +5,9 @@
 
 .DESCRIPTION
     Enumera drivers OEM (nao-inbox) do sistema, permite selecao granular e executa
-    exportacao via pnputil. No modo Restore, verifica presenca do hardware antes de
-    instalar; drivers sem hardware detectado exigem confirmacao explicita do operador
-    com aviso de risco de instabilidade.
+    exportacao via pnputil. No modo Restore, aceita pasta de sessao ou pacote ZIP
+    (com verificacao SHA256 quando houver .sha256sum), instala via DISM (fallback
+    pnputil) e pede confirmacao para sobrescrita ou hardware ausente.
 
 .PARAMETER Modo
     Define a operacao:
@@ -15,13 +15,20 @@
       Restore - localiza backup anterior e reinstala drivers selecionados
 
 .PARAMETER DryRun
-    Simula operacoes sem executar pnputil. Exibe o que seria feito.
+    Simula operacoes sem executar DISM/pnputil. Exibe o que seria feito.
 
 .PARAMETER GerarHtml
     Gera relatorio HTML alem do TXT.
 
 .PARAMETER Path
     Raiz de relatorios/backup. Quando omitido, usa configuracao do toolkit ou C:\WBA\Relatorios.
+
+.PARAMETER CaminhoBackup
+    No modo Restore, caminho para pasta de sessao ou pacote .zip. Quando omitido,
+    lista sessoes sob a raiz de relatorios do modulo drivers.
+
+.PARAMETER PacoteBackup
+    No modo Backup, cria pacote ZIP (metadados + drivers) com hash SHA256.
 
 .PARAMETER Help
     Exibe a ajuda resumida do script e encerra.
@@ -36,9 +43,14 @@
     .\gerenciar-drivers.ps1 -Modo Restore -GerarHtml
 
 .EXAMPLE
+    .\gerenciar-drivers.ps1 -Modo Restore -CaminhoBackup "D:\Backup\drv_pc01-31072026-v01.zip"
+
+.EXAMPLE
     .\gerenciar-drivers.ps1 -Path "D:\Backup\Drivers"
 
 .NOTES
+    Projeto: wba-windows-toolkit
+    Autor: wbaamaral
     Requer PowerShell 5.1 e execucao como Administrador.
     Get-WindowsDriver requer o modulo DISM, presente em Windows 8.1+ e Server 2012+.
     Modulo WbaToolkit.Core carregado automaticamente.
@@ -53,6 +65,8 @@ param(
 
     [Alias('DiretorioSaida')]
     [string]$Path,
+
+    [string]$CaminhoBackup,
 
     [switch]$PacoteBackup,
 
@@ -80,7 +94,7 @@ else {
 $ScriptPath = $PSCommandPath
 $ScriptDir  = $PSScriptRoot
 
-$ScriptVersion = 'v1.0.0'
+$ScriptVersion = 'v1.1.0'
 $ToolkitRoot   = Split-Path -Parent $PSScriptRoot
 
 $coreModuleRoot = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core'
@@ -101,7 +115,7 @@ catch {
     throw "Nao foi possivel carregar WbaToolkit.Core: $($_.Exception.Message)"
 }
 
-# WBA-DOCS: Category=Maintenance; Manual=Backup e restauracao de drivers OEM via pnputil
+# WBA-DOCS: Category=Maintenance; Manual=Backup e restauracao de drivers OEM via DISM/pnputil
 
 $ErrorActionPreference = 'Continue'
 
@@ -137,9 +151,10 @@ function Show-Help {
     Write-Host "Uso:  .\$script:ScriptName [opcoes]"
     Write-Host ""
     Write-Host "  -Modo <Backup|Restore>  Operacao a executar. Padrao: Backup."
-    Write-Host "  -DryRun            Simula sem executar pnputil; exibe o que seria feito."
+    Write-Host "  -DryRun            Simula sem executar DISM/pnputil; exibe o que seria feito."
     Write-Host "  -GerarHtml         Gera relatorio HTML alem do TXT."
-    Write-Host "  -PacoteBackup      Cria pacote ZIP com drivers + hash SHA256."
+    Write-Host "  -CaminhoBackup     Pasta de sessao ou .zip para Restore (opcional)."
+    Write-Host "  -PacoteBackup      Cria pacote ZIP (metadados+drivers) com hash SHA256."
     Write-Host "  -DiretorioSaida '<dir>' Raiz de relatorios/backup. Padrao: config do toolkit ou C:\WBA\Relatorios"
     Write-Host "  -Help              Esta ajuda."
     Write-Host ""
@@ -148,6 +163,7 @@ function Show-Help {
     Write-Host "  .\$script:ScriptName -DryRun"
     Write-Host "  .\$script:ScriptName -PacoteBackup"
     Write-Host "  .\$script:ScriptName -Modo Restore -GerarHtml"
+    Write-Host "  .\$script:ScriptName -Modo Restore -CaminhoBackup 'D:\drv_pc01-v01.zip'"
     Write-Host ""
 }
 
@@ -228,15 +244,15 @@ function Get-BackupDriverCatalog {
 
     $metaPath = Join-Path $BackupSessionPath 'metadados.json'
     if (-not (Test-Path -LiteralPath $metaPath)) {
-        Write-DrvLog -Level 'ERROR' -Message "metadados.json nao encontrado em: $BackupSessionPath"
-        return @()
+        Write-DrvLog -Level 'WARN' -Message "metadados.json nao encontrado em: $BackupSessionPath; montando catalogo pelas pastas."
+        return @(New-DriverCatalogFromFolders -BackupSessionPath $BackupSessionPath)
     }
 
     $json    = Get-Content -LiteralPath $metaPath -Raw -Encoding UTF8
     $catalog = $json | ConvertFrom-Json
 
     $result = [System.Collections.ArrayList]::new()
-    foreach ($item in $catalog) {
+    foreach ($item in @($catalog)) {
         $hwIds      = @()
         $devNames   = @()
         if ($item.HardwareIds)  { $hwIds    = @($item.HardwareIds) }
@@ -295,6 +311,276 @@ function Find-BackupFolder {
             return $candidates[$num - 1].FullName
         }
         Write-Warn "Numero invalido. Selecione entre 1 e $($candidates.Count)."
+    }
+}
+
+function Test-DriverBackupHash {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)][string]$ZipPath
+    )
+
+    $hashFile = "$ZipPath.sha256sum"
+    if (-not (Test-Path -LiteralPath $hashFile -PathType Leaf)) {
+        Write-DrvLog -Message "Arquivo de hash ausente (ok): $hashFile"
+        return [pscustomobject]@{
+            Verified = $false
+            Skipped  = $true
+            Expected = $null
+            Actual   = $null
+            HashFile = $hashFile
+        }
+    }
+
+    $rawLine = @(Get-Content -LiteralPath $hashFile -Encoding UTF8 | Where-Object {
+            -not [string]::IsNullOrWhiteSpace($_)
+        }) | Select-Object -First 1
+
+    if ([string]::IsNullOrWhiteSpace($rawLine)) {
+        throw "Arquivo de hash vazio: $hashFile"
+    }
+
+    $expected = ($rawLine -split '\s+', 2)[0].Trim().ToUpperInvariant()
+    if ($expected -notmatch '^[0-9A-F]{64}$') {
+        throw "Hash SHA256 invalido em: $hashFile"
+    }
+
+    $actual = (Get-FileHashSha256 -Path $ZipPath -Quiet).ToUpperInvariant()
+    if ($actual -ne $expected) {
+        throw "Hash SHA256 nao confere para '$ZipPath'. Esperado=$expected Atual=$actual"
+    }
+
+    Write-Ok "Hash SHA256 verificado: $actual"
+    Write-DrvLog -Message "Hash SHA256 OK: $actual"
+
+    return [pscustomobject]@{
+        Verified = $true
+        Skipped  = $false
+        Expected = $expected
+        Actual   = $actual
+        HashFile = $hashFile
+    }
+}
+
+function Get-DriverFolderCandidates {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)][string]$BackupSessionPath,
+        [Parameter(Mandatory = $true)][string]$BackupFolder
+    )
+
+    $paths = @(
+        (Join-Path (Join-Path $BackupSessionPath 'drivers') $BackupFolder),
+        (Join-Path $BackupSessionPath $BackupFolder)
+    )
+
+    return @($paths | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+}
+
+function Resolve-DriverPackageFolder {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)][string]$BackupSessionPath,
+        [Parameter(Mandatory = $true)][string]$BackupFolder
+    )
+
+    foreach ($candidate in @(Get-DriverFolderCandidates -BackupSessionPath $BackupSessionPath -BackupFolder $BackupFolder)) {
+        if (Test-Path -LiteralPath $candidate -PathType Container) {
+            return $candidate
+        }
+    }
+
+    return $null
+}
+
+function New-DriverCatalogFromFolders {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)][string]$BackupSessionPath
+    )
+
+    $searchRoots = [System.Collections.ArrayList]::new()
+    $driversRoot = Join-Path $BackupSessionPath 'drivers'
+    if (Test-Path -LiteralPath $driversRoot -PathType Container) {
+        $null = $searchRoots.Add($driversRoot)
+    }
+    else {
+        $null = $searchRoots.Add($BackupSessionPath)
+    }
+
+    $result = [System.Collections.ArrayList]::new()
+    foreach ($root in $searchRoots) {
+        $dirs = @(Get-ChildItem -LiteralPath $root -Directory -ErrorAction SilentlyContinue)
+        foreach ($dir in $dirs) {
+            $inf = @(Get-ChildItem -LiteralPath $dir.FullName -Filter '*.inf' -File -ErrorAction SilentlyContinue |
+                Select-Object -First 1)
+            if ($inf.Count -eq 0) { continue }
+
+            $null = $result.Add([pscustomobject]@{
+                    InfOriginal      = $inf[0].Name
+                    OriginalFileName = $inf[0].Name
+                    Provider         = '(desconhecido)'
+                    ClassName        = '(desconhecida)'
+                    Version          = ''
+                    Date             = ''
+                    DeviceNames      = @()
+                    HardwareIds      = @()
+                    BackupFolder     = $dir.Name
+                    BackupDate       = ''
+                    HardwarePresent  = $false
+                })
+        }
+    }
+
+    return @($result)
+}
+
+function Resolve-DriverBackupSource {
+    [CmdletBinding()]
+    param(
+        [string]$CaminhoBackup,
+        [Parameter(Mandatory = $true)][string]$ModulePath,
+        [Parameter(Mandatory = $true)][string]$ExtractRoot
+    )
+
+    if ([string]::IsNullOrWhiteSpace($CaminhoBackup)) {
+        $chosen = Find-BackupFolder -ModulePath $ModulePath
+        if ($null -eq $chosen) { return $null }
+        return [pscustomobject]@{
+            SessionPath = $chosen
+            SourceKind  = 'Sessao'
+            ZipPath     = $null
+            HashChecked = $false
+        }
+    }
+
+    if (-not (Test-Path -LiteralPath $CaminhoBackup)) {
+        throw "CaminhoBackup nao encontrado: $CaminhoBackup"
+    }
+
+    $item = Get-Item -LiteralPath $CaminhoBackup
+
+    if ($item.PSIsContainer) {
+        $sessionPath = $item.FullName
+        $metaPath = Join-Path $sessionPath 'metadados.json'
+        if (-not (Test-Path -LiteralPath $metaPath) -and
+            -not (Test-Path -LiteralPath (Join-Path $sessionPath 'drivers'))) {
+            throw "Pasta de backup sem metadados.json nem pasta drivers: $sessionPath"
+        }
+
+        return [pscustomobject]@{
+            SessionPath = $sessionPath
+            SourceKind  = 'Pasta'
+            ZipPath     = $null
+            HashChecked = $false
+        }
+    }
+
+    if ($item.Extension -ne '.zip') {
+        throw "CaminhoBackup deve ser pasta ou arquivo .zip: $CaminhoBackup"
+    }
+
+    $hashResult = Test-DriverBackupHash -ZipPath $item.FullName
+
+    if (Test-Path -LiteralPath $ExtractRoot) {
+        Remove-Item -LiteralPath $ExtractRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    New-Item -Path $ExtractRoot -ItemType Directory -Force | Out-Null
+
+    Write-Info "Extraindo pacote ZIP para: $ExtractRoot"
+    Write-DrvLog -Message "Expand-Archive: $($item.FullName) -> $ExtractRoot"
+    Expand-Archive -LiteralPath $item.FullName -DestinationPath $ExtractRoot -Force
+
+    $sessionPath = $ExtractRoot
+    $metaAtRoot = Join-Path $ExtractRoot 'metadados.json'
+    $nestedSessions = @(Get-ChildItem -LiteralPath $ExtractRoot -Directory -ErrorAction SilentlyContinue |
+        Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'metadados.json') })
+
+    if (-not (Test-Path -LiteralPath $metaAtRoot) -and $nestedSessions.Count -eq 1) {
+        $sessionPath = $nestedSessions[0].FullName
+    }
+
+    return [pscustomobject]@{
+        SessionPath = $sessionPath
+        SourceKind  = 'Zip'
+        ZipPath     = $item.FullName
+        HashChecked = [bool]$hashResult.Verified
+    }
+}
+
+function Test-DriverAlreadyInstalled {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)][string]$InfOriginal,
+        [string]$OriginalFileName
+    )
+
+    try {
+        $installed = @(Get-WindowsDriver -Online -All -ErrorAction Stop)
+    }
+    catch {
+        Write-DrvLog -Level 'WARN' -Message "Nao foi possivel consultar drivers instalados: $($_.Exception.Message)"
+        return $false
+    }
+
+    foreach ($drv in $installed) {
+        if ($InfOriginal -and ($drv.Driver -eq $InfOriginal)) { return $true }
+        if ($OriginalFileName -and ($drv.OriginalFileName -like "*$OriginalFileName")) { return $true }
+    }
+
+    return $false
+}
+
+function Install-DriverPackage {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)][string]$DriverFolder,
+        [Parameter(Mandatory = $true)][string]$InfPath,
+        [bool]$IsDryRun = $false
+    )
+
+    if ($IsDryRun) {
+        Write-Warn "  [DryRun] dism /Online /Add-Driver /Driver:'$DriverFolder' /Recurse"
+        Write-DrvLog -Message "[DryRun] Add-Driver $DriverFolder"
+        return [pscustomobject]@{
+            Status  = 'DryRun'
+            Backend = 'DISM'
+            Message = 'Simulado.'
+            ExitCode = 0
+        }
+    }
+
+    $dismArgs = @('/Online', '/Add-Driver', "/Driver:$DriverFolder", '/Recurse')
+    Write-DrvLog -Message "DISM $($dismArgs -join ' ')"
+    $dismResult = Invoke-ExternalCommand -FilePath 'dism.exe' -ArgumentList $dismArgs
+
+    if ($dismResult.ExitCode -eq 0 -or $dismResult.ExitCode -eq 3010) {
+        return [pscustomobject]@{
+            Status   = 'OK'
+            Backend  = 'DISM'
+            Message  = $dismResult.Output
+            ExitCode = $dismResult.ExitCode
+        }
+    }
+
+    Write-Warn "  DISM falhou (ExitCode $($dismResult.ExitCode)); tentando pnputil..."
+    Write-DrvLog -Level 'WARN' -Message "DISM falhou: $($dismResult.Output). Fallback pnputil."
+
+    $pnpResult = Invoke-ExternalCommand -FilePath 'pnputil.exe' -ArgumentList @('/add-driver', $InfPath, '/install')
+    if ($pnpResult.ExitCode -eq 0 -or $pnpResult.ExitCode -eq 3010) {
+        return [pscustomobject]@{
+            Status   = 'OK'
+            Backend  = 'pnputil'
+            Message  = $pnpResult.Output
+            ExitCode = $pnpResult.ExitCode
+        }
+    }
+
+    return [pscustomobject]@{
+        Status   = 'Falha'
+        Backend  = 'DISM+pnputil'
+        Message  = "DISM: $($dismResult.Output) | pnputil: $($pnpResult.Output)"
+        ExitCode = $pnpResult.ExitCode
     }
 }
 
@@ -583,7 +869,7 @@ function Invoke-DriverRestore {
 
     foreach ($drv in $SelectedDrivers) {
         $count++
-        $driverFolder = Join-Path $BackupSessionPath $drv.BackupFolder
+        $driverFolder = Resolve-DriverPackageFolder -BackupSessionPath $BackupSessionPath -BackupFolder $drv.BackupFolder
 
         Write-Info "[$count/$($SelectedDrivers.Count)] $($drv.InfOriginal) - $($drv.Provider) ($($drv.ClassName))"
 
@@ -612,12 +898,13 @@ function Invoke-DriverRestore {
             Write-DrvLog -Level 'WARN' -Message "Operador confirmou install com hardware ausente: $($drv.InfOriginal)"
         }
 
-        if (-not (Test-Path -LiteralPath $driverFolder)) {
-            Write-Warn "  Pasta de backup nao encontrada: $driverFolder"
+        if ([string]::IsNullOrWhiteSpace($driverFolder)) {
+            $tried = @(Get-DriverFolderCandidates -BackupSessionPath $BackupSessionPath -BackupFolder $drv.BackupFolder) -join '; '
+            Write-Warn "  Pasta de backup nao encontrada para '$($drv.BackupFolder)' (tentativas: $tried)"
             $null = $results.Add([pscustomobject]@{
                 Driver  = $drv
                 Status  = 'Falha'
-                Message = "Pasta de backup nao encontrada: $driverFolder"
+                Message = "Pasta de backup nao encontrada: $($drv.BackupFolder)"
             })
             continue
         }
@@ -635,35 +922,45 @@ function Invoke-DriverRestore {
 
         $infPath = $infFiles[0].FullName
 
-        if ($IsDryRun) {
-            Write-Warn "  [DryRun] pnputil /add-driver '$infPath' /install"
-            Write-DrvLog -Message "[DryRun] add-driver $infPath"
-            $null = $results.Add([pscustomobject]@{
-                Driver  = $drv
-                Status  = 'DryRun'
-                Message = 'Simulado.'
-            })
-            continue
+        $alreadyInstalled = Test-DriverAlreadyInstalled -InfOriginal $drv.InfOriginal -OriginalFileName $drv.OriginalFileName
+        if ($alreadyInstalled) {
+            Write-Host ''
+            Write-Warn "Driver ja presente no sistema (possivel sobrescrita): $($drv.InfOriginal)"
+            Write-Host ("    Provider: {0} | Versao backup: {1}" -f $drv.Provider, $drv.Version) -ForegroundColor Yellow
+            Write-Host ''
+            $overwrite = Read-YesNo -Question '  Confirma sobrescrita/reinstalacao deste driver?' -DefaultYes $false
+            if (-not $overwrite) {
+                Write-Info "  Sobrescrita recusada: $($drv.InfOriginal)"
+                Write-DrvLog -Level 'WARN' -Message "Restore ignorado (sobrescrita recusada): $($drv.InfOriginal)"
+                $null = $results.Add([pscustomobject]@{
+                    Driver  = $drv
+                    Status  = 'Ignorado'
+                    Message = 'Operador recusou sobrescrita de driver ja instalado.'
+                })
+                continue
+            }
+            Write-DrvLog -Message "Operador confirmou sobrescrita: $($drv.InfOriginal)"
         }
 
-        $result = Invoke-ExternalCommand -FilePath 'pnputil.exe' -ArgumentList @('/add-driver', $infPath, '/install')
+        $install = Install-DriverPackage -DriverFolder $driverFolder -InfPath $infPath -IsDryRun $IsDryRun
 
-        if ($result.ExitCode -eq 0 -or $result.ExitCode -eq 3010) {
-            Write-Ok "  Instalado: $($drv.InfOriginal)"
-            Write-DrvLog -Message "Restore OK: $($drv.InfOriginal)"
+        if ($install.Status -eq 'OK' -or $install.Status -eq 'DryRun') {
+            $label = if ($install.Status -eq 'DryRun') { 'Simulado' } else { "Instalado via $($install.Backend)" }
+            Write-Ok "  ${label}: $($drv.InfOriginal)"
+            Write-DrvLog -Message "Restore $($install.Status) [$($install.Backend)]: $($drv.InfOriginal)"
             $null = $results.Add([pscustomobject]@{
                 Driver  = $drv
-                Status  = 'OK'
-                Message = $result.Output
+                Status  = $install.Status
+                Message = $install.Message
             })
         }
         else {
-            Write-Warn "  Falha (ExitCode $($result.ExitCode)): $($result.Output)"
-            Write-DrvLog -Level 'WARN' -Message "Restore FALHOU: $($drv.InfOriginal). $($result.Output)"
+            Write-Warn "  Falha (ExitCode $($install.ExitCode)): $($install.Message)"
+            Write-DrvLog -Level 'WARN' -Message "Restore FALHOU: $($drv.InfOriginal). $($install.Message)"
             $null = $results.Add([pscustomobject]@{
                 Driver  = $drv
                 Status  = 'Falha'
-                Message = $result.Output
+                Message = $install.Message
             })
         }
     }
@@ -870,13 +1167,9 @@ Write-Title "WBA Windows Toolkit - Backup e Restauracao de Drivers $ScriptVersio
 if ($DryRun) { Write-Warn 'MODO DRY-RUN: nenhuma alteracao sera realizada no sistema.' }
 
 if (-not (Test-IsAdministrator)) {
-    Write-Warn 'Elevando para Administrador (necessario para Get-WindowsDriver e pnputil)...'
-    $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"")
-    if ($Modo -ne 'Backup') { $argList += @('-Modo', $Modo) }
-    if ($DryRun)    { $argList += '-DryRun' }
-    if ($GerarHtml) { $argList += '-GerarHtml' }
-    if (-not [string]::IsNullOrEmpty($Path)) { $argList += @('-Path', "`"$Path`"") }
-    Start-Process 'powershell.exe' -ArgumentList $argList -Verb RunAs
+    Write-Warn 'Elevando para Administrador (necessario para Get-WindowsDriver e DISM/pnputil)...'
+    $cmd = New-ToolkitElevationCommand -ScriptPath $PSCommandPath -BoundParameters $PSBoundParameters
+    Start-Process 'powershell.exe' -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $cmd) -Verb RunAs
     return
 }
 
@@ -962,8 +1255,22 @@ if ($Modo -eq 'Backup') {
         $zipName    = "$baseName-$versionStr.zip"
         $zipPath    = Join-Path $reportsRoot $zipName
 
+        # Staging com metadados.json + drivers/ para o restore localizar o catalogo
+        $packageStage = Join-Path $script:Session.Path 'package-stage'
+        if (Test-Path -LiteralPath $packageStage) {
+            Remove-Item -LiteralPath $packageStage -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        New-Item -Path $packageStage -ItemType Directory -Force | Out-Null
+
+        if (Test-Path -LiteralPath $metaPath -PathType Leaf) {
+            Copy-Item -LiteralPath $metaPath -Destination (Join-Path $packageStage 'metadados.json') -Force
+        }
+        if (Test-Path -LiteralPath $driversRoot -PathType Container) {
+            Copy-Item -LiteralPath $driversRoot -Destination (Join-Path $packageStage 'drivers') -Recurse -Force
+        }
+
         # Criar pacote ZIP com hash
-        $archiveResult = New-ToolkitArchive -SourcePath $driversRoot -DestinationPath $zipPath -GenerateHash
+        $archiveResult = New-ToolkitArchive -SourcePath $packageStage -DestinationPath $zipPath -GenerateHash
 
         $zipPath = $archiveResult.ZipPath
         $zipHash = $archiveResult.Hash
@@ -977,18 +1284,37 @@ if ($Modo -eq 'Backup') {
 # ─── modo restore ─────────────────────────────────────────────────────────────
 
 else {
-    Write-DrvSection 'Localizando sessao de backup'
+    Write-DrvSection 'Localizando fonte de backup'
 
-    $chosenBackup = Find-BackupFolder -ModulePath $script:Session.ModulePath
-
-    if ($null -eq $chosenBackup) {
-        Write-Fail 'Nenhuma sessao de backup encontrada. Execute o Modo Backup primeiro.'
+    $extractRoot = Join-Path $script:Session.Path 'restore-extract'
+    try {
+        $backupSource = Resolve-DriverBackupSource -CaminhoBackup $CaminhoBackup -ModulePath $script:Session.ModulePath -ExtractRoot $extractRoot
+    }
+    catch {
+        Write-Fail $_.Exception.Message
+        Write-DrvLog -Level 'ERROR' -Message $_.Exception.Message
         Stop-Transcript -ErrorAction SilentlyContinue | Out-Null
         return
     }
 
-    Write-Info "Backup selecionado: $chosenBackup"
-    Write-DrvLog -Message "Backup selecionado: $chosenBackup"
+    if ($null -eq $backupSource) {
+        Write-Fail 'Nenhuma sessao de backup encontrada. Informe -CaminhoBackup ou execute o Modo Backup primeiro.'
+        Stop-Transcript -ErrorAction SilentlyContinue | Out-Null
+        return
+    }
+
+    $chosenBackup = $backupSource.SessionPath
+    Write-Info "Fonte: $($backupSource.SourceKind) -> $chosenBackup"
+    if ($backupSource.ZipPath) {
+        Write-Info "Pacote ZIP: $($backupSource.ZipPath)"
+        if ($backupSource.HashChecked) {
+            Write-Info 'Integridade SHA256 validada.'
+        }
+        else {
+            Write-Warn 'Pacote ZIP sem .sha256sum — integridade nao verificada.'
+        }
+    }
+    Write-DrvLog -Message "Backup selecionado ($($backupSource.SourceKind)): $chosenBackup"
 
     Write-DrvSection 'Carregando catalogo do backup'
 
@@ -1029,6 +1355,9 @@ else {
     $results = @(Invoke-DriverRestore -SelectedDrivers $selected -BackupSessionPath $chosenBackup -IsDryRun ([bool]$DryRun))
 
     $backupPath = $chosenBackup
+    if ($backupSource.ZipPath) {
+        $zipPath = $backupSource.ZipPath
+    }
 }
 
 # ─── relatorios finais ────────────────────────────────────────────────────────

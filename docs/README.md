@@ -135,7 +135,7 @@ Guarde o relatório e o log no chamado. Não envie chaves, senhas ou dados pesso
 | `gerenciar-login-automatico.ps1` | Diagnóstico e administração do autologon |
 | `inventario-hardware-software.ps1` | Inventário de hardware e software |
 | `analisar-espaco-disco.ps1` | Análise de pastas e arquivos por tamanho |
-| `gerenciar-drivers.ps1` | Backup e restauração de drivers |
+| `gerenciar-drivers.ps1` | Backup/restauração de drivers (ZIP+SHA256, DISM) |
 | `gerenciar-inicializacao.ps1` | Diagnóstico de inicialização e serviços |
 | `configurar-idioma-regional.ps1` | Configuração de idioma, região e fuso |
 | `remover-perfis-inativos.ps1` | Identificação e remoção assistida de perfis |
