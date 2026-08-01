@@ -21,7 +21,7 @@
     .EXAMPLE
         Set-WindowsServiceStartup -Name 'Spooler' -StartupType Manual
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true)]
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -46,6 +46,10 @@
 
     if ($currentType -eq $StartupType) {
         return Format-ServiceResult -Success $true -Message "Servico '$Name' ja esta configurado como $StartupType." -ServiceName $Name
+    }
+
+    if (-not $PSCmdlet.ShouldProcess($Name, "Alterar tipo de inicializacao para $StartupType")) {
+        return Format-ServiceResult -Success $true -Message "Alteracao de inicializacao de '$Name' ignorada por WhatIf." -ServiceName $Name
     }
 
     try {

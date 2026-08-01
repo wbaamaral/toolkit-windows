@@ -25,7 +25,7 @@
     .EXAMPLE
         Remove-SshAuthorizedKey -Index 0
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
     param(
         [string]$PublicKey,
         [int]$Index = -1,
@@ -105,6 +105,10 @@
             Removed = $false
         }
         return
+    }
+
+    if (-not $PSCmdlet.ShouldProcess($keyFile, 'Remover chave autorizada SSH')) {
+        return [pscustomobject]@{ Success = $true; Message = 'Remocao de chave ignorada por WhatIf.'; Removed = $false }
     }
 
     try {

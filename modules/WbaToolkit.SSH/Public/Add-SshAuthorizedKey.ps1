@@ -49,7 +49,7 @@
             }
             return
         }
-        $PublicKey = (Get-Content -LiteralPath $PublicKeyPath -ErrorAction SilentlyContinue | Where-Object {
+        $PublicKey = (Get-Content -LiteralPath $PublicKeyPath -ErrorAction Stop | Where-Object {
             $_ -match '^\s*(ssh-rsa|ssh-ed25519|ecdsa-sha2|ssh-dss)'
         } | Select-Object -First 1).Trim()
     }
@@ -85,7 +85,7 @@
     }
 
     if (Test-Path -LiteralPath $keyFile) {
-        $existing = Get-Content -LiteralPath $keyFile -ErrorAction SilentlyContinue
+        $existing = Get-Content -LiteralPath $keyFile -ErrorAction Stop
         foreach ($line in $existing) {
             if ($line.Trim() -eq $PublicKey.Trim()) {
                 [pscustomobject]@{
@@ -112,7 +112,7 @@
                 'Administrators', 'FullControl', 'Allow')
             $acl.SetAccessRule($systemRule)
             $acl.SetAccessRule($adminRule)
-            Set-Acl -LiteralPath $keyFile -AclObject $acl -ErrorAction SilentlyContinue
+            Set-Acl -LiteralPath $keyFile -AclObject $acl -ErrorAction Stop
         }
 
         [pscustomobject]@{

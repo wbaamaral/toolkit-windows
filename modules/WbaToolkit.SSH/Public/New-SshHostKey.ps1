@@ -22,7 +22,7 @@
     .EXAMPLE
         New-SshHostKey -KeyType rsa -Force
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
     param(
         [ValidateSet('ed25519', 'rsa', 'ecdsa')]
         [string]$KeyType = 'ed25519',
@@ -42,6 +42,13 @@
     $keyFileName = "ssh_host_${KeyType}_key"
     $keyPath = Join-Path $paths.HostKeysDir $keyFileName
     $pubKeyPath = "${keyPath}.pub"
+
+    if (-not $PSCmdlet.ShouldProcess($keyPath, 'Gerar ou regenerar chave de host SSH')) {
+        return [pscustomobject]@{
+            Success = $true; KeyType = $KeyType; PublicKeyPath = $pubKeyPath
+            PublicKey = $null; Message = 'Geracao de chave ignorada por WhatIf.'; Generated = $false
+        }
+    }
 
     if ((Test-Path -LiteralPath $keyPath) -and -not $Force) {
         [pscustomobject]@{

@@ -82,7 +82,8 @@ $PSDefaultParameterValues['Out-File:Encoding']    = 'utf8'
 $PSDefaultParameterValues['Set-Content:Encoding'] = 'utf8'
 $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
 
-try { chcp 65001 | Out-Null } catch { }
+try { chcp 65001 | Out-Null }
+catch { Write-Verbose "Nao foi possivel ajustar a pagina de codigo do console para UTF-8: $($_.Exception.Message)" }
 
 $ScriptName = if ($MyInvocation.MyCommand.Name) {
     $MyInvocation.MyCommand.Name
@@ -285,7 +286,7 @@ function Find-BackupFolder {
         return $null
     }
 
-    $candidates = @(Get-ChildItem -Path $ModulePath -Directory -ErrorAction SilentlyContinue |
+    $candidates = @(Get-ChildItem -Path $ModulePath -Directory -ErrorAction Stop |
         Where-Object { Test-Path (Join-Path $_.FullName 'metadados.json') } |
         Sort-Object Name -Descending)
 
@@ -410,9 +411,9 @@ function New-DriverCatalogFromFolders {
 
     $result = [System.Collections.ArrayList]::new()
     foreach ($root in $searchRoots) {
-        $dirs = @(Get-ChildItem -LiteralPath $root -Directory -ErrorAction SilentlyContinue)
+        $dirs = @(Get-ChildItem -LiteralPath $root -Directory -ErrorAction Stop)
         foreach ($dir in $dirs) {
-            $inf = @(Get-ChildItem -LiteralPath $dir.FullName -Filter '*.inf' -File -ErrorAction SilentlyContinue |
+            $inf = @(Get-ChildItem -LiteralPath $dir.FullName -Filter '*.inf' -File -ErrorAction Stop |
                 Select-Object -First 1)
             if ($inf.Count -eq 0) { continue }
 
@@ -483,7 +484,7 @@ function Resolve-DriverBackupSource {
     $hashResult = Test-DriverBackupHash -ZipPath $item.FullName
 
     if (Test-Path -LiteralPath $ExtractRoot) {
-        Remove-Item -LiteralPath $ExtractRoot -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $ExtractRoot -Recurse -Force -ErrorAction Stop
     }
     New-Item -Path $ExtractRoot -ItemType Directory -Force | Out-Null
 
@@ -493,7 +494,7 @@ function Resolve-DriverBackupSource {
 
     $sessionPath = $ExtractRoot
     $metaAtRoot = Join-Path $ExtractRoot 'metadados.json'
-    $nestedSessions = @(Get-ChildItem -LiteralPath $ExtractRoot -Directory -ErrorAction SilentlyContinue |
+    $nestedSessions = @(Get-ChildItem -LiteralPath $ExtractRoot -Directory -ErrorAction Stop |
         Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'metadados.json') })
 
     if (-not (Test-Path -LiteralPath $metaAtRoot) -and $nestedSessions.Count -eq 1) {
@@ -782,7 +783,7 @@ function Invoke-DriverBackup {
             continue
         }
 
-        New-Item -Path $destFolder -ItemType Directory -Force -ErrorAction SilentlyContinue | Out-Null
+        New-Item -Path $destFolder -ItemType Directory -Force -ErrorAction Stop | Out-Null
 
         $result = Invoke-ExternalCommand -FilePath 'pnputil.exe' -ArgumentList @('/export-driver', $drv.InfOriginal, $destFolder)
 
@@ -909,7 +910,7 @@ function Invoke-DriverRestore {
             continue
         }
 
-        $infFiles = @(Get-ChildItem -Path $driverFolder -Filter '*.inf' -ErrorAction SilentlyContinue)
+        $infFiles = @(Get-ChildItem -Path $driverFolder -Filter '*.inf' -ErrorAction Stop)
         if ($infFiles.Count -eq 0) {
             Write-Warn "  Arquivo .inf nao encontrado em: $driverFolder"
             $null = $results.Add([pscustomobject]@{
@@ -1159,6 +1160,10 @@ function New-DrvHtmlReport {
 
 # ─── execucao principal ───────────────────────────────────────────────────────
 
+# Permite que a suite Pester carregue somente os auxiliares, sem iniciar uma
+# sessao administrativa, transcript ou qualquer operacao no host.
+if ($env:WBA_TOOLKIT_TEST_MODE -eq '1') { return }
+
 if ($Help) { Show-Help; exit 0 }
 if ($Version) { Write-Host "Script: $ScriptName — $ScriptVersion" -ForegroundColor Green; exit 0 }
 
@@ -1177,7 +1182,7 @@ $script:Session = Initialize-ToolkitReportSession -ModuleName 'drivers' -Reports
 $script:LogPath = Join-Path $script:Session.LogsPath 'drivers.log'
 
 $transcriptPath = Join-Path $script:Session.LogsPath 'drivers-transcript.log'
-Start-Transcript -Path $transcriptPath -Append -ErrorAction SilentlyContinue | Out-Null
+Start-Transcript -Path $transcriptPath -Append -ErrorAction Stop | Out-Null
 
 Write-DrvLog -Message "Sessao iniciada. Modo: $Modo. DryRun: $DryRun. Path: $($script:Session.Path)"
 Write-Info "Relatorios em: $($script:Session.Path)"
@@ -1199,7 +1204,7 @@ if ($Modo -eq 'Backup') {
 
     if ($totalFound -eq 0) {
         Write-Warn 'Nenhum driver de terceiros encontrado. Verifique se executa como Administrador.'
-        Stop-Transcript -ErrorAction SilentlyContinue | Out-Null
+        Stop-Transcript -ErrorAction Stop | Out-Null
         return
     }
 
@@ -1213,14 +1218,14 @@ if ($Modo -eq 'Backup') {
 
     if ($selected.Count -eq 0) {
         Write-Info 'Operacao cancelada pelo operador.'
-        Stop-Transcript -ErrorAction SilentlyContinue | Out-Null
+        Stop-Transcript -ErrorAction Stop | Out-Null
         return
     }
 
     Write-DrvSection "Exportando $($selected.Count) driver(s)"
 
     $driversRoot = Join-Path $script:Session.Path 'drivers'
-    New-Item -Path $driversRoot -ItemType Directory -Force -ErrorAction SilentlyContinue | Out-Null
+    New-Item -Path $driversRoot -ItemType Directory -Force -ErrorAction Stop | Out-Null
 
     $results = @(Invoke-DriverBackup -SelectedDrivers $selected -DestRoot $driversRoot -IsDryRun ([bool]$DryRun))
 
@@ -1242,7 +1247,7 @@ if ($Modo -eq 'Backup') {
         # Determinar versao (v01, v02, ...)
         $archiveVersion = 1
         $reportsRoot = if (-not [string]::IsNullOrEmpty($Path)) { $Path } else { Get-ToolkitReportsRoot }
-        $existingPackages = Get-ChildItem -Path $reportsRoot -Filter "$baseName-v*.zip" -ErrorAction SilentlyContinue |
+        $existingPackages = Get-ChildItem -Path $reportsRoot -Filter "$baseName-v*.zip" -ErrorAction Stop |
             Sort-Object Name -Descending | Select-Object -First 1
 
         if ($existingPackages) {
@@ -1258,7 +1263,7 @@ if ($Modo -eq 'Backup') {
         # Staging com metadados.json + drivers/ para o restore localizar o catalogo
         $packageStage = Join-Path $script:Session.Path 'package-stage'
         if (Test-Path -LiteralPath $packageStage) {
-            Remove-Item -LiteralPath $packageStage -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $packageStage -Recurse -Force -ErrorAction Stop
         }
         New-Item -Path $packageStage -ItemType Directory -Force | Out-Null
 
@@ -1293,13 +1298,13 @@ else {
     catch {
         Write-Fail $_.Exception.Message
         Write-DrvLog -Level 'ERROR' -Message $_.Exception.Message
-        Stop-Transcript -ErrorAction SilentlyContinue | Out-Null
+        Stop-Transcript -ErrorAction Stop | Out-Null
         return
     }
 
     if ($null -eq $backupSource) {
         Write-Fail 'Nenhuma sessao de backup encontrada. Informe -CaminhoBackup ou execute o Modo Backup primeiro.'
-        Stop-Transcript -ErrorAction SilentlyContinue | Out-Null
+        Stop-Transcript -ErrorAction Stop | Out-Null
         return
     }
 
@@ -1323,7 +1328,7 @@ else {
 
     if ($totalFound -eq 0) {
         Write-Fail 'Catalogo de backup vazio ou corrompido.'
-        Stop-Transcript -ErrorAction SilentlyContinue | Out-Null
+        Stop-Transcript -ErrorAction Stop | Out-Null
         return
     }
 
@@ -1346,7 +1351,7 @@ else {
 
     if ($selected.Count -eq 0) {
         Write-Info 'Operacao cancelada pelo operador.'
-        Stop-Transcript -ErrorAction SilentlyContinue | Out-Null
+        Stop-Transcript -ErrorAction Stop | Out-Null
         return
     }
 
@@ -1394,7 +1399,7 @@ $skipCount = @($results | Where-Object { $_.Status -eq 'Ignorado' }).Count
 Write-Host ''
 Write-Host "Resumo: $okCount OK  |  $failCount falha(s)  |  $skipCount ignorado(s)" -ForegroundColor White
 
-Stop-Transcript -ErrorAction SilentlyContinue | Out-Null
+Stop-Transcript -ErrorAction Stop | Out-Null
 
 Write-Host ''
 Write-Title "Sessao concluida: $($script:Session.Path)"

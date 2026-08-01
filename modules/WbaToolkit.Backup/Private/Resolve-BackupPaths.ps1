@@ -17,7 +17,7 @@
                     [System.Environment]::ExpandEnvironmentVariables($_)
                 }
             }
-        } catch { }
+        } catch { Write-Verbose "Nao foi possivel ler '$configPath'; usando os caminhos de backup padrao. $($_.Exception.Message)" }
     }
 
     $defaultPaths | Where-Object { Test-Path $_ }

@@ -25,7 +25,7 @@
     .EXAMPLE
         Stop-WindowsService -Name 'WSearch' -Force
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -53,6 +53,11 @@
         $svc = $resolved.Service
         if ($svc.Status -eq 'Stopped') {
             $allResults.Add((Format-ServiceResult -Success $true -Message "Servico '$svcName' ja esta parado." -ServiceName $svcName))
+            continue
+        }
+
+        if (-not $PSCmdlet.ShouldProcess($svcName, 'Parar servico')) {
+            $allResults.Add((Format-ServiceResult -Success $true -Message "Parada de '$svcName' ignorada por WhatIf." -ServiceName $svcName))
             continue
         }
 

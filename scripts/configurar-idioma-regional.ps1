@@ -100,7 +100,8 @@ $PSDefaultParameterValues['Out-File:Encoding']    = 'utf8'
 $PSDefaultParameterValues['Set-Content:Encoding'] = 'utf8'
 $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
 
-try { chcp 65001 | Out-Null } catch { }
+try { chcp 65001 | Out-Null }
+catch { Write-Verbose "Nao foi possivel ajustar a pagina de codigo do console para UTF-8: $($_.Exception.Message)" }
 
 $ToolkitRoot    = Split-Path -Parent $PSScriptRoot
 $coreModuleRoot = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core'
@@ -199,8 +200,23 @@ function Show-BrazilTimeZones {
     Write-Host ""
 }
 
+function Invoke-LanguageOptionalQuery {
+    [CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
+param(
+        [Parameter(Mandatory = $true)][scriptblock]$Operation,
+        [Parameter(Mandatory = $true)][string]$Description,
+        [object]$DefaultValue = $null
+    )
+    try { return & $Operation }
+    catch {
+        Write-Verbose "Consulta opcional indisponivel ($Description): $($_.Exception.Message)"
+        return $DefaultValue
+    }
+}
+
 function Test-SupportedWindows {
-    $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
+    $os = Invoke-LanguageOptionalQuery -Description 'edicao do Windows' -Operation { Get-CimInstance Win32_OperatingSystem -ErrorAction Stop }
     if (-not $os) { return $false }
     $caption = $os.Caption
     $build   = [int]$os.BuildNumber
@@ -218,7 +234,7 @@ function Install-PtBRLanguage {
     Write-Info "Verificando pacote de idioma pt-BR..."
 
     # Verifica se pt-BR ja esta na lista de idiomas do usuario
-    $currentList = Get-WinUserLanguageList -ErrorAction SilentlyContinue
+    $currentList = Invoke-LanguageOptionalQuery -Description 'lista de idiomas do usuario' -DefaultValue @() -Operation { Get-WinUserLanguageList -ErrorAction Stop }
     if ($currentList | Where-Object { $_.LanguageTag -eq 'pt-BR' }) {
         Write-Ok "Idioma pt-BR ja presente na lista de idiomas do usuario."
     }
@@ -226,7 +242,7 @@ function Install-PtBRLanguage {
         Write-Info "pt-BR nao encontrado. Instalando pacote de idioma..."
 
         # Tentativa 1: modulo LanguagePackManagement (Win11 / Win10 20H1+)
-        $lpModule = Get-Module -Name LanguagePackManagement -ListAvailable -ErrorAction SilentlyContinue
+        $lpModule = Invoke-LanguageOptionalQuery -Description 'modulo LanguagePackManagement' -Operation { Get-Module -Name LanguagePackManagement -ListAvailable -ErrorAction Stop }
         if ($lpModule) {
             try {
                 Import-Module LanguagePackManagement -ErrorAction Stop
@@ -235,12 +251,12 @@ function Install-PtBRLanguage {
             }
             catch {
                 Write-Warn "Install-Language falhou: $($_.Exception.Message). Usando Add-WindowsCapability..."
-                Add-WindowsCapability -Online -Name "Language.Basic~~~pt-BR~0.0.1.0" -ErrorAction SilentlyContinue | Out-Null
+                Add-WindowsCapability -Online -Name "Language.Basic~~~pt-BR~0.0.1.0" -ErrorAction Stop | Out-Null
             }
         }
         else {
             # Tentativa 2: Add-WindowsCapability (Windows 10)
-            $cap = Get-WindowsCapability -Online -Name "Language.Basic~~~pt-BR~0.0.1.0" -ErrorAction SilentlyContinue
+            $cap = Invoke-LanguageOptionalQuery -Description 'capability de idioma pt-BR' -Operation { Get-WindowsCapability -Online -Name "Language.Basic~~~pt-BR~0.0.1.0" -ErrorAction Stop }
             if ($cap -and $cap.State -ne 'Installed') {
                 try {
                     Add-WindowsCapability -Online -Name "Language.Basic~~~pt-BR~0.0.1.0" -ErrorAction Stop | Out-Null
@@ -259,7 +275,14 @@ function Install-PtBRLanguage {
 }
 
 function Set-PtBRUserSettings {
+    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
+    param()
+
     Write-Info "Configurando idioma e locale para o usuario atual..."
+
+    if (-not $PSCmdlet.ShouldProcess('Perfil atual e configuracoes regionais do sistema', 'Aplicar idioma e localidade pt-BR')) {
+        return
+    }
 
     # Lista de idiomas: pt-BR com teclado ABNT2 como principal
     try {
@@ -349,19 +372,24 @@ function Invoke-IntlPropagation {
         Write-Warn "Falha na propagacao via intl.cpl: $($_.Exception.Message)"
     }
     finally {
-        Remove-Item $xmlPath -Force -ErrorAction SilentlyContinue
+        Remove-Item $xmlPath -Force -ErrorAction Stop
     }
 }
 
 function Set-BrazilTimeZone {
+    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
     param([string]$Id)
 
     # Valida o ID antes de aplicar
-    $validTz = Get-TimeZone -ListAvailable -ErrorAction SilentlyContinue |
+    $validTz = Invoke-LanguageOptionalQuery -Description 'fusos horarios disponiveis' -DefaultValue @() -Operation { Get-TimeZone -ListAvailable -ErrorAction Stop } |
         Where-Object { $_.Id -eq $Id }
 
     if (-not $validTz) {
         Write-Warn "Fuso horario '$Id' nao reconhecido pelo sistema. Use -ListTimeZones para ver opcoes validas."
+        return
+    }
+
+    if (-not $PSCmdlet.ShouldProcess($Id, 'Definir fuso horario')) {
         return
     }
 
@@ -378,12 +406,12 @@ function Set-BrazilTimeZone {
 function Show-Summary {
     Write-Section "Resumo das configuracoes aplicadas"
 
-    $culture  = Get-Culture -ErrorAction SilentlyContinue
-    $uiLang   = Get-WinUILanguageOverride -ErrorAction SilentlyContinue
-    $sysLoc   = Get-WinSystemLocale -ErrorAction SilentlyContinue
-    $tz       = Get-TimeZone -ErrorAction SilentlyContinue
-    $geoId    = (Get-WinHomeLocation -ErrorAction SilentlyContinue).GeoId
-    $langList = Get-WinUserLanguageList -ErrorAction SilentlyContinue
+    $culture  = Invoke-LanguageOptionalQuery -Description 'cultura atual' -Operation { Get-Culture -ErrorAction Stop }
+    $uiLang   = Invoke-LanguageOptionalQuery -Description 'idioma de interface' -Operation { Get-WinUILanguageOverride -ErrorAction Stop }
+    $sysLoc   = Invoke-LanguageOptionalQuery -Description 'localidade do sistema' -Operation { Get-WinSystemLocale -ErrorAction Stop }
+    $tz       = Invoke-LanguageOptionalQuery -Description 'fuso horario atual' -Operation { Get-TimeZone -ErrorAction Stop }
+    $geoId    = (Invoke-LanguageOptionalQuery -Description 'localizacao inicial' -Operation { Get-WinHomeLocation -ErrorAction Stop }).GeoId
+    $langList = Invoke-LanguageOptionalQuery -Description 'lista de idiomas do usuario' -DefaultValue @() -Operation { Get-WinUserLanguageList -ErrorAction Stop }
 
     Write-Info "Cultura do usuario    : $($culture.Name) — $($culture.DisplayName)"
     Write-Info "Idioma de exibicao    : $uiLang"
@@ -409,7 +437,7 @@ if ($ListTimeZones) { Show-BrazilTimeZones; exit 0 }
 
 # Verificar fuso informado antes de qualquer outra coisa
 if (-not ($BrazilTimeZones.Keys -contains $TimeZone)) {
-    $validOnSystem = Get-TimeZone -ListAvailable -ErrorAction SilentlyContinue |
+    $validOnSystem = Invoke-LanguageOptionalQuery -Description 'fusos horarios disponiveis' -DefaultValue @() -Operation { Get-TimeZone -ListAvailable -ErrorAction Stop } |
         Where-Object { $_.Id -eq $TimeZone }
     if (-not $validOnSystem) {
         Write-Fail "Fuso horario '$TimeZone' nao reconhecido."
@@ -502,7 +530,6 @@ Write-Step "Verificando configuracoes aplicadas" 95
 Show-Summary
 
 Write-Step "Configuracao concluida" 100
-Write-Progress -Activity "Configuracao pt-BR — $ScriptVersion" -Completed
 
 if ($transcriptActive) { Stop-Transcript }
 

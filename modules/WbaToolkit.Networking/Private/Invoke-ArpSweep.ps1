@@ -96,7 +96,8 @@
 
         # Libera os recursos de cada Ping (sockets ICMP).
         foreach ($p in $pings) {
-            try { $p.Instance.Dispose() } catch { }
+            try { $p.Instance.Dispose() }
+            catch { Write-Verbose "Nao foi possivel liberar um recurso ICMP: $($_.Exception.Message)" }
         }
 
         $processed = $chunkEnd + 1
@@ -110,11 +111,13 @@
 
     $rawEntries = $null
 
-    if (Get-Command Get-NetNeighbor -ErrorAction SilentlyContinue) {
+    $netNeighborCommand = $null
+    try { $netNeighborCommand = Get-Command Get-NetNeighbor -ErrorAction Stop }
+    catch { Write-Verbose "Get-NetNeighbor indisponivel: $($_.Exception.Message)" }
+    if ($netNeighborCommand) {
         try {
             # State filter omite estados uninteresting (ex.: 'Incomplete').
-            # Usa -ErrorAction SilentlyContinue porque cmdlet pode estar presente
-            # mas restrito em alguns ambientes (limite por GPO).
+            # O cmdlet pode estar presente, mas restrito em alguns ambientes (limite por GPO).
             if ($Interface) {
                 # Resolve o InterfaceIndex a partir do alias; fallback -InterfaceAlias
                 $ifIndex = $null
@@ -125,12 +128,12 @@
                     Write-Warning "Interface nao encontrada: $Interface (continua sem filtro)."
                 }
                 if ($ifIndex) {
-                    $rawEntries = Get-NetNeighbor -InterfaceIndex $ifIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue
+                    $rawEntries = Get-NetNeighbor -InterfaceIndex $ifIndex -AddressFamily IPv4 -ErrorAction Stop
                 } else {
-                    $rawEntries = Get-NetNeighbor -AddressFamily IPv4 -ErrorAction SilentlyContinue
+                    $rawEntries = Get-NetNeighbor -AddressFamily IPv4 -ErrorAction Stop
                 }
             } else {
-                $rawEntries = Get-NetNeighbor -AddressFamily IPv4 -ErrorAction SilentlyContinue
+                $rawEntries = Get-NetNeighbor -AddressFamily IPv4 -ErrorAction Stop
             }
         } catch {
             Write-Verbose "Get-NetNeighbor falhou: $($_.Exception.Message) — tentando arp -a."

@@ -37,6 +37,22 @@ Describe 'Xtudo estrutura do toolkit' {
         }
     }
 
+    It 'Carrega o Core por dot-source nos modulos dependentes' {
+        $modulePaths = @(
+            Join-Path $script:repoRoot 'modules/WbaToolkit.Inventory/WbaToolkit.Inventory.psm1'
+            Join-Path $script:repoRoot 'modules/WbaToolkit.Networking/WbaToolkit.Networking.psm1'
+        )
+
+        foreach ($path in $modulePaths) {
+            $content = Get-Content -LiteralPath $path -Raw
+            $content | Should -Not -Match '(?im)^\s*Import-Module\s+\$coreModulePath\b'
+            $content | Should -Match 'Test-Path\s+-LiteralPath\s+\$coreModuleRoot'
+            $content | Should -Match 'Get-ChildItem\s+-LiteralPath\s+\$corePath\s+-Filter\s+''\*\.ps1''\s+-File'
+            $content | Should -Match 'foreach\s+\(\$file\s+in\s+@\(Get-ChildItem'
+            $content | Should -Match '\.\s+\$file\.FullName'
+        }
+    }
+
     It 'Carrega dependencias do toolkit por dot-source com verificacao de caminho' {
         foreach ($path in $script:scriptPaths) {
             $content = Get-Content -LiteralPath $path -Raw
@@ -84,6 +100,50 @@ Describe 'Xtudo estrutura do toolkit' {
         }
 
         @($violations) | Should -BeNullOrEmpty
+    }
+
+    It 'Nao usa Write-Progress nos scripts operacionais' {
+        foreach ($path in $script:scriptPaths) {
+            (Get-Content -LiteralPath $path -Raw) | Should -Not -Match 'Write-Progress\b'
+        }
+    }
+
+    It 'Registra as indisponibilidades opcionais dos diagnosticos prioritarios' {
+        $diagnosticPaths = @(
+            (Join-Path $script:repoRoot 'scripts/diagnosticar-disco-100.ps1'),
+            (Join-Path $script:repoRoot 'scripts/diagnosticar-grafico.ps1'),
+            (Join-Path $script:repoRoot 'scripts/diagnosticar-memoria.ps1')
+        )
+
+        foreach ($path in $diagnosticPaths) {
+            $content = Get-Content -LiteralPath $path -Raw
+            $content | Should -Not -Match 'catch\s*\{\s*\}'
+            $content | Should -Match 'Write-(Verbose|HD100Log|GfxLog|MemLog)'
+        }
+    }
+
+    It 'Nao usa SilentlyContinue nos diagnosticos prioritarios' {
+        $diagnosticPaths = @(
+            (Join-Path $script:repoRoot 'scripts/diagnosticar-disco-100.ps1'),
+            (Join-Path $script:repoRoot 'scripts/diagnosticar-grafico.ps1'),
+            (Join-Path $script:repoRoot 'scripts/diagnosticar-memoria.ps1')
+        )
+
+        foreach ($path in $diagnosticPaths) {
+            (Get-Content -LiteralPath $path -Raw) | Should -Not -Match '-ErrorAction\s+SilentlyContinue'
+        }
+    }
+
+    It 'Nao suprime excecoes com catch vazio no codigo operacional' {
+        $sourcePaths = @(
+            $script:scriptPaths
+            Get-ChildItem -LiteralPath (Join-Path $script:repoRoot 'modules') -Recurse -File -Include '*.ps1', '*.psm1' |
+                Select-Object -ExpandProperty FullName
+        )
+
+        foreach ($path in $sourcePaths) {
+            (Get-Content -LiteralPath $path -Raw) | Should -Not -Match 'catch\s*\{\s*\}'
+        }
     }
 
     It 'A documentacao continua apontando para o launcher xtudo' {

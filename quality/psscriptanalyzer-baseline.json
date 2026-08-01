@@ -1,0 +1,1059 @@
+﻿{
+    "SchemaVersion":  1,
+    "Scope":  [
+                  "scripts",
+                  "modules"
+              ],
+    "Entries":  [
+                    {
+                        "Rule":  "PSAvoidAssignmentToAutomaticVariable",
+                        "File":  "modules/WbaToolkit.Networking/Public/Export-ConnectivityReportPdf.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSAvoidAssignmentToAutomaticVariable",
+                        "File":  "modules/WbaToolkit.SSH/Public/Test-SshConnectivity.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSAvoidAssignmentToAutomaticVariable",
+                        "File":  "scripts/atualizar-windows.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSAvoidAssignmentToAutomaticVariable",
+                        "File":  "scripts/diagnosticar-disco-100.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSAvoidAssignmentToAutomaticVariable",
+                        "File":  "scripts/remover-perfis-inativos.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSAvoidDefaultValueSwitchParameter",
+                        "File":  "modules/WbaToolkit.ScheduledTask/Public/Unregister-ScheduledTaskByName.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSAvoidTrailingWhitespace",
+                        "File":  "scripts/atualizar-windows.ps1",
+                        "Count":  12
+                    },
+                    {
+                        "Rule":  "PSAvoidTrailingWhitespace",
+                        "File":  "scripts/limpar-winsxs.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "modules/WbaToolkit.Backup/Private/Write-BackupLog.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "modules/WbaToolkit.Core/Private/Write-StatusLine.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "modules/WbaToolkit.Core/Public/Write-Section.ps1",
+                        "Count":  4
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "modules/WbaToolkit.Core/Public/Write-Step.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "modules/WbaToolkit.Core/Public/Write-Title.ps1",
+                        "Count":  4
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "modules/WbaToolkit.Identity/Public/Invoke-AutologonManager.ps1",
+                        "Count":  12
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "modules/WbaToolkit.Licensing/Public/Restore-LicenseState.ps1",
+                        "Count":  26
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "modules/WbaToolkit.Maintenance/Public/Invoke-ComponentStoreCleanup.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "modules/WbaToolkit.Maintenance/Public/Invoke-EventLogMaintenance.ps1",
+                        "Count":  9
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "modules/WbaToolkit.Maintenance/Public/Invoke-FilesystemCheck.ps1",
+                        "Count":  16
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "modules/WbaToolkit.Networking/Public/Invoke-ConnectivityTest.ps1",
+                        "Count":  4
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "modules/WbaToolkit.Networking/Public/Invoke-ConnectivityWizard.ps1",
+                        "Count":  3
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "modules/WbaToolkit.Networking/Public/Invoke-TargetConnectivityWizard.ps1",
+                        "Count":  10
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "modules/WbaToolkit.Services/Public/Invoke-ServiceManager.ps1",
+                        "Count":  7
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "modules/WbaToolkit.Startup/Public/Invoke-StartupManager.ps1",
+                        "Count":  7
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/atualizar-windows.ps1",
+                        "Count":  27
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/configurar-acesso-remoto.ps1",
+                        "Count":  17
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/configurar-idioma-regional.ps1",
+                        "Count":  3
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/detectar-ip-duplicado.ps1",
+                        "Count":  13
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/diagnosticar-ad-cliente.ps1",
+                        "Count":  5
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/diagnosticar-disco-100.ps1",
+                        "Count":  10
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/gerenciar-agendamentos.ps1",
+                        "Count":  41
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/gerenciar-copias.ps1",
+                        "Count":  31
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/gerenciar-copia-sombra.ps1",
+                        "Count":  34
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/gerenciar-drivers.ps1",
+                        "Count":  27
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/gerenciar-inicializacao.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/gerenciar-licenciamento.ps1",
+                        "Count":  43
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/gerenciar-login-automatico.ps1",
+                        "Count":  4
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/gerenciar-servicos.ps1",
+                        "Count":  86
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/gerenciar-ssh.ps1",
+                        "Count":  43
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/inventario-hardware-software.ps1",
+                        "Count":  7
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/limpar-windows.ps1",
+                        "Count":  19
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/limpar-winsxs.ps1",
+                        "Count":  5
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/preparar-imagem-windows.ps1",
+                        "Count":  4
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/remover-perfis-inativos.ps1",
+                        "Count":  15
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/sincronizar-relogio.ps1",
+                        "Count":  6
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/testar-conectividade-internet.ps1",
+                        "Count":  14
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/verificar-atualizacoes-hardware.ps1",
+                        "Count":  3
+                    },
+                    {
+                        "Rule":  "PSPossibleIncorrectComparisonWithNull",
+                        "File":  "modules/WbaToolkit.Licensing/Public/Backup-LicenseState.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSPossibleIncorrectComparisonWithNull",
+                        "File":  "modules/WbaToolkit.Licensing/Public/Get-LicenseCycleStatus.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSPossibleIncorrectComparisonWithNull",
+                        "File":  "modules/WbaToolkit.Licensing/Public/Restore-LicenseState.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSPossibleIncorrectComparisonWithNull",
+                        "File":  "modules/WbaToolkit.SSH/Public/Test-SshConnectivity.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSPossibleIncorrectComparisonWithNull",
+                        "File":  "scripts/diagnosticar-disco-100.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSPossibleIncorrectComparisonWithNull",
+                        "File":  "scripts/diagnosticar-grafico.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSReviewUnusedParameter",
+                        "File":  "modules/WbaToolkit.Backup/Public/Backup-UserData.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSReviewUnusedParameter",
+                        "File":  "modules/WbaToolkit.Backup/Public/Remove-RestorePoint.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSReviewUnusedParameter",
+                        "File":  "modules/WbaToolkit.Core/Public/Get-ReportLogoBase64.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSReviewUnusedParameter",
+                        "File":  "modules/WbaToolkit.Networking/Public/Test-IcmpConnectivity.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSReviewUnusedParameter",
+                        "File":  "modules/WbaToolkit.ShadowCopy/Public/Remove-ShadowCopy.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSReviewUnusedParameter",
+                        "File":  "scripts/atualizar-windows.ps1",
+                        "Count":  3
+                    },
+                    {
+                        "Rule":  "PSReviewUnusedParameter",
+                        "File":  "scripts/diagnosticar-disco-100.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSShouldProcess",
+                        "File":  "modules/WbaToolkit.Licensing/Public/Restore-LicenseState.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseApprovedVerbs",
+                        "File":  "modules/WbaToolkit.Networking/Public/Detect-DuplicateIp.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseApprovedVerbs",
+                        "File":  "scripts/diagnosticar-memoria.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseCmdletCorrectly",
+                        "File":  "modules/WbaToolkit.Networking/Private/ConvertFrom-IpRange.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "modules/WbaToolkit.Backup/Private/Get-BackupConfigurationInternal.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "modules/WbaToolkit.Backup/Public/Restore-UserData.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "modules/WbaToolkit.Backup/Public/Set-BackupConfiguration.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "modules/WbaToolkit.Core/Public/Export-ToolkitFunctionDocs.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "modules/WbaToolkit.Core/Public/Set-ToolkitReportsRoot.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "modules/WbaToolkit.Maintenance/Public/Sync-ComputerTime.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "modules/WbaToolkit.Networking/Public/Export-ConnectivityReport.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "modules/WbaToolkit.SSH/Public/Get-SshdConfig.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/analisar-espaco-disco.ps1",
+                        "Count":  3
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/atualizar-windows.ps1",
+                        "Count":  3
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/configurar-acesso-remoto.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/configurar-idioma-regional.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/detectar-ip-duplicado.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/diagnosticar-ad-cliente.ps1",
+                        "Count":  3
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/diagnosticar-disco-100.ps1",
+                        "Count":  3
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/diagnosticar-grafico.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/diagnosticar-memoria.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/gerenciar-agendamentos.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/gerenciar-copias.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/gerenciar-copia-sombra.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/gerenciar-drivers.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/gerenciar-inicializacao.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/gerenciar-licenciamento.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/gerenciar-login-automatico.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/gerenciar-servicos.ps1",
+                        "Count":  3
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/gerenciar-ssh.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/inventario-hardware-software.ps1",
+                        "Count":  5
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/limpar-windows.ps1",
+                        "Count":  3
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/limpar-winsxs.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/preparar-imagem-windows.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/remover-perfis-inativos.ps1",
+                        "Count":  3
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/testar-conectividade-internet.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/verificar-atualizacoes-hardware.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Backup/Private/Format-BackupSize.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Backup/Private/Get-BackupConfigurationInternal.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Backup/Private/Get-BackupStorePath.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Backup/Private/Test-BackupIntegrity.ps1",
+                        "Count":  6
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Backup/Public/Export-BackupReport.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Backup/Public/Get-BackupHistory.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Backup/Public/Get-RestorePointInfo.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Core/Private/ConvertTo-StaticDocsHtml.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Core/Private/Get-StaticDocsMetadata.ps1",
+                        "Count":  3
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Core/Public/ConvertTo-HtmlSafe.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Core/Public/Format-FileSize.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Core/Public/Get-CimInstanceSafe.ps1",
+                        "Count":  3
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Core/Public/Get-ReportLogoBase64.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Core/Public/Get-ToolkitReportsRoot.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Core/Public/Get-Utf8BomEncoding.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Core/Public/Invoke-Safe.ps1",
+                        "Count":  3
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Core/Public/New-ToolkitHtmlReport.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Core/Public/Read-UserInput.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Core/Public/Read-YesNo.ps1",
+                        "Count":  3
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Core/Public/Test-IsAdministrator.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Identity/Private/Get-AutologonStorePath.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Identity/Private/Get-WinlogonRegPath.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Identity/Private/Test-LsaSecret.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Identity/Public/Invoke-AutologonManager.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Inventory/Public/Get-InventoryCoverageMap.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Licensing/Private/Get-SoftwareLicensingProduct.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Licensing/Private/Get-SoftwareLicensingService.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Licensing/Private/Test-LicenseAdminContext.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Maintenance/Public/Get-FilesystemErrorEvent.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Maintenance/Public/Invoke-SysprepPreparation.ps1",
+                        "Count":  3
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Networking/Private/ConvertTo-ConnectivityReportHtml.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Networking/Private/ConvertTo-ConsoleText.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Networking/Private/Invoke-ArpSweep.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Networking/Private/New-DuplicateIpReport.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Networking/Private/Resolve-PortSpecification.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Networking/Public/Detect-DuplicateIp.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Networking/Public/Invoke-TargetConnectivityWizard.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Services/Public/Get-WindowsServiceStatus.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Services/Public/Invoke-ServiceManager.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Services/Public/Restart-WindowsService.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Services/Public/Start-WindowsService.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Services/Public/Stop-WindowsService.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.ShadowCopy/Private/Resolve-VolumePath.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.ShadowCopy/Public/Get-ShadowCopyStorage.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.SSH/Public/Get-SshAuthorizedKey.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Startup/Private/Get-LogonStartupTaskItems.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Startup/Private/Get-ManagedDisabledStartupItems.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Startup/Private/Get-RegistryStartupItems.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Startup/Private/Get-StartupFolderItems.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Startup/Private/Get-StartupStorePath.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Startup/Public/Disable-StartupItem.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Startup/Public/Enable-StartupItem.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Startup/Public/Get-ServiceStartupState.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Startup/Public/Get-StartupItem.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Startup/Public/Invoke-StartupManager.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Startup/Public/Remove-StartupItem.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "scripts/analisar-espaco-disco.ps1",
+                        "Count":  4
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "scripts/atualizar-windows.ps1",
+                        "Count":  16
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "scripts/diagnosticar-ad-cliente.ps1",
+                        "Count":  5
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "scripts/diagnosticar-disco-100.ps1",
+                        "Count":  22
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "scripts/diagnosticar-grafico.ps1",
+                        "Count":  30
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "scripts/diagnosticar-memoria.ps1",
+                        "Count":  8
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "scripts/gerenciar-drivers.ps1",
+                        "Count":  11
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "scripts/inventario-hardware-software.ps1",
+                        "Count":  3
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "scripts/verificar-atualizacoes-hardware.ps1",
+                        "Count":  17
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "modules/WbaToolkit.Core/Private/New-PortalIndexHtml.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "modules/WbaToolkit.Core/Private/New-StaticDocsSlug.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "modules/WbaToolkit.Core/Public/New-ToolkitArchive.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "modules/WbaToolkit.Core/Public/New-ToolkitElevationCommand.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "modules/WbaToolkit.Core/Public/New-ToolkitHtmlReport.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "modules/WbaToolkit.Core/Public/Set-ToolkitReportsRoot.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "modules/WbaToolkit.Identity/Private/Set-LsaSecret.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "modules/WbaToolkit.Networking/Private/New-ConnectivityResult.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "modules/WbaToolkit.Networking/Private/New-DuplicateIpReport.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "modules/WbaToolkit.Networking/Public/New-ConnectivityTestPlan.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "modules/WbaToolkit.ScheduledTask/Public/Start-ScheduledTaskByName.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "modules/WbaToolkit.Services/Public/Restart-WindowsService.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "modules/WbaToolkit.Services/Public/Set-WindowsServiceStartup.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "modules/WbaToolkit.Services/Public/Start-WindowsService.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "modules/WbaToolkit.Services/Public/Stop-WindowsService.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "modules/WbaToolkit.SSH/Public/New-SshHostKey.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "modules/WbaToolkit.SSH/Public/New-SshUserKey.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "modules/WbaToolkit.SSH/Public/Remove-SshAuthorizedKey.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "modules/WbaToolkit.SSH/Public/Set-SshdConfig.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "modules/WbaToolkit.Startup/Private/New-StartupItemId.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "modules/WbaToolkit.Startup/Private/Remove-StartupStoreItem.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "scripts/analisar-espaco-disco.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "scripts/configurar-acesso-remoto.ps1",
+                        "Count":  5
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "scripts/configurar-idioma-regional.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "scripts/diagnosticar-ad-cliente.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "scripts/diagnosticar-disco-100.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "scripts/diagnosticar-grafico.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "scripts/diagnosticar-memoria.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "scripts/gerenciar-drivers.ps1",
+                        "Count":  3
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "scripts/inventario-hardware-software.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "scripts/remover-perfis-inativos.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseSingularNouns",
+                        "File":  "modules/WbaToolkit.Backup/Private/Resolve-BackupPaths.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseSingularNouns",
+                        "File":  "modules/WbaToolkit.Core/Public/Export-ToolkitFunctionDocs.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseSingularNouns",
+                        "File":  "modules/WbaToolkit.Startup/Private/Get-LogonStartupTaskItems.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseSingularNouns",
+                        "File":  "modules/WbaToolkit.Startup/Private/Get-ManagedDisabledStartupItems.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseSingularNouns",
+                        "File":  "modules/WbaToolkit.Startup/Private/Get-RegistryStartupItems.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseSingularNouns",
+                        "File":  "modules/WbaToolkit.Startup/Private/Get-StartupFolderItems.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseSingularNouns",
+                        "File":  "scripts/analisar-espaco-disco.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseSingularNouns",
+                        "File":  "scripts/atualizar-windows.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseSingularNouns",
+                        "File":  "scripts/configurar-acesso-remoto.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseSingularNouns",
+                        "File":  "scripts/configurar-idioma-regional.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseSingularNouns",
+                        "File":  "scripts/diagnosticar-ad-cliente.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseSingularNouns",
+                        "File":  "scripts/diagnosticar-disco-100.ps1",
+                        "Count":  9
+                    },
+                    {
+                        "Rule":  "PSUseSingularNouns",
+                        "File":  "scripts/diagnosticar-grafico.ps1",
+                        "Count":  8
+                    },
+                    {
+                        "Rule":  "PSUseSingularNouns",
+                        "File":  "scripts/diagnosticar-memoria.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseSingularNouns",
+                        "File":  "scripts/gerenciar-drivers.ps1",
+                        "Count":  3
+                    },
+                    {
+                        "Rule":  "PSUseSingularNouns",
+                        "File":  "scripts/inventario-hardware-software.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseSingularNouns",
+                        "File":  "scripts/remover-perfis-inativos.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseSupportsShouldProcess",
+                        "File":  "modules/WbaToolkit.ScheduledTask/Public/Unregister-ScheduledTaskByName.ps1",
+                        "Count":  1
+                    }
+                ]
+}

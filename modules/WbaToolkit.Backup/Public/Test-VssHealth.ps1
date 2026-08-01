@@ -12,22 +12,27 @@
 
     $checks = [System.Collections.Generic.List[pscustomobject]]::new()
 
-    $vssService = Get-Service -Name 'VSS' -ErrorAction SilentlyContinue
+    $vssService = $null
+    try { $vssService = Get-Service -Name 'VSS' -ErrorAction Stop }
+    catch { Write-Verbose "Servico VSS indisponivel: $($_.Exception.Message)" }
     $checks.Add([pscustomobject]@{
         Name    = 'Servico VSS'
         Status  = if ($vssService -and $vssService.Status -eq 'Running') { 'OK' } else { 'FALHA' }
         Detail  = if ($vssService) { $vssService.Status.ToString() } else { 'Nao encontrado' }
     })
 
-    $sysRestore = Get-Service -Name 'swprv' -ErrorAction SilentlyContinue
+    $sysRestore = $null
+    try { $sysRestore = Get-Service -Name 'swprv' -ErrorAction Stop }
+    catch { Write-Verbose "Servico swprv indisponivel: $($_.Exception.Message)" }
     $checks.Add([pscustomobject]@{
         Name    = 'Servico System Restore'
         Status  = if ($sysRestore -and $sysRestore.Status -eq 'Running') { 'OK' } else { 'AVISO' }
         Detail  = if ($sysRestore) { $sysRestore.Status.ToString() } else { 'Nao encontrado' }
     })
 
-    $fixedVolumes = Get-Volume -ErrorAction SilentlyContinue |
-        Where-Object { $_.DriveType -eq 'Fixed' -and $_.DriveLetter }
+    $fixedVolumes = @()
+    try { $fixedVolumes = @(Get-Volume -ErrorAction Stop | Where-Object { $_.DriveType -eq 'Fixed' -and $_.DriveLetter }) }
+    catch { Write-Verbose "Nao foi possivel consultar volumes fixos: $($_.Exception.Message)" }
 
     foreach ($vol in $fixedVolumes) {
         $freePercent = if ($vol.Size -gt 0) { [math]::Round(($vol.SizeRemaining / $vol.Size) * 100, 1) } else { 0 }
@@ -40,14 +45,18 @@
         })
     }
 
-    $shadowCount = (Get-CimInstance Win32_ShadowCopy -ErrorAction SilentlyContinue | Measure-Object).Count
+    $shadowCount = 0
+    try { $shadowCount = (Get-CimInstance Win32_ShadowCopy -ErrorAction Stop | Measure-Object).Count }
+    catch { Write-Verbose "Nao foi possivel consultar copias de sombra: $($_.Exception.Message)" }
     $checks.Add([pscustomobject]@{
         Name    = 'Shadow Copies existentes'
         Status  = 'INFO'
         Detail  = "$shadowCount shadow copy(s)"
     })
 
-    $restorePoints = Get-ComputerRestorePoint -ErrorAction SilentlyContinue
+    $restorePoints = @()
+    try { $restorePoints = @(Get-ComputerRestorePoint -ErrorAction Stop) }
+    catch { Write-Verbose "Nao foi possivel consultar pontos de restauracao: $($_.Exception.Message)" }
     $rpCount = ($restorePoints | Measure-Object).Count
     $checks.Add([pscustomobject]@{
         Name    = 'Restore Points existentes'

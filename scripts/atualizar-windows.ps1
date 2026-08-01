@@ -140,7 +140,10 @@ function Test-BackendAvailable {
         'Chocolatey' { 'choco.exe' }
     }
 
-    if (-not (Get-Command $exe -ErrorAction SilentlyContinue)) {
+    $command = $null
+    try { $command = Get-Command $exe -ErrorAction Stop }
+    catch { Write-Verbose "Backend $Backend indisponivel: $($_.Exception.Message)" }
+    if (-not $command) {
         return $false
     }
 
@@ -167,7 +170,9 @@ function Test-BackendAvailable {
 }
 
 function Get-PreferredBackendForEnvironment {
-    $os = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction SilentlyContinue
+    $os = $null
+    try { $os = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop }
+    catch { Write-Verbose "Nao foi possivel identificar o sistema operacional: $($_.Exception.Message)" }
     if (-not $os) { return 'WinGet' }
     $caption = $os.Caption
     if ($caption -match 'Server 2016|Server 2019|Server 2022') { return 'Chocolatey' }
@@ -278,39 +283,39 @@ function Invoke-WinGetList {
     $inTable = $false
     $headerLine = $null
     $columnPositions = @()
-    
+
     foreach ($line in $raw) {
-        if ($line -match '^-{10,}') { 
+        if ($line -match '^-{10,}') {
             Write-Debug "Invoke-WinGetList: Found separator"
-            $inTable = $true; continue 
+            $inTable = $true; continue
         }
-        if (-not $inTable)          { 
+        if (-not $inTable)          {
             # Capturar linha de cabecalho para determinar posicoes das colunas
             if ($line -match '^Nome\s+') {
                 $headerLine = $line
                 Write-Debug "Invoke-WinGetList: Found header: $headerLine"
             }
-            continue 
+            continue
         }
         if ($line -match '^\s*$')   { continue }
-        if ($line -match '(\d+)\s+upgrade(s?) available') { 
+        if ($line -match '(\d+)\s+upgrade(s?) available') {
             Write-Debug "Invoke-WinGetList: Found summary line"
-            continue 
+            continue
         }
-        
+
         # Usar posicoes do cabecalho para extrair colunas
         if ($headerLine) {
             $nomePos = $headerLine.IndexOf('Nome')
             $idPos = $headerLine.IndexOf('ID')
             $versaoPos = $headerLine.IndexOf('Vers')
             $dispPos = $headerLine.IndexOf('Dispon')
-            
+
             if ($line.Length -gt $dispPos) {
                 $name = $line.Substring($nomePos, [Math]::Min($idPos - $nomePos, $line.Length - $nomePos)).Trim()
                 $id = $line.Substring($idPos, [Math]::Min($versaoPos - $idPos, $line.Length - $idPos)).Trim()
                 $currentVer = $line.Substring($versaoPos, [Math]::Min($dispPos - $versaoPos, $line.Length - $versaoPos)).Trim()
                 $availVer = $line.Substring($dispPos).Trim()
-                
+
                 Write-Debug "Invoke-WinGetList: Parsed - Name: $name, Id: $id"
                 $updates.Add([PSCustomObject]@{
                     Name             = $name
@@ -366,8 +371,12 @@ function Invoke-ProcessWithSpinner {
         $clearLen = $Label.Length + 20
         Write-Host ("`r" + (' ' * $clearLen) + "`r") -NoNewline
 
-        $out = Get-Content -LiteralPath $tmpOut -ErrorAction SilentlyContinue
-        $err = Get-Content -LiteralPath $tmpErr -ErrorAction SilentlyContinue
+        $out = @()
+        $err = @()
+        try { $out = Get-Content -LiteralPath $tmpOut -ErrorAction Stop }
+        catch { Write-Verbose "Nao foi possivel ler a saida temporaria de ${Label}: $($_.Exception.Message)" }
+        try { $err = Get-Content -LiteralPath $tmpErr -ErrorAction Stop }
+        catch { Write-Verbose "Nao foi possivel ler o erro temporario de ${Label}: $($_.Exception.Message)" }
         if ($out) { $out | Out-Host }
         if ($err) { $err | Out-Host }
 
@@ -378,7 +387,8 @@ function Invoke-ProcessWithSpinner {
         throw
     }
     finally {
-        Remove-Item -LiteralPath $tmpOut, $tmpErr -Force -ErrorAction SilentlyContinue
+        try { Remove-Item -LiteralPath $tmpOut, $tmpErr -Force -ErrorAction Stop }
+        catch { Write-Verbose "Nao foi possivel remover arquivos temporarios de ${Label}: $($_.Exception.Message)" }
     }
 }
 
@@ -487,7 +497,9 @@ function Invoke-ChocolateyUpgradePackage {
 function Invoke-WindowsUpdateStep {
     $result = [PSCustomObject]@{ Success = $false; Skipped = $false; ExitCode = 0; Message = '' }
 
-    $usoClient = Get-Command UsoClient.exe -ErrorAction SilentlyContinue
+    $usoClient = $null
+    try { $usoClient = Get-Command UsoClient.exe -ErrorAction Stop }
+    catch { Write-Verbose "UsoClient.exe indisponivel: $($_.Exception.Message)" }
     if (-not $usoClient) {
         $result.Message = 'UsoClient.exe nao encontrado. Windows Update nao pode ser acionado.'
         return $result
@@ -603,7 +615,7 @@ function Read-PackageSelection {
         foreach ($part in ($input -split '[,\s]+')) {
             $part = $part.Trim()
             if ($part -eq '') { continue }
-            
+
             $idx = 0
             if (-not [int]::TryParse($part, [ref]$idx) -or $idx -lt 1 -or $idx -gt $Packages.Count) {
                 Write-Warn "Entrada invalida: '$part'. Use numeros de 1 a $($Packages.Count), T ou N."
@@ -612,7 +624,7 @@ function Read-PackageSelection {
             }
             $selected.Add($Packages[$idx - 1].Id)
         }
-        
+
         if ($valid -and $selected.Count -gt 0) {
             Write-Host ''
             Write-Host "  $($selected.Count) pacote(s) selecionado(s) para atualizacao." -ForegroundColor Green

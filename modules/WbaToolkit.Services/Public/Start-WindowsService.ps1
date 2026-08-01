@@ -25,7 +25,7 @@
     .EXAMPLE
         Start-WindowsService -Name 'W32Time', 'Spooler' -RetryCount 3
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true)]
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -54,6 +54,11 @@
         $svc = $resolved.Service
         if ($svc.Status -eq 'Running') {
             $allResults.Add((Format-ServiceResult -Success $true -Message "Servico '$svcName' ja esta em execucao." -ServiceName $svcName))
+            continue
+        }
+
+        if (-not $PSCmdlet.ShouldProcess($svcName, 'Iniciar servico')) {
+            $allResults.Add((Format-ServiceResult -Success $true -Message "Inicio de '$svcName' ignorado por WhatIf." -ServiceName $svcName))
             continue
         }
 

@@ -59,7 +59,7 @@
 #>
 #Requires -Version 5.1
 
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
 param(
     [ValidateSet('Diagnostico', 'Habilitar', 'Desabilitar', 'ConfigurarPorta',
                  'AdicionarUsuario', 'RemoverUsuario', 'AbrirFirewall', 'FecharFirewall')]
@@ -97,7 +97,8 @@ $OutputEncoding           = [System.Text.Encoding]::UTF8
 $PSDefaultParameterValues['Out-File:Encoding']    = 'utf8'
 $PSDefaultParameterValues['Set-Content:Encoding'] = 'utf8'
 $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
-try { chcp 65001 | Out-Null } catch { }
+try { chcp 65001 | Out-Null }
+catch { Write-Verbose "Nao foi possivel ajustar a pagina de codigo do console para UTF-8: $($_.Exception.Message)" }
 
 $ScriptName = $MyInvocation.MyCommand.Name
 $ScriptPath = $PSCommandPath
@@ -149,8 +150,23 @@ try {
 # Funcoes internas
 # ---------------------------------------------------------------------------
 
+function Invoke-RdpOptionalQuery {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)][scriptblock]$Operation,
+        [Parameter(Mandatory = $true)][string]$Description,
+        [object]$DefaultValue = $null
+    )
+
+    try { return & $Operation }
+    catch {
+        Write-Verbose "Consulta opcional indisponivel ($Description): $($_.Exception.Message)"
+        return $DefaultValue
+    }
+}
+
 function Test-RdpSupport {
-    $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
+    $os = Invoke-RdpOptionalQuery -Description 'edicao do Windows' -Operation { Get-CimInstance Win32_OperatingSystem -ErrorAction Stop }
     if (-not $os) { return $true }
     $caption = $os.Caption
     if ($caption -match 'Home') {
@@ -163,27 +179,27 @@ function Get-RdpStatus {
     $tsKey = 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server'
     $tcpKey = 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp'
 
-    $denyConnections = (Get-ItemProperty -Path $tsKey -Name 'fDenyTSConnections' -ErrorAction SilentlyContinue).fDenyTSConnections
+    $denyConnections = (Invoke-RdpOptionalQuery -Description 'estado RDP no registro' -Operation { Get-ItemProperty -Path $tsKey -Name 'fDenyTSConnections' -ErrorAction Stop }).fDenyTSConnections
     $rdpEnabled = ($denyConnections -ne 1)
 
-    $portNumber = (Get-ItemProperty -Path $tcpKey -Name 'PortNumber' -ErrorAction SilentlyContinue).PortNumber
+    $portNumber = (Invoke-RdpOptionalQuery -Description 'porta RDP no registro' -Operation { Get-ItemProperty -Path $tcpKey -Name 'PortNumber' -ErrorAction Stop }).PortNumber
     if (-not $portNumber) { $portNumber = 3389 }
 
-    $nla = (Get-ItemProperty -Path $tcpKey -Name 'UserAuthentication' -ErrorAction SilentlyContinue).UserAuthentication
+    $nla = (Invoke-RdpOptionalQuery -Description 'NLA no registro' -Operation { Get-ItemProperty -Path $tcpKey -Name 'UserAuthentication' -ErrorAction Stop }).UserAuthentication
     $nlaEnabled = ($nla -eq 1)
 
-    $svc = Get-Service -Name TermService -ErrorAction SilentlyContinue
+    $svc = Invoke-RdpOptionalQuery -Description 'servico TermService' -Operation { Get-Service -Name TermService -ErrorAction Stop }
     $svcStatus = if ($svc) { $svc.Status.ToString() } else { 'Nao encontrado' }
     $svcStartType = if ($svc) { $svc.StartType.ToString() } else { 'N/A' }
 
     $rdpUsers = Get-RdpGroupMembers
 
-    $fwRule = Get-NetFirewallRule -ErrorAction SilentlyContinue |
+    $fwRule = Invoke-RdpOptionalQuery -Description 'regras de firewall RDP' -DefaultValue @() -Operation { Get-NetFirewallRule -ErrorAction Stop } |
         Where-Object { $_.Direction -eq 'Inbound' -and $_.Enabled -eq 'True' -and
             ($_.DisplayGroup -eq 'Remote Desktop' -or $_.DisplayName -match 'WBA RDP Custom') } |
         Select-Object -First 1
 
-    $fwCustomPort = Get-NetFirewallRule -ErrorAction SilentlyContinue |
+    $fwCustomPort = Invoke-RdpOptionalQuery -Description 'regra de firewall RDP personalizada' -DefaultValue @() -Operation { Get-NetFirewallRule -ErrorAction Stop } |
         Where-Object { $_.Direction -eq 'Inbound' -and $_.Enabled -eq 'True' -and $_.DisplayName -match "WBA RDP Custom.*$portNumber" } |
         Select-Object -First 1
 
@@ -222,7 +238,7 @@ function Set-RdpNlaInternal {
 
 function Set-RdpServiceState {
     param([string]$State)
-    $svc = Get-Service -Name TermService -ErrorAction SilentlyContinue
+    $svc = Invoke-RdpOptionalQuery -Description 'servico TermService' -Operation { Get-Service -Name TermService -ErrorAction Stop }
     if (-not $svc) { return }
     switch ($State) {
         'Running'  { Start-Service -Name TermService -ErrorAction Stop }
@@ -234,9 +250,9 @@ function Set-RdpServiceState {
 
 function Add-RdpFirewallRule {
     param([int]$RulePort)
-    $existing = Get-NetFirewallRule -DisplayName "WBA RDP Custom ($RulePort)" -ErrorAction SilentlyContinue
+    $existing = Invoke-RdpOptionalQuery -Description "regra de firewall RDP $RulePort" -Operation { Get-NetFirewallRule -DisplayName "WBA RDP Custom ($RulePort)" -ErrorAction Stop }
     if ($existing) {
-        Enable-NetFirewallRule -DisplayName "WBA RDP Custom ($RulePort)" -ErrorAction SilentlyContinue
+        Enable-NetFirewallRule -DisplayName "WBA RDP Custom ($RulePort)" -ErrorAction Stop
         return
     }
     New-NetFirewallRule -DisplayName "WBA RDP Custom ($RulePort)" `
@@ -246,14 +262,14 @@ function Add-RdpFirewallRule {
 
 function Remove-RdpFirewallRule {
     param([int]$RulePort)
-    $existing = Get-NetFirewallRule -DisplayName "WBA RDP Custom ($RulePort)" -ErrorAction SilentlyContinue
+    $existing = Invoke-RdpOptionalQuery -Description "regra de firewall RDP $RulePort" -Operation { Get-NetFirewallRule -DisplayName "WBA RDP Custom ($RulePort)" -ErrorAction Stop }
     if ($existing) {
-        Remove-NetFirewallRule -DisplayName "WBA RDP Custom ($RulePort)" -ErrorAction SilentlyContinue
+        Remove-NetFirewallRule -DisplayName "WBA RDP Custom ($RulePort)" -ErrorAction Stop
     }
 }
 
 function Get-RdpGroup {
-    $groups = Get-LocalGroup -ErrorAction SilentlyContinue
+    $groups = Invoke-RdpOptionalQuery -Description 'grupos locais' -DefaultValue @() -Operation { Get-LocalGroup -ErrorAction Stop }
     $rdpGroup = $groups | Where-Object { $_.SID -eq 'S-1-5-32-555' }
     if (-not $rdpGroup) {
         $rdpGroup = $groups | Where-Object { $_.Name -match 'Remote Desktop|trabalho remota' } | Select-Object -First 1
@@ -264,7 +280,7 @@ function Get-RdpGroup {
 function Get-RdpGroupMembers {
     $group = Get-RdpGroup
     if (-not $group) { return @() }
-    $members = Get-LocalGroupMember -Group $group -ErrorAction SilentlyContinue
+    $members = Invoke-RdpOptionalQuery -Description "membros do grupo $($group.Name)" -DefaultValue @() -Operation { Get-LocalGroupMember -Group $group -ErrorAction Stop }
     return @($members | ForEach-Object { $_.Name })
 }
 
@@ -276,7 +292,7 @@ try {
     Write-Title "Configuracao de Acesso Remoto (RDP)"
 
     if (-not (Test-RdpSupport)) {
-        $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
+        $os = Invoke-RdpOptionalQuery -Description 'edicao do Windows' -Operation { Get-CimInstance Win32_OperatingSystem -ErrorAction Stop }
         $caption = if ($os) { $os.Caption } else { 'desconhecida' }
         Write-Fail "Esta versao do Windows ($caption) nao suporta hospedagem de Area de Trabalho Remota (RDP)."
         Write-Warn "RDP requer Windows Pro, Enterprise ou Education. Windows Home permite somente conexao remota."
@@ -341,9 +357,9 @@ try {
 
         'Habilitar' {
             Write-Section "Habilitando RDP"
-            if ($DryRun) {
-                Write-Info "[DRYRUN] RDP seria habilitado na porta $($status.Porta)."
-                Write-Info "[DRYRUN] Servico TermService seria iniciado."
+            if ($DryRun -or -not $PSCmdlet.ShouldProcess('RDP, TermService e NLA', 'Habilitar acesso remoto')) {
+                Write-Info "[SIMULACAO] RDP seria habilitado na porta $($status.Porta)."
+                Write-Info "[SIMULACAO] Servico TermService seria iniciado."
             } else {
                 Set-RdpEnabled -Enabled $true
                 Write-Ok "RDP habilitado no registro."
@@ -363,8 +379,8 @@ try {
 
         'Desabilitar' {
             Write-Section "Desabilitando RDP"
-            if ($DryRun) {
-                Write-Info "[DRYRUN] RDP seria desabilitado."
+            if ($DryRun -or -not $PSCmdlet.ShouldProcess('RDP', 'Desabilitar acesso remoto')) {
+                Write-Info "[SIMULACAO] RDP seria desabilitado."
             } else {
                 Set-RdpEnabled -Enabled $false
                 Write-Ok "RDP desabilitado no registro."
@@ -374,8 +390,8 @@ try {
 
         'ConfigurarPorta' {
             Write-Section "Configurando porta RDP"
-            if ($DryRun) {
-                Write-Info "[DRYRUN] Porta seria alterada: $($status.Porta) -> $Porta"
+            if ($DryRun -or -not $PSCmdlet.ShouldProcess("Porta RDP $Porta e regra de firewall", 'Configurar porta de acesso remoto')) {
+                Write-Info "[SIMULACAO] Porta seria alterada: $($status.Porta) -> $Porta"
             } else {
                 Set-RdpPortInternal -NewPort $Porta
                 Write-Ok "Porta alterada para $Porta."
@@ -398,8 +414,8 @@ try {
                 return
             }
             Write-Section "Adicionando usuario ao grupo $($rdpGroup.Name)"
-            if ($DryRun) {
-                Write-Info "[DRYRUN] Usuario '$Usuario' seria adicionado ao grupo."
+            if ($DryRun -or -not $PSCmdlet.ShouldProcess("$Usuario no grupo $($rdpGroup.Name)", 'Adicionar usuario de acesso remoto')) {
+                Write-Info "[SIMULACAO] Usuario '$Usuario' seria adicionado ao grupo."
             } else {
                 try {
                     Add-LocalGroupMember -Group $rdpGroup -Member $Usuario -ErrorAction Stop
@@ -421,8 +437,8 @@ try {
                 return
             }
             Write-Section "Removendo usuario do grupo $($rdpGroup.Name)"
-            if ($DryRun) {
-                Write-Info "[DRYRUN] Usuario '$Usuario' seria removido do grupo."
+            if ($DryRun -or -not $PSCmdlet.ShouldProcess("$Usuario do grupo $($rdpGroup.Name)", 'Remover usuario de acesso remoto')) {
+                Write-Info "[SIMULACAO] Usuario '$Usuario' seria removido do grupo."
             } else {
                 try {
                     Remove-LocalGroupMember -Group $rdpGroup -Member $Usuario -ErrorAction Stop
@@ -435,8 +451,8 @@ try {
 
         'AbrirFirewall' {
             Write-Section "Abrindo porta $Porta no firewall"
-            if ($DryRun) {
-                Write-Info "[DRYRUN] Regra de firewall seria criada para porta $Porta."
+            if ($DryRun -or -not $PSCmdlet.ShouldProcess("Regra de firewall para porta $Porta", 'Abrir acesso RDP')) {
+                Write-Info "[SIMULACAO] Regra de firewall seria criada para porta $Porta."
             } else {
                 Add-RdpFirewallRule -RulePort $Porta
                 Write-Ok "Regra de firewall criada: WBA RDP Custom ($Porta)"
@@ -445,8 +461,8 @@ try {
 
         'FecharFirewall' {
             Write-Section "Fechando porta $Porta no firewall"
-            if ($DryRun) {
-                Write-Info "[DRYRUN] Regra de firewall seria removida para porta $Porta."
+            if ($DryRun -or -not $PSCmdlet.ShouldProcess("Regra de firewall para porta $Porta", 'Fechar acesso RDP')) {
+                Write-Info "[SIMULACAO] Regra de firewall seria removida para porta $Porta."
             } else {
                 Remove-RdpFirewallRule -RulePort $Porta
                 Write-Ok "Regra de firewall removida: WBA RDP Custom ($Porta)"

@@ -365,7 +365,7 @@ Invoke-Safe "TEMP do usuário atual" {
 
 Write-Step "Limpando arquivos temporários dos perfis locais" 18
 Invoke-Safe "TEMP dos perfis em C:\Users" {
-    Get-ChildItem "C:\Users" -Directory -Force -ErrorAction SilentlyContinue |
+    Get-ChildItem "C:\Users" -Directory -Force -ErrorAction Stop |
         ForEach-Object {
             Remove-SafePath -Path "$($_.FullName)\AppData\Local\Temp"
         }
@@ -382,7 +382,7 @@ Invoke-Safe "Minidumps" {
 }
 
 Invoke-Safe "MEMORY.DMP" {
-    Remove-Item "$env:SystemRoot\MEMORY.DMP" -Force -ErrorAction SilentlyContinue
+    Remove-Item "$env:SystemRoot\MEMORY.DMP" -Force -ErrorAction Stop
 }
 
 Invoke-Safe "Relatórios WER do sistema com mais de 7 dias" {
@@ -391,7 +391,7 @@ Invoke-Safe "Relatórios WER do sistema com mais de 7 dias" {
 }
 
 Invoke-Safe "Relatórios WER dos usuários com mais de 7 dias" {
-    Get-ChildItem "C:\Users" -Directory -Force -ErrorAction SilentlyContinue |
+    Get-ChildItem "C:\Users" -Directory -Force -ErrorAction Stop |
         ForEach-Object {
             Remove-SafePath -Path "$($_.FullName)\AppData\Local\Microsoft\Windows\WER\ReportArchive" -OlderThanDays 7
             Remove-SafePath -Path "$($_.FullName)\AppData\Local\Microsoft\Windows\WER\ReportQueue" -OlderThanDays 7
@@ -408,11 +408,11 @@ Invoke-Safe "Logs antigos do DISM com mais de 15 dias" {
 }
 
 Invoke-Safe "Logs antigos do CBS preservando CBS.log ativo" {
-    Get-ChildItem "$env:SystemRoot\Logs\CBS" -Force -ErrorAction SilentlyContinue |
+    Get-ChildItem "$env:SystemRoot\Logs\CBS" -Force -ErrorAction Stop |
         Where-Object {
             $_.Name -ne "CBS.log" -and $_.LastWriteTime -lt (Get-Date).AddDays(-15)
         } |
-        Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
+        Remove-Item -Force -Recurse -ErrorAction Stop
 }
 
 Write-Step "Verificando limpeza do Visualizador de Eventos" 52
@@ -422,24 +422,24 @@ Write-Step "Limpando cache de miniaturas e ícones dos usuários" 55
 Invoke-Safe "thumbcache_*.db e iconcache_*.db" {
     # Os arquivos ficam bloqueados pelo explorer.exe em execucao; best-effort por arquivo
     # para nao marcar o passo inteiro como falha por handle aberto esperado.
-    Get-ChildItem "C:\Users" -Directory -Force -ErrorAction SilentlyContinue |
+    Get-ChildItem "C:\Users" -Directory -Force -ErrorAction Stop |
         ForEach-Object {
             $explorerDir = "$($_.FullName)\AppData\Local\Microsoft\Windows\Explorer"
-            Get-ChildItem $explorerDir -Filter 'thumbcache_*.db' -Force -ErrorAction SilentlyContinue |
-                ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue }
-            Get-ChildItem $explorerDir -Filter 'iconcache_*.db' -Force -ErrorAction SilentlyContinue |
-                ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue }
+            Get-ChildItem $explorerDir -Filter 'thumbcache_*.db' -Force -ErrorAction Stop |
+                ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction Stop }
+            Get-ChildItem $explorerDir -Filter 'iconcache_*.db' -Force -ErrorAction Stop |
+                ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction Stop }
         }
 }
 
 if (-not $NoUpdateCache) {
     Write-Step "Limpando cache de download do Windows Update" 65
 
-    $WuState   = (Get-Service wuauserv -ErrorAction SilentlyContinue).Status
-    $BitsState = (Get-Service bits     -ErrorAction SilentlyContinue).Status
+    $WuState   = (Get-Service wuauserv -ErrorAction Stop).Status
+    $BitsState = (Get-Service bits     -ErrorAction Stop).Status
 
     Invoke-Safe "Parar serviços wuauserv e bits" {
-        Stop-Service wuauserv,bits -Force -ErrorAction SilentlyContinue
+        Stop-Service wuauserv,bits -Force -ErrorAction Stop
     }
 
     Invoke-Safe "Limpar $env:SystemRoot\SoftwareDistribution\Download" {
@@ -447,25 +447,25 @@ if (-not $NoUpdateCache) {
     }
 
     Invoke-Safe "Restaurar serviços wuauserv e bits" {
-        if ($WuState   -eq 'Running') { Start-Service wuauserv -ErrorAction SilentlyContinue }
-        if ($BitsState -eq 'Running') { Start-Service bits     -ErrorAction SilentlyContinue }
+        if ($WuState   -eq 'Running') { Start-Service wuauserv -ErrorAction Stop }
+        if ($BitsState -eq 'Running') { Start-Service bits     -ErrorAction Stop }
     }
 }
 
 if (-not $NoRecycleBin) {
     Write-Step "Esvaziando lixeira" 72
     Invoke-Safe "Clear-RecycleBin" {
-        Clear-RecycleBin -Force -ErrorAction SilentlyContinue
+        Clear-RecycleBin -Force -ErrorAction Stop
     }
 }
 
 Write-Step "Executando limpeza integrada do Windows" 78
 Invoke-Safe "cleanmgr silencioso (sageset:99 + sagerun:99)" {
     $cleanKey = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches"
-    Get-ChildItem $cleanKey -ErrorAction SilentlyContinue | ForEach-Object {
-        Set-ItemProperty -Path $_.PSPath -Name StateFlags0099 -Type DWord -Value 2 -ErrorAction SilentlyContinue
+    Get-ChildItem $cleanKey -ErrorAction Stop | ForEach-Object {
+        Set-ItemProperty -Path $_.PSPath -Name StateFlags0099 -Type DWord -Value 2 -ErrorAction Stop
     }
-    Start-Process cleanmgr.exe -ArgumentList "/sagerun:99" -Wait -ErrorAction SilentlyContinue
+    Start-Process cleanmgr.exe -ArgumentList "/sagerun:99" -Wait -ErrorAction Stop
 }
 
 if (-not $NoSfc) {
@@ -506,7 +506,7 @@ if ($SetPageFile) {
         $ComputerSystem = Get-CimInstance Win32_ComputerSystem
         $ComputerSystem | Set-CimInstance -Property @{ AutomaticManagedPagefile = $false }
 
-        $PageFile = Get-CimInstance Win32_PageFileSetting -ErrorAction SilentlyContinue
+        $PageFile = Get-CimInstance Win32_PageFileSetting -ErrorAction Stop
 
         if ($PageFile) {
             $PageFile | Set-CimInstance -Property @{

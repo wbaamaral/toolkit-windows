@@ -21,18 +21,24 @@
 
     $paths = Get-SshConfigPath
 
-    $feature = Get-WindowsCapability -Online -ErrorAction SilentlyContinue |
-        Where-Object { $_.Name -like 'OpenSSH.Server*' } |
-        Select-Object -First 1
+    $feature = $null
+    try {
+        $feature = Get-WindowsCapability -Online -ErrorAction Stop |
+            Where-Object { $_.Name -like 'OpenSSH.Server*' } |
+            Select-Object -First 1
+    }
+    catch { Write-Verbose "Falha ao consultar capability do OpenSSH Server: $($_.Exception.Message)" }
 
     $featureInstalled = $feature.State -eq 'Installed'
 
-    $service = Get-Service -Name sshd -ErrorAction SilentlyContinue
+    $service = $null
+    try { $service = Get-Service -Name sshd -ErrorAction Stop }
+    catch { Write-Verbose "Servico sshd indisponivel: $($_.Exception.Message)" }
 
     $port = 22
     if ($featureInstalled -and (Test-Path -LiteralPath $paths.SshdConfig)) {
         try {
-            $configContent = Get-Content -LiteralPath $paths.SshdConfig -ErrorAction SilentlyContinue
+            $configContent = Get-Content -LiteralPath $paths.SshdConfig -ErrorAction Stop
             $portLine = $configContent | Where-Object { $_ -match '^\s*Port\s+(\d+)' }
             if ($portLine -match 'Port\s+(\d+)') {
                 $port = [int]$Matches[1]
@@ -41,8 +47,9 @@
         catch { Write-Verbose "Falha ao ler porta do sshd_config: $($_.Exception.Message)" }
     }
 
-    $fwRule = Get-NetFirewallRule -DisplayName 'OpenSSH Server (sshd)' -ErrorAction SilentlyContinue |
-        Select-Object -First 1
+    $fwRule = $null
+    try { $fwRule = Get-NetFirewallRule -DisplayName 'OpenSSH Server (sshd)' -ErrorAction Stop | Select-Object -First 1 }
+    catch { Write-Verbose "Regra de firewall do OpenSSH indisponivel: $($_.Exception.Message)" }
 
     $hostKeys = @()
     if ($featureInstalled) {
@@ -60,8 +67,11 @@
 
     $adminKeysCount = 0
     if (Test-Path -LiteralPath $paths.AdminAuthorizedKeys) {
-        $adminKeysCount = @(Get-Content -LiteralPath $paths.AdminAuthorizedKeys -ErrorAction SilentlyContinue |
-            Where-Object { $_ -match '^\s*(ssh-rsa|ssh-ed25519|ecdsa-sha2)' }).Count
+        try {
+            $adminKeysCount = @(Get-Content -LiteralPath $paths.AdminAuthorizedKeys -ErrorAction Stop |
+                Where-Object { $_ -match '^\s*(ssh-rsa|ssh-ed25519|ecdsa-sha2)' }).Count
+        }
+        catch { Write-Verbose "Falha ao ler administrators_authorized_keys: $($_.Exception.Message)" }
     }
 
     [pscustomobject]@{

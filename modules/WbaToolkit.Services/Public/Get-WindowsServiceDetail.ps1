@@ -37,10 +37,12 @@
     $wmi = Get-CimInstance -ClassName Win32_Service -Filter "Name='$Name'" -ErrorAction SilentlyContinue
 
     $dependentNames = @()
-    try { $dependentNames = @($svc.DependentServices | ForEach-Object { $_.Name }) } catch { }
+    try { $dependentNames = @($svc.DependentServices | ForEach-Object { $_.Name }) }
+    catch { Write-Verbose "Nao foi possivel consultar os servicos dependentes de '$Name': $($_.Exception.Message)" }
 
     $requiredNames = @()
-    try { $requiredNames = @($svc.RequiredServices | ForEach-Object { $_.Name }) } catch { }
+    try { $requiredNames = @($svc.RequiredServices | ForEach-Object { $_.Name }) }
+    catch { Write-Verbose "Nao foi possivel consultar os servicos requeridos por '$Name': $($_.Exception.Message)" }
 
     [pscustomobject]@{
         Success           = $true

@@ -28,7 +28,7 @@
     .EXAMPLE
         New-SshUserKey -UserName 'joao' -KeyType rsa -KeyName 'id_rsa_corp'
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
     param(
         [string]$UserName,
         [ValidateSet('ed25519', 'rsa', 'ecdsa')]
@@ -43,6 +43,14 @@
 
     $userProfile = "C:\Users\$UserName"
     $sshDir = Join-Path $userProfile '.ssh'
+
+    $plannedKeyName = if ([string]::IsNullOrWhiteSpace($KeyName)) { "id_$KeyType" } else { $KeyName }
+    if (-not $PSCmdlet.ShouldProcess((Join-Path $sshDir $plannedKeyName), 'Gerar ou regenerar chave SSH de usuario')) {
+        return [pscustomobject]@{
+            Success = $true; KeyPath = (Join-Path $sshDir $plannedKeyName); PublicKeyPath = $null
+            PublicKey = $null; Message = 'Geracao de chave ignorada por WhatIf.'; Generated = $false
+        }
+    }
 
     if (-not (Test-Path -LiteralPath $sshDir)) {
         try {
@@ -69,7 +77,9 @@
     $pubKeyPath = "${keyPath}.pub"
 
     if ((Test-Path -LiteralPath $keyPath) -and -not $Force) {
-        $pubKey = Get-Content -LiteralPath $pubKeyPath -ErrorAction SilentlyContinue
+        $pubKey = $null
+        try { $pubKey = Get-Content -LiteralPath $pubKeyPath -ErrorAction Stop }
+        catch { Write-Verbose "Chave publica existente indisponivel: $($_.Exception.Message)" }
         [pscustomobject]@{
             Success       = $true
             KeyPath       = $keyPath
@@ -83,8 +93,8 @@
 
     if ((Test-Path -LiteralPath $keyPath) -and $Force) {
         $backupPath = "${keyPath}.bak.$((Get-Date).ToString('yyyyMMdd_HHmmss'))"
-        Copy-Item -LiteralPath $keyPath -Destination $backupPath -Force -ErrorAction SilentlyContinue
-        Copy-Item -LiteralPath $pubKeyPath -Destination "${backupPath}.pub" -Force -ErrorAction SilentlyContinue
+        Copy-Item -LiteralPath $keyPath -Destination $backupPath -Force -ErrorAction Stop
+        Copy-Item -LiteralPath $pubKeyPath -Destination "${backupPath}.pub" -Force -ErrorAction Stop
         Write-Verbose "Backup da chave existente: $backupPath"
     }
 
@@ -102,7 +112,7 @@
             throw "ssh-keygen retornou codigo $($process.ExitCode)"
         }
 
-        $pubKey = Get-Content -LiteralPath $pubKeyPath -ErrorAction SilentlyContinue
+        $pubKey = Get-Content -LiteralPath $pubKeyPath -ErrorAction Stop
 
         [pscustomobject]@{
             Success       = $true

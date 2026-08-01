@@ -258,7 +258,7 @@ switch ($Modo) {
                 try {
                     $lastDate = [datetime]::Parse($info.LastAnalysisDate)
                     $daysSinceCleanup = ((Get-Date) - $lastDate).Days
-                } catch { }
+                } catch { Write-Verbose "Nao foi possivel interpretar a data da ultima analise: $($_.Exception.Message)" }
             }
 
             # Gerar recomendacoes
@@ -310,7 +310,7 @@ switch ($Modo) {
                 $alertHtml = @"
   <div class="section" style="border-left:4px solid var(--warning)">
     <div class="section-body" style="background:#fffbeb">
-      <strong>&#9888; Atencao:</strong> O DISM recomenda limpeza do Component Store. 
+      <strong>&#9888; Atencao:</strong> O DISM recomenda limpeza do Component Store.
       Execute <code>.\limpar-winsxs.ps1 -Modo Limpeza</code> para recuperar $reclaimSize de espaco.
     </div>
   </div>

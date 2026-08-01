@@ -139,7 +139,8 @@ $OutputEncoding           = [System.Text.Encoding]::UTF8
 $PSDefaultParameterValues['Out-File:Encoding']    = 'utf8'
 $PSDefaultParameterValues['Set-Content:Encoding'] = 'utf8'
 $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
-try { chcp 65001 | Out-Null } catch { }
+try { chcp 65001 | Out-Null }
+catch { Write-Verbose "Nao foi possivel ajustar a pagina de codigo do console para UTF-8: $($_.Exception.Message)" }
 
 $ScriptName = if ($MyInvocation.MyCommand.Name) {
     $MyInvocation.MyCommand.Name
@@ -904,19 +905,26 @@ if ($GerarResumoHardwareDrivers -or $SomenteHardwareDrivers) {
 }
 
 Write-Info 'Coletando sistema operacional...'
-$os  = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
-$cs  = Get-CimInstance Win32_ComputerSystem  -ErrorAction SilentlyContinue
+function Invoke-InventoryOptionalQuery {
+    [CmdletBinding()]
+    param([Parameter(Mandatory = $true)][scriptblock]$Operation, [Parameter(Mandatory = $true)][string]$Description, [object]$DefaultValue = $null)
+    try { return & $Operation }
+    catch { Write-Verbose "Consulta opcional indisponivel ($Description): $($_.Exception.Message)"; return $DefaultValue }
+}
+
+$os  = Invoke-InventoryOptionalQuery -Description 'sistema operacional' -Operation { Get-CimInstance Win32_OperatingSystem -ErrorAction Stop }
+$cs  = Invoke-InventoryOptionalQuery -Description 'sistema do computador' -Operation { Get-CimInstance Win32_ComputerSystem -ErrorAction Stop }
 
 Write-Info 'Coletando hardware...'
-$bios    = Get-CimInstance Win32_BIOS             -ErrorAction SilentlyContinue
-$mb      = Get-CimInstance Win32_BaseBoard        -ErrorAction SilentlyContinue
-$cpus    = @(Get-CimInstance Win32_Processor      -ErrorAction SilentlyContinue)
-$ramMods = @(Get-CimInstance Win32_PhysicalMemory -ErrorAction SilentlyContinue)
-$phyDisk = @(Get-CimInstance Win32_DiskDrive      -ErrorAction SilentlyContinue)
-$logDisk = @(Get-CimInstance Win32_LogicalDisk -Filter "DriveType=3" -ErrorAction SilentlyContinue)
-$gpus    = @(Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue)
-$nets    = @(Get-CimInstance Win32_NetworkAdapterConfiguration -Filter "IPEnabled=True" -ErrorAction SilentlyContinue)
-$mons    = @(Get-PnpDevice -Class Monitor -Status OK -ErrorAction SilentlyContinue)
+$bios    = Invoke-InventoryOptionalQuery -Description 'BIOS' -Operation { Get-CimInstance Win32_BIOS -ErrorAction Stop }
+$mb      = Invoke-InventoryOptionalQuery -Description 'placa mae' -Operation { Get-CimInstance Win32_BaseBoard -ErrorAction Stop }
+$cpus    = @(Invoke-InventoryOptionalQuery -Description 'processadores' -DefaultValue @() -Operation { Get-CimInstance Win32_Processor -ErrorAction Stop })
+$ramMods = @(Invoke-InventoryOptionalQuery -Description 'memoria fisica' -DefaultValue @() -Operation { Get-CimInstance Win32_PhysicalMemory -ErrorAction Stop })
+$phyDisk = @(Invoke-InventoryOptionalQuery -Description 'discos fisicos' -DefaultValue @() -Operation { Get-CimInstance Win32_DiskDrive -ErrorAction Stop })
+$logDisk = @(Invoke-InventoryOptionalQuery -Description 'discos logicos' -DefaultValue @() -Operation { Get-CimInstance Win32_LogicalDisk -Filter "DriveType=3" -ErrorAction Stop })
+$gpus    = @(Invoke-InventoryOptionalQuery -Description 'adaptadores de video' -DefaultValue @() -Operation { Get-CimInstance Win32_VideoController -ErrorAction Stop })
+$nets    = @(Invoke-InventoryOptionalQuery -Description 'adaptadores de rede' -DefaultValue @() -Operation { Get-CimInstance Win32_NetworkAdapterConfiguration -Filter "IPEnabled=True" -ErrorAction Stop })
+$mons    = @(Invoke-InventoryOptionalQuery -Description 'monitores' -DefaultValue @() -Operation { Get-PnpDevice -Class Monitor -Status OK -ErrorAction Stop })
 
 Write-Info 'Coletando software instalado...'
 $regPaths = @(
@@ -925,14 +933,14 @@ $regPaths = @(
     'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*'
 )
 $software = $regPaths | ForEach-Object {
-    Get-ItemProperty $_ -ErrorAction SilentlyContinue
+    Invoke-InventoryOptionalQuery -Description "aplicativos registrados em $_" -Operation { Get-ItemProperty $_ -ErrorAction Stop }
 } | Where-Object { $_.PSObject.Properties['DisplayName'] -and -not [string]::IsNullOrWhiteSpace($_.DisplayName) } |
     Sort-Object DisplayName |
     Select-Object DisplayName, DisplayVersion, Publisher, InstallDate -Unique
 
 Write-Info 'Coletando atualizacoes e servicos...'
-$hotfixes = @(Get-HotFix -ErrorAction SilentlyContinue | Sort-Object InstalledOn -Descending -ErrorAction SilentlyContinue)
-$services = @(Get-Service -ErrorAction SilentlyContinue | Where-Object { $_.Status -eq 'Running' } | Sort-Object DisplayName)
+$hotfixes = @(Invoke-InventoryOptionalQuery -Description 'hotfixes instalados' -DefaultValue @() -Operation { Get-HotFix -ErrorAction Stop } | Sort-Object InstalledOn -Descending)
+$services = @(Invoke-InventoryOptionalQuery -Description 'servicos do sistema' -DefaultValue @() -Operation { Get-Service -ErrorAction Stop } | Where-Object { $_.Status -eq 'Running' } | Sort-Object DisplayName)
 
 # Calculos derivados
 $totalRamGB  = if ($cs) { [math]::Round($cs.TotalPhysicalMemory / 1GB, 2) } else { 0 }

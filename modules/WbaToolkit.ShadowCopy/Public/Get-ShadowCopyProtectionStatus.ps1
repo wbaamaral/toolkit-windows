@@ -28,7 +28,7 @@
                     AllocatedGB = [double]$Matches[1]
                 }
             }
-        } catch { }
+        } catch { Write-Verbose "Nao foi possivel obter o uso de armazenamento de copia de sombra em ${driveLetter}: $($_.Exception.Message)" }
 
         [pscustomobject]@{
             Volume             = "${driveLetter}:\"

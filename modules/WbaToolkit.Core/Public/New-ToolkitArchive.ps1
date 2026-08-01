@@ -28,7 +28,7 @@
     .EXAMPLE
         $result = New-ToolkitArchive -SourcePath "C:\drivers" -DestinationPath "C:\backup\drv_pc01.zip" -GenerateHash -Quiet
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
     param(
         [Parameter(Mandatory = $true)]
         [string]$SourcePath,
@@ -44,6 +44,10 @@
     # Validar origem
     if (-not (Test-Path -LiteralPath $SourcePath)) {
         throw "Caminho de origem nao encontrado: $SourcePath"
+    }
+
+    if (-not $PSCmdlet.ShouldProcess($DestinationPath, 'Criar ou substituir arquivo ZIP')) {
+        return
     }
 
     # Criar diretorio de destino se nao existir

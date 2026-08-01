@@ -104,7 +104,8 @@
     }
 
     $timezoneAfter = $timezoneBefore
-    try { $timezoneAfter = Get-TimeZone -ErrorAction Stop } catch { }
+    try { $timezoneAfter = Get-TimeZone -ErrorAction Stop }
+    catch { Write-Verbose "Nao foi possivel confirmar o fuso horario final: $($_.Exception.Message)" }
     $postSource = & w32tm.exe /query /source 2>&1
     $postSourceExit = $LASTEXITCODE
     $sourceAfter = (($postSource | ForEach-Object { [string]$_ }) -join ' ').Trim()

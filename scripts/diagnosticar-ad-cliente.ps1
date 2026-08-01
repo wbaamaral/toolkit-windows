@@ -85,7 +85,8 @@ $OutputEncoding           = [System.Text.Encoding]::UTF8
 $PSDefaultParameterValues['Out-File:Encoding']    = 'utf8'
 $PSDefaultParameterValues['Set-Content:Encoding'] = 'utf8'
 $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
-try { chcp 65001 | Out-Null } catch { }
+try { chcp 65001 | Out-Null }
+catch { Write-Verbose "Nao foi possivel ajustar a pagina de codigo do console para UTF-8: $($_.Exception.Message)" }
 
 $ScriptName = if ($MyInvocation.MyCommand.Name) { $MyInvocation.MyCommand.Name } else { Split-Path -Leaf $PSCommandPath }
 $ScriptPath = $PSCommandPath
@@ -777,7 +778,8 @@ Write-Info "Relatório texto: $script:TextReportPath"
 if ($GerarHtml) {
     Write-Info "Relatório HTML : $script:HtmlReportPath"
     if ($AbrirRelatorio) {
-        try { Start-Process $script:HtmlReportPath | Out-Null } catch { }
+        try { Start-Process $script:HtmlReportPath | Out-Null }
+        catch { Write-Warn "Nao foi possivel abrir o relatorio HTML: $($_.Exception.Message)" }
     }
 }
 

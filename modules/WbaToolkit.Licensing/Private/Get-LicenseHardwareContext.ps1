@@ -4,9 +4,15 @@
         [string]$BaselinePath
     )
 
-    $system = @(Get-CimInstance -ClassName Win32_ComputerSystemProduct -ErrorAction SilentlyContinue | Select-Object -First 1)
-    $board = @(Get-CimInstance -ClassName Win32_BaseBoard -ErrorAction SilentlyContinue | Select-Object -First 1)
-    $bios = @(Get-CimInstance -ClassName Win32_BIOS -ErrorAction SilentlyContinue | Select-Object -First 1)
+    $system = @()
+    $board = @()
+    $bios = @()
+    try { $system = @(Get-CimInstance -ClassName Win32_ComputerSystemProduct -ErrorAction Stop | Select-Object -First 1) }
+    catch { Write-Verbose "Nao foi possivel consultar o produto do sistema: $($_.Exception.Message)" }
+    try { $board = @(Get-CimInstance -ClassName Win32_BaseBoard -ErrorAction Stop | Select-Object -First 1) }
+    catch { Write-Verbose "Nao foi possivel consultar a placa mae: $($_.Exception.Message)" }
+    try { $bios = @(Get-CimInstance -ClassName Win32_BIOS -ErrorAction Stop | Select-Object -First 1) }
+    catch { Write-Verbose "Nao foi possivel consultar a BIOS: $($_.Exception.Message)" }
     $uuid = [string]$system.UUID
     $boardSerial = [string]$board.SerialNumber
     $biosSerial = [string]$bios.SerialNumber

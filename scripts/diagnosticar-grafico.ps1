@@ -121,7 +121,8 @@ $PSDefaultParameterValues['Out-File:Encoding']    = 'utf8'
 $PSDefaultParameterValues['Set-Content:Encoding'] = 'utf8'
 $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
 
-try { chcp 65001 | Out-Null } catch { }
+try { chcp 65001 | Out-Null }
+catch { Write-Verbose "Nao foi possivel ajustar a pagina de codigo do console para UTF-8: $($_.Exception.Message)" }
 
 $ScriptName = if ($MyInvocation.MyCommand.Name) {
     $MyInvocation.MyCommand.Name
@@ -505,13 +506,15 @@ function Get-GfxPowerInfo {
     $hiberPath = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power'
     try {
         if (Test-Path -LiteralPath $hiberPath) {
-            $hiberValue = (Get-ItemProperty -LiteralPath $hiberPath -Name HiberbootEnabled -ErrorAction SilentlyContinue).HiberbootEnabled
+            $hiberValue = (Get-ItemProperty -LiteralPath $hiberPath -Name HiberbootEnabled -ErrorAction Stop).HiberbootEnabled
             if ($null -ne $hiberValue) {
                 $hiberboot = if ([int]$hiberValue -eq 1) { 'Ativado' } else { 'Desativado' }
             }
         }
     }
-    catch { }
+    catch {
+        Write-GfxLog -Level 'WARN' -Message "Nao foi possivel consultar a inicializacao rapida: $($_.Exception.Message)"
+    }
 
     $activeScheme = Invoke-ExternalCommand -FilePath 'powercfg.exe' -ArgumentList @('/getactivescheme')
     $sleepStates = Invoke-ExternalCommand -FilePath 'powercfg.exe' -ArgumentList @('/a')
@@ -556,11 +559,13 @@ function Get-GfxGpuCounters {
         $sample = Get-Counter '\GPU Engine(*)\Utilization Percentage' -ErrorAction Stop
         $processMap = @{}
         try {
-            foreach ($proc in Get-Process -ErrorAction SilentlyContinue) {
+            foreach ($proc in Get-Process -ErrorAction Stop) {
                 $processMap[[int]$proc.Id] = $proc.ProcessName
             }
         }
-        catch { }
+        catch {
+            Write-Verbose "Nao foi possivel mapear todos os processos para os contadores de GPU: $($_.Exception.Message)"
+        }
 
         $rows = @{}
         foreach ($counter in $sample.CounterSamples) {
@@ -1365,5 +1370,6 @@ catch {
     throw
 }
 finally {
-    try { Stop-Transcript | Out-Null } catch { }
+    try { Stop-Transcript | Out-Null }
+    catch { Write-Verbose "Nao foi possivel encerrar a transcricao: $($_.Exception.Message)" }
 }

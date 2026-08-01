@@ -89,7 +89,8 @@ $PSDefaultParameterValues['Out-File:Encoding']    = 'utf8'
 $PSDefaultParameterValues['Set-Content:Encoding'] = 'utf8'
 $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
 
-try { chcp 65001 | Out-Null } catch { }
+try { chcp 65001 | Out-Null }
+catch { Write-Verbose "Nao foi possivel ajustar a pagina de codigo do console para UTF-8: $($_.Exception.Message)" }
 
 $ScriptName = if ($MyInvocation.MyCommand.Name) {
     $MyInvocation.MyCommand.Name
@@ -138,7 +139,8 @@ $SystemFolders = @(
 
 function Write-ProfileLog {
     [CmdletBinding()]
-    param(
+[CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
+param(
         [string]$Level = 'INFO',
         [Parameter(Mandatory = $true)][string]$Message
     )
@@ -182,12 +184,13 @@ function Get-FolderSize {
             $dir = $stack.Pop()
             try {
                 foreach ($f in [System.IO.Directory]::GetFiles($dir)) {
-                    try { $size += (New-Object System.IO.FileInfo($f)).Length } catch {}
+                    try { $size += (New-Object System.IO.FileInfo($f)).Length }
+                    catch { Write-Verbose "Nao foi possivel medir '$f': $($_.Exception.Message)" }
                 }
                 foreach ($d in [System.IO.Directory]::GetDirectories($dir)) {
                     $stack.Push($d)
                 }
-            } catch {}
+            } catch { Write-Verbose "Nao foi possivel enumerar '$dir': $($_.Exception.Message)" }
         }
         return $size
     }
@@ -313,7 +316,7 @@ function Show-ProfileTable {
         [string]$Message = ""
     )
 
-    try { [Console]::Clear() } catch {}
+    try { [Console]::Clear() } catch { Write-Verbose "Nao foi possivel limpar o console: $($_.Exception.Message)" }
 
     $visible  = $Profiles | Where-Object { -not $_.Deleted }
     $selList  = @($visible | Where-Object { $_.Selected })
@@ -382,7 +385,7 @@ function Show-ProfileTable {
 
 function Show-ProfileDetail {
     param([PSCustomObject]$Profile)
-    try { [Console]::Clear() } catch {}
+    try { [Console]::Clear() } catch { Write-Verbose "Nao foi possivel limpar o console: $($_.Exception.Message)" }
     Write-Host ""
     Write-Host "============================================================" -ForegroundColor Cyan
     Write-Host " Detalhes do Perfil #$($Profile.Index)" -ForegroundColor Cyan
@@ -410,6 +413,8 @@ function Show-ProfileDetail {
 # ---------------------------------------------------------------------------
 
 function Remove-Profiles {
+    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
+    [OutputType([hashtable])]
     param([System.Collections.Generic.List[PSCustomObject]]$ToDelete)
 
     $results   = New-Object 'System.Collections.Generic.List[PSCustomObject]'
@@ -424,6 +429,11 @@ function Remove-Profiles {
             Write-ProfileLog -Message "SIMULACAO: perfil '$($p.UserName)' (SID $($p.SID)) nao removido (DryRun)."
             $results.Add([PSCustomObject]@{ Profile = $p; Success = $true; Error = $null })
             $freedBytes += $p.SizeBytes
+            continue
+        }
+
+        if (-not $PSCmdlet.ShouldProcess($p.LocalPath, 'Remover perfil de usuario inativo')) {
+            $results.Add([PSCustomObject]@{ Profile = $p; Success = $true; Error = $null })
             continue
         }
 
@@ -483,7 +493,7 @@ function Invoke-InteractiveMenu {
                 $msg = "Nenhum perfil selecionado para remocao. Use numeros ou [a] para selecionar."; continue
             }
 
-            try { [Console]::Clear() } catch {}
+            try { [Console]::Clear() } catch { Write-Verbose "Nao foi possivel limpar o console: $($_.Exception.Message)" }
             $totalSelSize = ($selected | Measure-Object -Property SizeBytes -Sum).Sum
             $dryTag = if ($script:DryRun) { " [SIMULACAO]" } else { "" }
 
@@ -561,7 +571,7 @@ function Invoke-InteractiveMenu {
         }
     }
 
-    try { [Console]::Clear() } catch {}
+    try { [Console]::Clear() } catch { Write-Verbose "Nao foi possivel limpar o console: $($_.Exception.Message)" }
     Write-Section "Sessao encerrada."
 }
 

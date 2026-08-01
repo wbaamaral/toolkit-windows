@@ -37,6 +37,6 @@
                 SourceCount = if ($meta.SourcePaths) { $meta.SourcePaths.Count } else { 0 }
                 Folder      = $_.DirectoryName
             }
-        } catch { }
+        } catch { Write-Verbose "Metadados de backup invalidos em '$($_.FullName)' foram ignorados: $($_.Exception.Message)" }
     } | Sort-Object CreatedAt -Descending
 }

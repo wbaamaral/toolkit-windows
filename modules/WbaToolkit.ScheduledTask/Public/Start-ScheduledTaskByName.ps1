@@ -7,7 +7,7 @@
     .PARAMETER TaskPath
         Caminho da pasta (opcional).
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true)]
     param(
         [Parameter(Mandatory)]
         [string]$TaskName,
@@ -17,6 +17,10 @@
 
     $task = Resolve-ScheduledTask -TaskName $TaskName -TaskPath $TaskPath
     if (-not $task) { throw "Tarefa '$TaskName' nao encontrada." }
+
+    if (-not $PSCmdlet.ShouldProcess("$($task.TaskPath)$($task.TaskName)", 'Iniciar tarefa agendada')) {
+        return
+    }
 
     try {
         Start-ScheduledTask -TaskName $task.TaskName -TaskPath $task.TaskPath -ErrorAction Stop

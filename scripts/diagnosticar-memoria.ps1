@@ -96,7 +96,8 @@ $PSDefaultParameterValues['Out-File:Encoding']    = 'utf8'
 $PSDefaultParameterValues['Set-Content:Encoding'] = 'utf8'
 $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
 
-try { chcp 65001 | Out-Null } catch { }
+try { chcp 65001 | Out-Null }
+catch { Write-Verbose "Nao foi possivel ajustar a pagina de codigo do console para UTF-8: $($_.Exception.Message)" }
 
 $ScriptName = if ($MyInvocation.MyCommand.Name) {
     $MyInvocation.MyCommand.Name
@@ -290,7 +291,8 @@ function Get-ProcessMemoryData {
 
         if (-not [string]::IsNullOrWhiteSpace($execPath)) {
             $pathExists = $false
-            try { $pathExists = Test-Path -LiteralPath $execPath -ErrorAction Stop } catch { }
+            try { $pathExists = Test-Path -LiteralPath $execPath -ErrorAction Stop }
+            catch { Write-Verbose "Nao foi possivel verificar o executavel do PID $($proc.Id): $($_.Exception.Message)" }
 
             if ($pathExists) {
                 try {
@@ -329,7 +331,7 @@ function Get-ProcessMemoryData {
             $wp = $wmiMap[[int]$proc.Id]
 
             try {
-                $ownerResult = Invoke-CimMethod -InputObject $wp -MethodName 'GetOwner' -ErrorAction SilentlyContinue
+                $ownerResult = Invoke-CimMethod -InputObject $wp -MethodName 'GetOwner' -ErrorAction Stop
                 if ($null -ne $ownerResult) {
                     if ($ownerResult.Domain -and $ownerResult.User) {
                         $owner = "$($ownerResult.Domain)\$($ownerResult.User)"
@@ -339,7 +341,9 @@ function Get-ProcessMemoryData {
                     }
                 }
             }
-            catch { }
+            catch {
+                Write-Verbose "Nao foi possivel obter o proprietario do PID $($proc.Id): $($_.Exception.Message)"
+            }
 
             try {
                 $parentPid = [int]$wp.ParentProcessId
@@ -350,14 +354,18 @@ function Get-ProcessMemoryData {
                     $parentName = "PID $parentPid"
                 }
             }
-            catch { }
+            catch {
+                Write-Verbose "Nao foi possivel obter o processo pai do PID $($proc.Id): $($_.Exception.Message)"
+            }
 
             try {
                 if ($wp.CreationDate) {
                     $startTime = $wp.CreationDate.ToString('yyyy-MM-dd HH:mm:ss')
                 }
             }
-            catch { }
+            catch {
+                Write-Verbose "Nao foi possivel obter a data de criacao do PID $($proc.Id): $($_.Exception.Message)"
+            }
         }
 
         [pscustomobject]@{
@@ -765,5 +773,6 @@ catch {
     throw
 }
 finally {
-    try { Stop-Transcript | Out-Null } catch { }
+    try { Stop-Transcript | Out-Null }
+    catch { Write-Verbose "Nao foi possivel encerrar a transcricao: $($_.Exception.Message)" }
 }

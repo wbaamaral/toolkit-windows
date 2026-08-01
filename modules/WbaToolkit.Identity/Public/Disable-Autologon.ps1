@@ -60,12 +60,16 @@
         $winlogon = Get-WinlogonRegPath
         Set-ItemProperty -LiteralPath $winlogon -Name 'AutoAdminLogon' -Value '0' -ErrorAction Stop
         Clear-LsaSecret -Name 'DefaultPassword'
-        Remove-ItemProperty -LiteralPath $winlogon -Name 'DefaultPassword' -ErrorAction SilentlyContinue
-        Remove-ItemProperty -LiteralPath $winlogon -Name 'AutoLogonCount'  -ErrorAction SilentlyContinue
+        foreach ($propertyName in @('DefaultPassword', 'AutoLogonCount')) {
+            try { Remove-ItemProperty -LiteralPath $winlogon -Name $propertyName -ErrorAction Stop }
+            catch { Write-Verbose "Valor de autologon '$propertyName' ausente ou inacessivel: $($_.Exception.Message)" }
+        }
 
         if ($ClearUser) {
-            Remove-ItemProperty -LiteralPath $winlogon -Name 'DefaultUserName'   -ErrorAction SilentlyContinue
-            Remove-ItemProperty -LiteralPath $winlogon -Name 'DefaultDomainName' -ErrorAction SilentlyContinue
+            foreach ($propertyName in @('DefaultUserName', 'DefaultDomainName')) {
+                try { Remove-ItemProperty -LiteralPath $winlogon -Name $propertyName -ErrorAction Stop }
+                catch { Write-Verbose "Valor de autologon '$propertyName' ausente ou inacessivel: $($_.Exception.Message)" }
+            }
         }
 
         Write-Ok 'Autologon desabilitado.'

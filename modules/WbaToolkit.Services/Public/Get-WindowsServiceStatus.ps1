@@ -54,7 +54,7 @@
         foreach ($w in $wmiAll) {
             $wmiMap[$w.Name] = $w
         }
-    } catch { }
+    } catch { Write-Verbose "Nao foi possivel consultar Win32_Service: $($_.Exception.Message)" }
 
     $results = foreach ($svc in $services) {
         $wmi = $wmiMap[$svc.Name]

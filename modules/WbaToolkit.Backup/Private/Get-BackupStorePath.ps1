@@ -13,7 +13,7 @@
             if ($cfg.UserBackup.LocalBackupPath) {
                 $backupRoot = [System.Environment]::ExpandEnvironmentVariables($cfg.UserBackup.LocalBackupPath)
             }
-        } catch { }
+        } catch { Write-Verbose "Nao foi possivel ler '$configPath'; usando o local de backup padrao. $($_.Exception.Message)" }
     }
 
     $timestamp = Get-Date -Format 'ddMMyyyy_HHmmss'

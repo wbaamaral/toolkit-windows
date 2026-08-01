@@ -14,11 +14,15 @@
     .PARAMETER Value
         Valor em texto a armazenar. Mantido apenas em memoria durante a chamada.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
     param(
         [Parameter(Mandatory = $true)][string]$Name,
         [Parameter(Mandatory = $true)][string]$Value
     )
+
+    if (-not $PSCmdlet.ShouldProcess($Name, 'Armazenar segredo privado LSA')) {
+        return
+    }
 
     Initialize-LsaInterop
     [Wba.Interop.LsaSecretManager]::Store($Name, $Value)

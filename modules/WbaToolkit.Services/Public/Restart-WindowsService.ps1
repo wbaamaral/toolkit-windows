@@ -25,7 +25,7 @@
     .EXAMPLE
         Restart-WindowsService -Name 'Spooler', 'WSearch' -SkipIfStopped
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -58,7 +58,12 @@
             continue
         }
 
-        $stopResult = Stop-WindowsService -Name $svcName -TimeoutSeconds $TimeoutSeconds
+        if (-not $PSCmdlet.ShouldProcess($svcName, 'Reiniciar servico')) {
+            $allResults.Add((Format-ServiceResult -Success $true -Message "Reinicio de '$svcName' ignorado por WhatIf." -ServiceName $svcName))
+            continue
+        }
+
+        $stopResult = Stop-WindowsService -Name $svcName -TimeoutSeconds $TimeoutSeconds -Confirm:$false
         if (-not $stopResult.Success -and $svc.Status -ne 'Stopped') {
             $allResults.Add((Format-ServiceResult -Success $false -Message "Falha ao parar '$svcName' para reinicio: $($stopResult.Message)" -ServiceName $svcName))
             continue

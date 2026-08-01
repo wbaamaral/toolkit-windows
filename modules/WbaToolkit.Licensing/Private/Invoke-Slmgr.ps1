@@ -41,7 +41,8 @@
         $stdoutTask = $process.StandardOutput.ReadToEndAsync()
         $stderrTask = $process.StandardError.ReadToEndAsync()
         if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
-            try { $process.Kill() } catch { }
+            try { $process.Kill() }
+            catch { Write-Verbose "Nao foi possivel encerrar o processo slmgr excedido: $($_.Exception.Message)" }
             return [pscustomobject]@{
                 ExitCode = 1460
                 StdOut   = ''

@@ -70,7 +70,8 @@ $PSDefaultParameterValues['Out-File:Encoding']    = 'utf8'
 $PSDefaultParameterValues['Set-Content:Encoding'] = 'utf8'
 $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
 
-try { chcp 65001 | Out-Null } catch { }
+try { chcp 65001 | Out-Null }
+catch { Write-Verbose "Nao foi possivel ajustar a pagina de codigo do console para UTF-8: $($_.Exception.Message)" }
 
 $ScriptName = if ($MyInvocation.MyCommand.Name) {
     $MyInvocation.MyCommand.Name
@@ -238,10 +239,12 @@ Write-Section 'Verificacao de pre-requisitos'
 # O AppXSvc e um servico sob demanda: pode estar parado quando ninguem usou a Store
 # recentemente. A validacao/remocao de pacotes Appx exige o servico em execucao, entao
 # garantimos isso antes da pre-verificacao (evita bloqueio espurio do Sysprep).
-$appxSvc = Get-Service -Name 'AppXSvc' -ErrorAction SilentlyContinue
+$appxSvc = $null
+try { $appxSvc = Get-Service -Name 'AppXSvc' -ErrorAction Stop }
+catch { Write-Verbose "Servico AppXSvc indisponivel: $($_.Exception.Message)" }
 if ($appxSvc) {
     if ($appxSvc.StartType -eq 'Disabled') {
-        Set-Service -Name 'AppXSvc' -StartupType Manual -ErrorAction SilentlyContinue
+        Set-Service -Name 'AppXSvc' -StartupType Manual -ErrorAction Stop
         Write-SysprepLog -Message 'AppXSvc estava Disabled; StartType ajustado para Manual.'
     }
     if ($appxSvc.Status -ne 'Running') {
@@ -383,8 +386,8 @@ Write-SysprepLog -Message 'Confirmacao recebida. Iniciando aplicacao dos tweaks.
 if ($autoLogonEncontrado) {
     Write-Section 'Desativando AutoLogon'
     $winlogonReg = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
-    Set-ItemProperty -Path $winlogonReg -Name 'AutoAdminLogon' -Value '0' -ErrorAction SilentlyContinue
-    Remove-ItemProperty -Path $winlogonReg -Name 'DefaultPassword' -ErrorAction SilentlyContinue
+    Set-ItemProperty -Path $winlogonReg -Name 'AutoAdminLogon' -Value '0' -ErrorAction Stop
+    Remove-ItemProperty -Path $winlogonReg -Name 'DefaultPassword' -ErrorAction Stop
     Write-Ok 'AutoLogon desativado (AutoAdminLogon=0). Senha removida do registro.'
     Write-SysprepLog -Message 'AutoLogon desativado e DefaultPassword removido.'
 }
@@ -397,7 +400,7 @@ if ($gpoEncontrado) {
     )
     foreach ($gpoPath in $gpoCaminhos) {
         if (Test-Path -LiteralPath $gpoPath) {
-            Remove-Item -LiteralPath $gpoPath -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $gpoPath -Recurse -Force -ErrorAction Stop
             Write-Ok "Removido: $gpoPath"
             Write-SysprepLog -Message "Chave de diretiva removida: $gpoPath"
         }
@@ -426,7 +429,7 @@ try {
     }
 }
 finally {
-    Remove-Item -LiteralPath $sdbPath -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $sdbPath -Force -ErrorAction Stop
 }
 
 # ─── fase execucao ────────────────────────────────────────────────────────────

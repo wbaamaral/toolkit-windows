@@ -107,7 +107,8 @@ $PSDefaultParameterValues['Out-File:Encoding']    = 'utf8'
 $PSDefaultParameterValues['Set-Content:Encoding'] = 'utf8'
 $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
 
-try { chcp 65001 | Out-Null } catch { }
+try { chcp 65001 | Out-Null }
+catch { Write-Verbose "Nao foi possivel ajustar a pagina de codigo do console para UTF-8: $($_.Exception.Message)" }
 
 
 $ToolkitRoot    = Split-Path -Parent $PSScriptRoot
@@ -207,6 +208,10 @@ function Invoke-DiskScan {
     $scannedBytes = [long]0
     $lastProgress = [DateTime]::Now
 
+    if (-not $Quiet) {
+        Write-Info "Varrendo $RootPath. Acompanhe detalhes com -Verbose."
+    }
+
     while ($stack.Count -gt 0) {
         $dir = $stack.Pop()
         $depth = $depthStack.Pop()
@@ -259,9 +264,9 @@ function Invoke-DiskScan {
                                 $topFilesMin = $topFiles[$topFiles.Count - 1].Size
                             }
                         }
-                    } catch {}
+                    } catch { Write-Verbose "Nao foi possivel ler um arquivo em '$dir': $($_.Exception.Message)" }
                 }
-            } catch {}
+            } catch { Write-Verbose "Nao foi possivel enumerar arquivos em '$dir': $($_.Exception.Message)" }
 
             try {
                 foreach ($sub in $di.EnumerateDirectories()) {
@@ -270,7 +275,7 @@ function Invoke-DiskScan {
                         $depthStack.Push($depth + 1)
                     }
                 }
-            } catch {}
+            } catch { Write-Verbose "Nao foi possivel enumerar subdiretorios em '$dir': $($_.Exception.Message)" }
         }
 
         $folderLocalSizes[$dir] = $localSize
@@ -281,15 +286,17 @@ function Invoke-DiskScan {
         if (-not $Quiet) {
             $now = [DateTime]::Now
             if (($now - $lastProgress).TotalMilliseconds -gt 400) {
-                Write-Progress -Activity "Varrendo $RootPath" `
-                    -Status "$scannedDirs pastas | $scannedFiles arquivos | $(Format-FileSize $scannedBytes)" `
-                    -PercentComplete -1
+                Write-Verbose ("Varredura em andamento: {0} pastas | {1} arquivos | {2}" -f `
+                    $scannedDirs, $scannedFiles, (Format-FileSize $scannedBytes))
                 $lastProgress = $now
             }
         }
     }
 
-    Write-Progress -Activity "Varrendo $RootPath" -Completed
+    if (-not $Quiet) {
+        Write-Info ("Varredura concluida: {0} pastas | {1} arquivos | {2}" -f `
+            $scannedDirs, $scannedFiles, (Format-FileSize $scannedBytes))
+    }
 
     # Agregacao bottom-up: caminhos mais profundos primeiro
     $allPaths = $folderLocalSizes.Keys | Sort-Object { $_.Split('\').Count } -Descending
@@ -324,7 +331,10 @@ function Get-WasteEstimates {
     [CmdletBinding()]
     param()
     function FolderSize([string]$p) {
-        if (-not (Test-Path $p -ErrorAction SilentlyContinue)) { return [long]0 }
+        try {
+            if (-not (Test-Path $p -ErrorAction Stop)) { return [long]0 }
+        }
+        catch { Write-Verbose "Nao foi possivel verificar '$p': $($_.Exception.Message)"; return [long]0 }
         $s = [long]0
         $stack = New-Object 'System.Collections.Generic.Stack[string]'
         $stack.Push($p)
@@ -332,10 +342,11 @@ function Get-WasteEstimates {
             $d = $stack.Pop()
             try {
                 [System.IO.Directory]::GetFiles($d) | ForEach-Object {
-                    try { $s += (New-Object System.IO.FileInfo($_)).Length } catch {}
+                    try { $s += (New-Object System.IO.FileInfo($_)).Length }
+                    catch { Write-Verbose "Nao foi possivel medir '$_': $($_.Exception.Message)" }
                 }
                 [System.IO.Directory]::GetDirectories($d) | ForEach-Object { $stack.Push($_) }
-            } catch {}
+            } catch { Write-Verbose "Nao foi possivel enumerar '$d': $($_.Exception.Message)" }
         }
         return $s
     }
@@ -377,10 +388,13 @@ function Get-WasteEstimates {
 
     foreach ($uc in $userCaches) {
         $sz = [long]0
-        Get-ChildItem "$env:SystemDrive\Users" -Directory -Force -ErrorAction SilentlyContinue | ForEach-Object {
+        try {
+            Get-ChildItem "$env:SystemDrive\Users" -Directory -Force -ErrorAction Stop | ForEach-Object {
             $p = Join-Path $_.FullName $uc.SubPath
             if (Test-Path $p) { $sz += FolderSize $p }
+            }
         }
+        catch { Write-Verbose "Nao foi possivel enumerar perfis de usuario: $($_.Exception.Message)" }
         $results.Add([PSCustomObject]@{
             Categoria = $uc.Categoria
             SizeBytes = $sz
@@ -793,7 +807,9 @@ function Convert-ToPdf {
     }
     $fileUrl = "file:///" + $HtmlPath.Replace('\','/')
     $browserArgs = @("--headless","--disable-gpu","--no-pdf-header-footer","--print-to-pdf=`"$PdfPath`"","`"$fileUrl`"")
-    $proc = Start-Process -FilePath $exe -ArgumentList $browserArgs -Wait -PassThru -WindowStyle Hidden -ErrorAction SilentlyContinue
+    $proc = $null
+    try { $proc = Start-Process -FilePath $exe -ArgumentList $browserArgs -Wait -PassThru -WindowStyle Hidden -ErrorAction Stop }
+    catch { Write-Verbose "Nao foi possivel gerar PDF com '$exe': $($_.Exception.Message)" }
     if (Test-Path $PdfPath) {
         Write-Ok "PDF gerado: $PdfPath ($([int]((Get-Item $PdfPath).Length/1KB)) KB)"
     }
@@ -836,8 +852,11 @@ Write-ScriptLog -Message "Inicio da analise de espaco em disco." -LogPath $Event
 if ($Drive -and $Drive.Count -gt 0) {
     $targetDrives = $Drive | ForEach-Object {
         $l = $_.Trim(':').ToUpper()
-        Get-PSDrive -Name $l -PSProvider FileSystem -ErrorAction SilentlyContinue |
-            ForEach-Object { [System.IO.DriveInfo]::new("$($_.Name):\") }
+        try {
+            Get-PSDrive -Name $l -PSProvider FileSystem -ErrorAction Stop |
+                ForEach-Object { [System.IO.DriveInfo]::new("$($_.Name):\") }
+        }
+        catch { Write-Verbose "Unidade '$l' indisponivel: $($_.Exception.Message)" }
     }
 } else {
     $targetDrives = [System.IO.DriveInfo]::GetDrives() |

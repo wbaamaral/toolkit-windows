@@ -7,7 +7,7 @@
         Grava a chave ReportsRoot no arquivo de configuracao persistente do toolkit. Scripts e funcoes que nao
         receberem um caminho explicitamente devem consultar esta configuracao antes de usar o padrao global.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -24,6 +24,9 @@
 
     $resolvedPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
     $configDir = Split-Path -Parent $ConfigPath
+    if (-not $PSCmdlet.ShouldProcess($ConfigPath, "Definir diretorio de relatorios como '$resolvedPath'")) {
+        return
+    }
     New-Item -Path $configDir -ItemType Directory -Force | Out-Null
 
     $config = Get-ToolkitConfiguration -ConfigPath $ConfigPath

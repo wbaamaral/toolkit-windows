@@ -23,7 +23,7 @@
     .EXAMPLE
         Set-SshdConfig -Settings @{ 'PermitRootLogin' = $null }
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
     param(
         [Parameter(Mandatory = $true)]
         [hashtable]$Settings,
@@ -48,6 +48,13 @@
     $backupDir = Split-Path -Parent $Path
     $timestamp = (Get-Date).ToString('yyyyMMdd_HHmmss')
     $backupPath = Join-Path $backupDir "sshd_config.bak.$timestamp"
+
+    if (-not $PSCmdlet.ShouldProcess($Path, 'Alterar configuracao do servidor SSH')) {
+        return [pscustomobject]@{
+            Success = $true; Message = 'Alteracao de configuracao ignorada por WhatIf.'
+            BackupPath = $null; RestartRequired = $false
+        }
+    }
 
     try {
         Copy-Item -LiteralPath $Path -Destination $backupPath -Force -ErrorAction Stop

@@ -147,7 +147,8 @@ $PSDefaultParameterValues['Out-File:Encoding']    = 'utf8'
 $PSDefaultParameterValues['Set-Content:Encoding'] = 'utf8'
 $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
 
-try { chcp 65001 | Out-Null } catch { }
+try { chcp 65001 | Out-Null }
+catch { Write-Verbose "Nao foi possivel ajustar a pagina de codigo do console para UTF-8: $($_.Exception.Message)" }
 
 $ScriptName = if ($MyInvocation.MyCommand.Name) {
     $MyInvocation.MyCommand.Name
@@ -333,7 +334,7 @@ if ($Acao -eq 'Listar') {
         try {
             $consoleHeight = [Math]::Max(20, $Host.UI.RawUI.WindowSize.Height)
             $consoleWidth = [Math]::Max(80, $Host.UI.RawUI.WindowSize.Width)
-        } catch { }
+        } catch { Write-Verbose "Nao foi possivel obter as dimensoes do console: $($_.Exception.Message)" }
 
         $headerLines = 9
         $footerLines = 5

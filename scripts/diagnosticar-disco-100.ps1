@@ -99,7 +99,8 @@ $PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
 $PSDefaultParameterValues['Set-Content:Encoding'] = 'utf8'
 $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
 
-try { chcp 65001 | Out-Null } catch { }
+try { chcp 65001 | Out-Null }
+catch { Write-Verbose "Nao foi possivel ajustar a pagina de codigo do console para UTF-8: $($_.Exception.Message)" }
 
 $ScriptName = if ($MyInvocation.MyCommand.Name) {
     $MyInvocation.MyCommand.Name
@@ -345,7 +346,8 @@ function Invoke-HD100ExternalCommand {
     finally {
         foreach ($path in @($stdoutPath, $stderrPath)) {
             if ($path -and (Test-Path -LiteralPath $path)) {
-                Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+                try { Remove-Item -LiteralPath $path -Force -ErrorAction Stop }
+                catch { Write-Verbose "Nao foi possivel remover arquivo temporario '$path': $($_.Exception.Message)" }
             }
         }
     }
@@ -413,10 +415,14 @@ function Get-HD100SystemInfo {
     $activePowerPlan = $null
     $lastBootPerformance = Get-HD100LastBootPerformance
 
-    try { $computerInfo = Get-ComputerInfo -ErrorAction Stop } catch { }
-    try { $operatingSystem = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop } catch { }
-    try { $computerSystem = Get-CimInstance Win32_ComputerSystem -ErrorAction Stop } catch { }
-    try { $bios = Get-CimInstance Win32_BIOS -ErrorAction Stop } catch { }
+    try { $computerInfo = Get-ComputerInfo -ErrorAction Stop }
+    catch { Write-Verbose "Get-ComputerInfo indisponivel: $($_.Exception.Message)" }
+    try { $operatingSystem = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop }
+    catch { Write-Verbose "Nao foi possivel consultar Win32_OperatingSystem: $($_.Exception.Message)" }
+    try { $computerSystem = Get-CimInstance Win32_ComputerSystem -ErrorAction Stop }
+    catch { Write-Verbose "Nao foi possivel consultar Win32_ComputerSystem: $($_.Exception.Message)" }
+    try { $bios = Get-CimInstance Win32_BIOS -ErrorAction Stop }
+    catch { Write-Verbose "Nao foi possivel consultar Win32_BIOS: $($_.Exception.Message)" }
     try {
         $activePowerPlan = (& powercfg.exe /getactivescheme 2>&1) -join ' '
     }
@@ -588,7 +594,9 @@ function Get-HD100ReliabilityCounters {
                 PowerOnHours = $counter.PowerOnHours
             })
         }
-        catch { }
+        catch {
+            Write-Verbose "Contador de confiabilidade indisponivel para '$($disk.FriendlyName)': $($_.Exception.Message)"
+        }
     }
 
     return @($items)
@@ -753,10 +761,14 @@ function Get-HD100DiskHealth {
     $smart = @()
     $reliability = @()
 
-    try { $physicalDisks = @(Get-PhysicalDisk -ErrorAction Stop | Select-Object FriendlyName, MediaType, BusType, HealthStatus, OperationalStatus, Size) } catch { }
-    try { $disks = @(Get-Disk -ErrorAction Stop | Select-Object Number, FriendlyName, BusType, HealthStatus, OperationalStatus, PartitionStyle, Size) } catch { }
-    try { $diskDrives = @(Get-CimInstance Win32_DiskDrive -ErrorAction Stop | Select-Object Model, InterfaceType, MediaType, Status, Size, SerialNumber) } catch { }
-    try { $smart = @(Get-CimInstance -Namespace root\wmi -Class MSStorageDriver_FailurePredictStatus -ErrorAction Stop | Select-Object InstanceName, PredictFailure, Reason) } catch { }
+    try { $physicalDisks = @(Get-PhysicalDisk -ErrorAction Stop | Select-Object FriendlyName, MediaType, BusType, HealthStatus, OperationalStatus, Size) }
+    catch { Write-Verbose "Get-PhysicalDisk indisponivel: $($_.Exception.Message)" }
+    try { $disks = @(Get-Disk -ErrorAction Stop | Select-Object Number, FriendlyName, BusType, HealthStatus, OperationalStatus, PartitionStyle, Size) }
+    catch { Write-Verbose "Get-Disk indisponivel: $($_.Exception.Message)" }
+    try { $diskDrives = @(Get-CimInstance Win32_DiskDrive -ErrorAction Stop | Select-Object Model, InterfaceType, MediaType, Status, Size, SerialNumber) }
+    catch { Write-Verbose "Win32_DiskDrive indisponivel: $($_.Exception.Message)" }
+    try { $smart = @(Get-CimInstance -Namespace root\wmi -Class MSStorageDriver_FailurePredictStatus -ErrorAction Stop | Select-Object InstanceName, PredictFailure, Reason) }
+    catch { Write-Verbose "Dados SMART indisponiveis: $($_.Exception.Message)" }
     $reliability = Get-HD100ReliabilityCounters -PhysicalDisks $physicalDisks
 
     $alerts = [System.Collections.ArrayList]::new()
@@ -1026,11 +1038,16 @@ function Enable-HD100StartupItem {
 }
 
 function Remove-HD100StartupItem {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
+    [OutputType([object[]])]
     param(
         [Parameter(Mandatory = $true)]
         [object[]]$Item
     )
+
+    if (-not $PSCmdlet.ShouldProcess((@($Item | ForEach-Object Name) -join ', '), 'Remover item de inicializacao')) {
+        return @()
+    }
 
     $results = @(Remove-StartupItem -Item $Item -DryRun:$DryRun)
     foreach ($r in @($results | Where-Object { $_.Success -and $_.Message -ne 'DryRun.' })) {
@@ -1096,15 +1113,22 @@ function Get-HD100BankPlugins {
     param()
 
     $patterns = @('Warsaw', 'Topaz', 'GBPlugin', 'GAS Tecnologia', 'core', 'Diebold', 'Guardiao', 'Guardião')
-    $processes = @(Get-Process -ErrorAction SilentlyContinue | Where-Object {
-        $name = $_.Name
-        $patterns | Where-Object { $name -match [regex]::Escape($_) }
-    } | Select-Object Name, Id, Path)
-
-    $services = @(Get-CimInstance Win32_Service -ErrorAction SilentlyContinue | Where-Object {
-        $text = "$($_.Name) $($_.DisplayName) $($_.PathName)"
-        $patterns | Where-Object { $text -match [regex]::Escape($_) }
-    } | Select-Object Name, DisplayName, State, StartMode, PathName)
+    $processes = @()
+    $services = @()
+    try {
+        $processes = @(Get-Process -ErrorAction Stop | Where-Object {
+            $name = $_.Name
+            $patterns | Where-Object { $name -match [regex]::Escape($_) }
+        } | Select-Object Name, Id, Path)
+    }
+    catch { Write-Verbose "Nao foi possivel consultar processos de plugins bancarios: $($_.Exception.Message)" }
+    try {
+        $services = @(Get-CimInstance Win32_Service -ErrorAction Stop | Where-Object {
+            $text = "$($_.Name) $($_.DisplayName) $($_.PathName)"
+            $patterns | Where-Object { $text -match [regex]::Escape($_) }
+        } | Select-Object Name, DisplayName, State, StartMode, PathName)
+    }
+    catch { Write-Verbose "Nao foi possivel consultar servicos de plugins bancarios: $($_.Exception.Message)" }
 
     return [pscustomobject]@{
         Processes = @($processes)
@@ -1130,8 +1154,12 @@ function Get-HD100OneDrive {
     [CmdletBinding()]
     param()
 
-    $processes = @(Get-Process -Name OneDrive -ErrorAction SilentlyContinue | Select-Object Name, Id, Path,
-        @{Name = 'IOTotalMB'; Expression = { [math]::Round(($_.IOReadBytes + $_.IOWriteBytes) / 1MB, 2) } })
+    $processes = @()
+    try {
+        $processes = @(Get-Process -Name OneDrive -ErrorAction Stop | Select-Object Name, Id, Path,
+            @{Name = 'IOTotalMB'; Expression = { [math]::Round(($_.IOReadBytes + $_.IOWriteBytes) / 1MB, 2) } })
+    }
+    catch { Write-Verbose "OneDrive nao esta em execucao ou nao pode ser consultado: $($_.Exception.Message)" }
 
     $startupPaths = @(
         'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run',
@@ -1145,7 +1173,9 @@ function Get-HD100OneDrive {
                 [pscustomobject]@{ Path = $path; Command = $item.OneDrive }
             }
         }
-        catch { }
+        catch {
+            Write-Verbose "Chave de inicializacao '$path' indisponivel: $($_.Exception.Message)"
+        }
     }
 
     return [pscustomobject]@{
@@ -1160,9 +1190,13 @@ function Get-HD100Browsers {
     param()
 
     $browserProcesses = @('chrome', 'msedge', 'opera', 'firefox', 'brave')
-    $processes = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Name -in $browserProcesses } |
-        Select-Object Name, Id, Path,
-            @{Name = 'IOTotalMB'; Expression = { [math]::Round(($_.IOReadBytes + $_.IOWriteBytes) / 1MB, 2) } })
+    $processes = @()
+    try {
+        $processes = @(Get-Process -ErrorAction Stop | Where-Object { $_.Name -in $browserProcesses } |
+            Select-Object Name, Id, Path,
+                @{Name = 'IOTotalMB'; Expression = { [math]::Round(($_.IOReadBytes + $_.IOWriteBytes) / 1MB, 2) } })
+    }
+    catch { Write-Verbose "Nao foi possivel consultar processos de navegadores: $($_.Exception.Message)" }
 
     return [pscustomobject]@{
         Processes = @($processes)
@@ -1174,7 +1208,9 @@ function Get-HD100AdobeReader {
     [CmdletBinding()]
     param()
 
-    $processes = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'AcroRd|Acrobat' } | Select-Object Name, Id, Path)
+    $processes = @()
+    try { $processes = @(Get-Process -ErrorAction Stop | Where-Object { $_.Name -match 'AcroRd|Acrobat' } | Select-Object Name, Id, Path) }
+    catch { Write-Verbose "Nao foi possivel consultar processos do Adobe Reader: $($_.Exception.Message)" }
     return [pscustomobject]@{
         Processes = @($processes)
         Detected = @($processes).Count -gt 0
@@ -1285,7 +1321,9 @@ function Invoke-HD100Diagnostic {
     try {
         Write-TextFileUtf8 -Path (Join-Path $script:HD100Session.LogsPath 'eventos-disco.log') -Content (($events.Events | Format-List | Out-String))
     }
-    catch { }
+    catch {
+        Write-HD100Log -Level 'WARN' -Message "Nao foi possivel gravar o log de eventos de disco: $($_.Exception.Message)"
+    }
 
     Write-HD100Section 'Executando CHKDSK /scan'
     $chkdskScan = Invoke-HD100ChkdskScan
@@ -1808,9 +1846,15 @@ function Get-HD100LatestSessionPath {
         return $null
     }
 
-    return Get-ChildItem -LiteralPath $modulePath -Directory -ErrorAction SilentlyContinue |
-        Sort-Object Name -Descending |
-        Select-Object -First 1 -ExpandProperty FullName
+    try {
+        return Get-ChildItem -LiteralPath $modulePath -Directory -ErrorAction Stop |
+            Sort-Object Name -Descending |
+            Select-Object -First 1 -ExpandProperty FullName
+    }
+    catch {
+        Write-Verbose "Nao foi possivel listar sessoes de diagnostico: $($_.Exception.Message)"
+        return $null
+    }
 }
 
 function Invoke-HD100ReportMode {
