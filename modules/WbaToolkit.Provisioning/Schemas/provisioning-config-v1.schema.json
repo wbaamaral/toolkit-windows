@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.wba.local/windows-toolkit/provisioning/v1.json",
+  "title": "WbaToolkit.Provisioning — configuracao v1",
+  "description": "Contrato canonico da configuracao de provisionamento inicial (SPEC-PROVISIONING-CONFIG, ADR-0033). Validacao operacional real e feita por Test-ToolkitProvisioningSchema; este documento e a referencia legivel do contrato, nao um validador executado pelo modulo na Fase 1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "deploymentId"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "deploymentId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$" },
+    "computer": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9-]{0,14}$" },
+        "timeZone": { "type": "string", "minLength": 1 }
+      }
+    },
+    "network": {
+      "type": "object",
+      "description": "Fase 2 — nenhuma etapa da Fase 1 consome esta secao.",
+      "additionalProperties": true
+    },
+    "storage": {
+      "type": "object",
+      "description": "Fase 3 — nenhuma etapa da Fase 1 consome esta secao.",
+      "additionalProperties": true
+    },
+    "certificates": {
+      "type": "object",
+      "description": "Fase 2 — nenhuma etapa da Fase 1 consome esta secao.",
+      "additionalProperties": true
+    },
+    "remoteAccess": {
+      "type": "object",
+      "description": "Fase 2 — nenhuma etapa da Fase 1 consome esta secao.",
+      "additionalProperties": true
+    },
+    "firewall": {
+      "type": "object",
+      "description": "Fase 2 — nenhuma etapa da Fase 1 consome esta secao.",
+      "additionalProperties": true
+    },
+    "accounts": {
+      "type": "array",
+      "description": "Fase 3 — nenhuma etapa da Fase 1 consome esta secao.",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "activation": {
+      "type": "object",
+      "description": "Fase 3 — nenhuma etapa da Fase 1 consome esta secao.",
+      "additionalProperties": true
+    },
+    "sysprep": {
+      "type": "object",
+      "description": "Integracao — preparacao ocorre antes da captura; provisionamento apos especializacao.",
+      "additionalProperties": true
+    },
+    "extensions": {
+      "type": "array",
+      "description": "Futuro — extensibilidade controlada (SDK assinado + allowlist).",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "onError": { "type": "string", "enum": ["Stop", "Continue"] },
+        "maxAttemptsPerStep": { "type": "integer", "minimum": 1 },
+        "reboot": { "type": "string", "enum": ["Never", "WhenRequired", "Manual"] },
+        "cleanup": { "type": "string", "enum": ["RemoveSecretsAndConfig", "RemoveSecretsOnly", "RetainAll"] }
+      }
+    }
+  }
+}
