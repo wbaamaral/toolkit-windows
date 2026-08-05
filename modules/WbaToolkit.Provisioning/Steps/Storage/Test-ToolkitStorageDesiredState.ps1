@@ -47,7 +47,9 @@
         $disk = $resolved.Disk
         $desiredFileSystem = if (Test-ToolkitPropertyPresent -InputObject $entry -Name 'fileSystem') { [string]$entry.fileSystem } else { 'NTFS' }
         $partition = Get-Partition -DiskNumber $disk.Number -ErrorAction SilentlyContinue | Select-Object -First 1
-        $volume = if ($partition) { Get-Volume -Partition $partition -ErrorAction SilentlyContinue } else { $null }
+        # Get-Volume por -DriveLetter (char simples), nunca por -Partition (exige CimInstance
+        # genuino e impede testar com mocks).
+        $volume = if ($partition -and $partition.DriveLetter) { Get-Volume -DriveLetter $partition.DriveLetter -ErrorAction SilentlyContinue } else { $null }
 
         $isCompliant = ($disk.PartitionStyle -eq 'GPT') -and $partition -and $volume -and
             ($volume.FileSystem -eq $desiredFileSystem) -and

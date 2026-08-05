@@ -70,9 +70,12 @@
             $existingPartition = New-Partition @partitionParams
         }
 
-        $existingVolume = Get-Volume -Partition $existingPartition -ErrorAction SilentlyContinue
+        # Get-Volume/Format-Volume por -DriveLetter (char simples), nunca por -Partition
+        # (exige CimInstance genuino e impede testar com mocks).
+        $driveLetter = $existingPartition.DriveLetter
+        $existingVolume = if ($driveLetter) { Get-Volume -DriveLetter $driveLetter -ErrorAction SilentlyContinue } else { $null }
         if (-not $existingVolume -or $existingVolume.FileSystem -ne $desiredFileSystem) {
-            Format-Volume -Partition $existingPartition -FileSystem $desiredFileSystem -NewFileSystemLabel $desiredLabel -Confirm:$false | Out-Null
+            Format-Volume -DriveLetter $driveLetter -FileSystem $desiredFileSystem -NewFileSystemLabel $desiredLabel -Confirm:$false | Out-Null
         }
 
         $after = Get-ToolkitDiskSnapshot -DiskNumber $disk.Number
