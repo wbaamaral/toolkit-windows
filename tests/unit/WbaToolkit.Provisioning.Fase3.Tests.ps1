@@ -109,7 +109,7 @@ Describe 'Etapa storage.configure' {
     It 'Changed quando o disco esta RAW' {
         InModuleScope WbaToolkit.Provisioning {
             Mock Get-Disk { @([pscustomobject]@{ Number = 1; SerialNumber = 'SN1'; IsSystem = $false; IsBoot = $false; BusType = 'SCSI'; Location = 'L1'; Size = 28GB; UniqueId = 'B'; PartitionStyle = 'RAW' }) }
-            Mock Get-Partition { $null }
+            Mock Get-Partition { }
             $config = @{ schemaVersion = 1; deploymentId = 'x'; storage = @{ disks = @(@{ name = 'd1'; match = @{ serialNumber = 'SN1' } }) } } |
                 ConvertTo-Json -Depth 10 | ConvertFrom-Json
             (Test-ToolkitStorageDesiredState -Context ([pscustomobject]@{ Config = $config })).Status | Should -Be 'Changed'
@@ -119,7 +119,7 @@ Describe 'Etapa storage.configure' {
     It 'Compliant quando ja particionado e formatado conforme desejado' {
         InModuleScope WbaToolkit.Provisioning {
             Mock Get-Disk { @([pscustomobject]@{ Number = 1; SerialNumber = 'SN1'; IsSystem = $false; IsBoot = $false; BusType = 'SCSI'; Location = 'L1'; Size = 28GB; UniqueId = 'B'; PartitionStyle = 'GPT' }) }
-            Mock Get-Partition { [pscustomobject]@{ DriveLetter = 'D' } }
+            Mock Get-Partition { [pscustomobject]@{ DriveLetter = 'D'; Type = 'Basic' } }
             Mock Get-Volume { [pscustomobject]@{ FileSystem = 'NTFS' } }
             $config = @{ schemaVersion = 1; deploymentId = 'x'; storage = @{ disks = @(@{ name = 'd1'; match = @{ serialNumber = 'SN1' }; driveLetter = 'D'; fileSystem = 'NTFS' }) } } |
                 ConvertTo-Json -Depth 10 | ConvertFrom-Json

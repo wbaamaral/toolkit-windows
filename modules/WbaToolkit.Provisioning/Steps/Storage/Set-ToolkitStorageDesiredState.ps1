@@ -58,7 +58,11 @@
             Initialize-Disk -Number $disk.Number -PartitionStyle GPT -Confirm:$false
         }
 
-        $existingPartition = Get-Partition -DiskNumber $disk.Number -ErrorAction SilentlyContinue | Select-Object -First 1
+        # Filtra por Type 'Basic': Initialize-Disk -PartitionStyle GPT pode criar
+        # automaticamente uma particao 'Reserved' (MSR) sem letra de unidade, que nao
+        # deve ser confundida com a particao de dados que esta etapa gerencia.
+        $existingPartition = Get-Partition -DiskNumber $disk.Number -ErrorAction SilentlyContinue |
+            Where-Object { $_.Type -eq 'Basic' } | Select-Object -First 1
         if (-not $existingPartition) {
             $partitionParams = @{ DiskNumber = $disk.Number; UseMaximumSize = $true }
             if (Test-ToolkitPropertyPresent -InputObject $entry -Name 'driveLetter') {

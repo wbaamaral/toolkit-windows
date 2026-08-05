@@ -46,7 +46,11 @@
 
         $disk = $resolved.Disk
         $desiredFileSystem = if (Test-ToolkitPropertyPresent -InputObject $entry -Name 'fileSystem') { [string]$entry.fileSystem } else { 'NTFS' }
-        $partition = Get-Partition -DiskNumber $disk.Number -ErrorAction SilentlyContinue | Select-Object -First 1
+        # Filtra por Type 'Basic': Initialize-Disk -PartitionStyle GPT pode criar
+        # automaticamente uma particao 'Reserved' (MSR) sem letra de unidade, que nao
+        # deve ser confundida com a particao de dados que esta etapa gerencia.
+        $partition = Get-Partition -DiskNumber $disk.Number -ErrorAction SilentlyContinue |
+            Where-Object { $_.Type -eq 'Basic' } | Select-Object -First 1
         # Get-Volume por -DriveLetter (char simples), nunca por -Partition (exige CimInstance
         # genuino e impede testar com mocks).
         $volume = if ($partition -and $partition.DriveLetter) { Get-Volume -DriveLetter $partition.DriveLetter -ErrorAction SilentlyContinue } else { $null }
