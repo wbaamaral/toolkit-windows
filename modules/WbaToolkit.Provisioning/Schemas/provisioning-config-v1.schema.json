@@ -20,28 +20,105 @@
     },
     "network": {
       "type": "object",
-      "description": "Fase 2 — nenhuma etapa da Fase 1 consome esta secao.",
-      "additionalProperties": true
+      "additionalProperties": false,
+      "properties": {
+        "adapters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["match", "name", "dhcp"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "match": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "macAddress": { "type": "string" },
+                  "pnpDeviceId": { "type": "string" },
+                  "alias": { "type": "string" }
+                }
+              },
+              "dhcp": { "type": "boolean" },
+              "addresses": { "type": "array", "items": { "type": "string" } },
+              "gateway": { "type": "string" },
+              "dnsServers": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
     },
     "storage": {
       "type": "object",
-      "description": "Fase 3 — nenhuma etapa da Fase 1 consome esta secao.",
+      "description": "Fase 3 — nenhuma etapa implementada consome esta secao.",
       "additionalProperties": true
     },
     "certificates": {
-      "type": "object",
-      "description": "Fase 2 — nenhuma etapa da Fase 1 consome esta secao.",
-      "additionalProperties": true
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "thumbprint", "source"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "thumbprint": { "type": "string", "pattern": "^[0-9A-Fa-f]{40}$" },
+          "store": { "type": "string" },
+          "source": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "filePath": { "type": "string" },
+              "contentBase64": { "type": "string" },
+              "pfxPasswordSecretRef": { "type": "string" }
+            }
+          }
+        }
+      }
     },
     "remoteAccess": {
       "type": "object",
-      "description": "Fase 2 — nenhuma etapa da Fase 1 consome esta secao.",
-      "additionalProperties": true
+      "additionalProperties": false,
+      "properties": {
+        "winrm": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "certificateThumbprint": { "type": "string", "pattern": "^[0-9A-Fa-f]{40}$" },
+            "firewallProfile": { "type": "array", "items": { "enum": ["Domain", "Private", "Public"] } }
+          }
+        },
+        "rdp": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "firewallProfile": { "type": "array", "items": { "enum": ["Domain", "Private", "Public"] } }
+          }
+        }
+      }
     },
     "firewall": {
       "type": "object",
-      "description": "Fase 2 — nenhuma etapa da Fase 1 consome esta secao.",
-      "additionalProperties": true
+      "additionalProperties": false,
+      "properties": {
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "enabled": { "type": "boolean" },
+              "direction": { "enum": ["Inbound", "Outbound"] },
+              "protocol": { "enum": ["TCP", "UDP", "Any"] },
+              "localPort": { "type": "string" },
+              "profile": { "type": "array", "items": { "enum": ["Domain", "Private", "Public"] } }
+            }
+          }
+        }
+      }
     },
     "accounts": {
       "type": "array",

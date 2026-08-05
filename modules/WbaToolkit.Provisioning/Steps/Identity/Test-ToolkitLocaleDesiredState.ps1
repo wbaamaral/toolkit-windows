@@ -22,8 +22,8 @@
 
     $config = $Context.Config
     $desiredTimeZone = $null
-    if ($config -and $config.PSObject.Properties.Name -contains 'computer' -and
-        $config.computer.PSObject.Properties.Name -contains 'timeZone') {
+    if ($config -and (Test-ToolkitPropertyPresent -InputObject $config -Name 'computer') -and
+        (Test-ToolkitPropertyPresent -InputObject $config.computer -Name 'timeZone')) {
         $desiredTimeZone = [string]$config.computer.timeZone
     }
 

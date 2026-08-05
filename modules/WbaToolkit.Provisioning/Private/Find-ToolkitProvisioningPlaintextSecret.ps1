@@ -43,7 +43,7 @@
             $childPath = "$Path.$($prop.Name)"
             if ($prop.Name -match $KeyPattern) {
                 $isSecretRefEnvelope = ($prop.Value -is [System.Management.Automation.PSCustomObject]) -and
-                    ($prop.Value.PSObject.Properties.Name -contains 'secretRef')
+                    ((Test-ToolkitPropertyPresent -InputObject $prop.Value -Name 'secretRef'))
                 if (-not $isSecretRefEnvelope) {
                     $findings.Add($childPath)
                     continue

@@ -213,10 +213,10 @@ Describe 'Test-ToolkitProvisioningSchema' {
 
     It 'Emite aviso para secoes de fases futuras' {
         InModuleScope WbaToolkit.Provisioning {
-            $config = @{ schemaVersion = 1; deploymentId = 'x'; network = @{ adapters = @() } } | ConvertTo-Json -Depth 10 | ConvertFrom-Json
+            $config = @{ schemaVersion = 1; deploymentId = 'x'; accounts = @() } | ConvertTo-Json -Depth 10 | ConvertFrom-Json
             $result = Test-ToolkitProvisioningSchema -Config $config
             $result.IsValid | Should -BeTrue
-            $result.Warnings -join ' ' | Should -Match "network"
+            $result.Warnings -join ' ' | Should -Match "accounts"
         }
     }
 }
@@ -225,7 +225,7 @@ Describe 'Resolve-ToolkitProvisioningPlan' {
     It 'Produz a ordem determinística das 5 etapas da Fase 1' {
         InModuleScope WbaToolkit.Provisioning {
             $plan = Resolve-ToolkitProvisioningPlan -StepRegistry (Get-ToolkitProvisioningStepRegistry)
-            ($plan | ForEach-Object Id) -join ',' | Should -Be 'preflight.system,identity.hostname,computer.locale,validation.final,cleanup.finalize'
+            ($plan | ForEach-Object Id) -join ',' | Should -Be 'preflight.system,identity.hostname,computer.locale,network.configure,certificates.install,remoteaccess.winrm,remoteaccess.rdp,firewall.rules,validation.final,cleanup.finalize'
         }
     }
 
@@ -500,6 +500,11 @@ Describe 'Invoke-ToolkitProvisioning - fluxo fim-a-fim mockado' {
 
             Mock Test-IsAdministrator { $true }
             Mock Get-TimeZone { [pscustomobject]@{ Id = 'UTC' } }
+            if (-not (Get-Command Get-WSManInstance -ErrorAction SilentlyContinue)) { function Get-WSManInstance { } }
+            if (-not (Get-Command Get-NetFirewallRule -ErrorAction SilentlyContinue)) { function Get-NetFirewallRule { } }
+            Mock Get-WSManInstance { }
+            Mock Get-NetFirewallRule { }
+            Mock Get-ItemProperty { [pscustomobject]@{ fDenyTSConnections = 1 } } -ParameterFilter { $LiteralPath -eq 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server' }
             Mock Get-ToolkitProvisioningPaths {
                 [pscustomobject]@{
                     Root       = $Root
@@ -526,7 +531,7 @@ Describe 'Invoke-ToolkitProvisioning - fluxo fim-a-fim mockado' {
 
             $result.GlobalState | Should -Be 'Completed'
             $result.Report | Should -Not -BeNullOrEmpty
-            $result.Report.Steps.Count | Should -Be 5
+            $result.Report.Steps.Count | Should -Be 10
             @($result.Report.Steps | Where-Object Status -eq 'Failed').Count | Should -Be 0
 
             $stateFile = Join-Path $Root 'Work/fluxo-completo-001/state.json'
@@ -543,6 +548,11 @@ Describe 'Invoke-ToolkitProvisioning - fluxo fim-a-fim mockado' {
 
             Mock Test-IsAdministrator { $true }
             Mock Get-TimeZone { [pscustomobject]@{ Id = 'UTC' } }
+            if (-not (Get-Command Get-WSManInstance -ErrorAction SilentlyContinue)) { function Get-WSManInstance { } }
+            if (-not (Get-Command Get-NetFirewallRule -ErrorAction SilentlyContinue)) { function Get-NetFirewallRule { } }
+            Mock Get-WSManInstance { }
+            Mock Get-NetFirewallRule { }
+            Mock Get-ItemProperty { [pscustomobject]@{ fDenyTSConnections = 1 } } -ParameterFilter { $LiteralPath -eq 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server' }
             Mock Get-ToolkitProvisioningPaths {
                 [pscustomobject]@{
                     Root       = $Root

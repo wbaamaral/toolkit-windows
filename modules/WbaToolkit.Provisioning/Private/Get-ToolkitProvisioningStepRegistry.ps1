@@ -4,10 +4,12 @@
         Devolve o manifesto das etapas instaladas nesta versao do modulo.
 
     .DESCRIPTION
-        Fase 1 (nucleo seguro) registra somente preflight.system, identity.hostname,
-        computer.locale, validation.final e cleanup.finalize, conforme
-        SPEC-PROVISIONING-TESTS. O JSON de configuracao nunca indica caminho de script
-        ou nome de funcao — apenas este registro interno decide o que executa.
+        Fase 1 (nucleo seguro): preflight.system, identity.hostname, computer.locale,
+        validation.final, cleanup.finalize. Fase 2 (rede e acesso remoto): network.configure,
+        certificates.install, remoteaccess.winrm, remoteaccess.rdp, firewall.rules —
+        inseridas entre computer.locale e validation.final. Conforme SPEC-PROVISIONING-TESTS.
+        O JSON de configuracao nunca indica caminho de script ou nome de funcao — apenas
+        este registro interno decide o que executa.
 
     .OUTPUTS
         System.Collections.Hashtable[] — um manifesto por etapa.
@@ -56,10 +58,75 @@
             VerifyFunction   = 'Test-ToolkitLocaleDesiredState'
         },
         @{
+            Id               = 'network.configure'
+            Version          = '1.0.0'
+            Phase            = 'Networking'
+            DependsOn        = @('computer.locale')
+            ConfigSection    = 'network'
+            RequiresAdmin    = $true
+            SupportsWhatIf   = $true
+            MayRequestReboot = $false
+            TestFunction     = 'Test-ToolkitNetworkDesiredState'
+            SetFunction      = 'Set-ToolkitNetworkDesiredState'
+            VerifyFunction   = 'Test-ToolkitNetworkDesiredState'
+        },
+        @{
+            Id               = 'certificates.install'
+            Version          = '1.0.0'
+            Phase            = 'Security'
+            DependsOn        = @('network.configure')
+            ConfigSection    = 'certificates'
+            RequiresAdmin    = $true
+            SupportsWhatIf   = $true
+            MayRequestReboot = $false
+            TestFunction     = 'Test-ToolkitCertificateDesiredState'
+            SetFunction      = 'Set-ToolkitCertificateDesiredState'
+            VerifyFunction   = 'Test-ToolkitCertificateDesiredState'
+        },
+        @{
+            Id               = 'remoteaccess.winrm'
+            Version          = '1.0.0'
+            Phase            = 'Security'
+            DependsOn        = @('certificates.install')
+            ConfigSection    = 'remoteAccess.winrm'
+            RequiresAdmin    = $true
+            SupportsWhatIf   = $true
+            MayRequestReboot = $false
+            TestFunction     = 'Test-ToolkitWinRmDesiredState'
+            SetFunction      = 'Set-ToolkitWinRmDesiredState'
+            VerifyFunction   = 'Test-ToolkitWinRmDesiredState'
+        },
+        @{
+            Id               = 'remoteaccess.rdp'
+            Version          = '1.0.0'
+            Phase            = 'Security'
+            DependsOn        = @('remoteaccess.winrm')
+            ConfigSection    = 'remoteAccess.rdp'
+            RequiresAdmin    = $true
+            SupportsWhatIf   = $true
+            MayRequestReboot = $false
+            TestFunction     = 'Test-ToolkitRdpDesiredState'
+            SetFunction      = 'Set-ToolkitRdpDesiredState'
+            VerifyFunction   = 'Test-ToolkitRdpDesiredState'
+        },
+        @{
+            Id               = 'firewall.rules'
+            Version          = '1.0.0'
+            Phase            = 'Security'
+            DependsOn        = @('remoteaccess.rdp')
+            ConfigSection    = 'firewall'
+            RequiresAdmin    = $true
+            SupportsWhatIf   = $true
+            MayRequestReboot = $false
+            TestFunction     = 'Test-ToolkitFirewallRulesDesiredState'
+            SetFunction      = 'Set-ToolkitFirewallRulesDesiredState'
+            VerifyFunction   = 'Test-ToolkitFirewallRulesDesiredState'
+        },
+        @{
             Id               = 'validation.final'
             Version          = '1.0.0'
             Phase            = 'Finalization'
-            DependsOn        = @('computer.locale')
+            DependsOn        = @('firewall.rules')
             ConfigSection    = $null
             RequiresAdmin    = $true
             SupportsWhatIf   = $true

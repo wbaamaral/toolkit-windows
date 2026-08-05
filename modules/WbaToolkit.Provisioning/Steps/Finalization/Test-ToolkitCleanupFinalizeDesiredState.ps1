@@ -22,8 +22,8 @@
     )
 
     $policy = 'RemoveSecretsAndConfig'
-    if ($Context.Config -and $Context.Config.PSObject.Properties.Name -contains 'policy' -and
-        $Context.Config.policy.PSObject.Properties.Name -contains 'cleanup') {
+    if ($Context.Config -and (Test-ToolkitPropertyPresent -InputObject $Context.Config -Name 'policy') -and
+        (Test-ToolkitPropertyPresent -InputObject $Context.Config.policy -Name 'cleanup')) {
         $policy = [string]$Context.Config.policy.cleanup
     }
 

@@ -76,10 +76,10 @@
         $maxAttempts = 3
         $onError     = 'Stop'
         $rebootPolicy = 'WhenRequired'
-        if ($Config -and $Config.PSObject.Properties.Name -contains 'policy') {
-            if ($Config.policy.PSObject.Properties.Name -contains 'maxAttemptsPerStep') { $maxAttempts = [int]$Config.policy.maxAttemptsPerStep }
-            if ($Config.policy.PSObject.Properties.Name -contains 'onError') { $onError = [string]$Config.policy.onError }
-            if ($Config.policy.PSObject.Properties.Name -contains 'reboot') { $rebootPolicy = [string]$Config.policy.reboot }
+        if ($Config -and (Test-ToolkitPropertyPresent -InputObject $Config -Name 'policy')) {
+            if ((Test-ToolkitPropertyPresent -InputObject $Config.policy -Name 'maxAttemptsPerStep')) { $maxAttempts = [int]$Config.policy.maxAttemptsPerStep }
+            if ((Test-ToolkitPropertyPresent -InputObject $Config.policy -Name 'onError')) { $onError = [string]$Config.policy.onError }
+            if ((Test-ToolkitPropertyPresent -InputObject $Config.policy -Name 'reboot')) { $rebootPolicy = [string]$Config.policy.reboot }
         }
 
         $state.GlobalState = 'Running'
