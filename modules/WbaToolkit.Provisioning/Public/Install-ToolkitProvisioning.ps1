@@ -26,7 +26,8 @@
     )
 
     if ([string]::IsNullOrWhiteSpace($ScriptPath)) {
-        $toolkitRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+        # $PSScriptRoot = <raiz>/modules/WbaToolkit.Provisioning/Public — sobe 3 niveis ate <raiz>.
+        $toolkitRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
         $ScriptPath  = Join-Path $toolkitRoot 'provisioning/Inicializar-Windows.ps1'
     }
 

@@ -32,10 +32,17 @@
             $acl.SetAccessRuleProtection($true, $false)
             $acl.Access | ForEach-Object { $acl.RemoveAccessRule($_) | Out-Null }
 
+            # SID bem-conhecido em vez de nome: 'Administrators' nao resolve em Windows
+            # localizado (ex.: PT-BR usa 'Administradores'); SID e universal.
+            $systemSid = New-Object System.Security.Principal.SecurityIdentifier(
+                [System.Security.Principal.WellKnownSidType]::LocalSystemSid, $null)
+            $adminsSid = New-Object System.Security.Principal.SecurityIdentifier(
+                [System.Security.Principal.WellKnownSidType]::BuiltinAdministratorsSid, $null)
+
             $systemRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
-                'SYSTEM', 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow')
+                $systemSid, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow')
             $adminRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
-                'Administrators', 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow')
+                $adminsSid, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow')
             $acl.SetAccessRule($systemRule)
             $acl.SetAccessRule($adminRule)
             Set-Acl -LiteralPath $dir -AclObject $acl -ErrorAction Stop

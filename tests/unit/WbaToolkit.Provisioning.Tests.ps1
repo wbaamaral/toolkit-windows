@@ -115,6 +115,18 @@ Describe 'WbaToolkit.Provisioning - estrutura do modulo' {
         Test-Path -LiteralPath $schemaPath | Should -BeTrue
         { Get-Content -LiteralPath $schemaPath -Raw | ConvertFrom-Json -ErrorAction Stop } | Should -Not -Throw
     }
+
+    It 'Install-ToolkitProvisioning resolve o caminho padrao de Inicializar-Windows.ps1 sem -ScriptPath' {
+        # Regressao: a resolucao relativa a $PSScriptRoot ja errou o numero de niveis
+        # (achava 'modules/provisioning/...' em vez de '<raiz>/provisioning/...').
+        InModuleScope WbaToolkit.Provisioning -Parameters @{ TestDrive = $TestDrive } {
+            param($TestDrive)
+            if (-not $env:ProgramData) { $env:ProgramData = $TestDrive }
+            Mock Initialize-ToolkitProvisioningDirectory { }
+            Mock Register-ToolkitProvisioningTask { [pscustomobject]@{ Success = $true; TaskPath = '\WBA\Provisioning\'; TaskName = 'Inicializar-Windows'; Message = 'ok' } }
+            { Install-ToolkitProvisioning -Confirm:$false } | Should -Not -Throw
+        }
+    }
 }
 
 Describe 'Test-ToolkitProvisioningSchema' {
@@ -441,8 +453,8 @@ Describe 'Etapa preflight.system' {
 
 Describe 'Etapa cleanup.finalize' {
     BeforeEach {
-        $script:workDir    = Join-Path $TestDrive ([guid]::NewGuid().ToString('N')) 'Work/x'
-        $script:secretsDir = Join-Path $TestDrive ([guid]::NewGuid().ToString('N')) 'Secrets/x'
+        $script:workDir    = Join-Path (Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))) 'Work/x'
+        $script:secretsDir = Join-Path (Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))) 'Secrets/x'
         New-Item -Path $script:workDir -ItemType Directory -Force | Out-Null
         Set-Content -LiteralPath (Join-Path $script:workDir 'provisioning.json') -Value '{}' -Encoding UTF8
     }
