@@ -7,8 +7,8 @@
         Implementa SPEC-PROVISIONING-CONFIG: schemaVersion e deploymentId obrigatorios,
         campos desconhecidos no nivel raiz falham por padrao, valores secretos so podem
         aparecer como { "secretRef": "..." }. As secoes com etapa implementada (computer,
-        network, certificates, remoteAccess, firewall) sao validadas em detalhe; as demais
-        (storage, accounts, activation, extensions) apenas emitem aviso. Nunca altera o
+        network, certificates, remoteAccess, firewall, storage, accounts, activation) sao
+        validadas em detalhe; as demais (extensions) apenas emitem aviso. Nunca altera o
         sistema.
 
     .PARAMETER Config
@@ -34,7 +34,7 @@
         'certificates', 'remoteAccess', 'firewall', 'accounts', 'activation', 'sysprep',
         'extensions', 'policy'
     )
-    $knownPolicyKeys      = @('onError', 'maxAttemptsPerStep', 'reboot', 'cleanup')
+    $knownPolicyKeys      = @('onError', 'maxAttemptsPerStep', 'reboot', 'cleanup', 'allowDestructiveStorage')
     $validOnError         = @('Stop', 'Continue')
     $validReboot          = @('Never', 'WhenRequired', 'Manual')
     $validCleanup         = @('RemoveSecretsAndConfig', 'RemoveSecretsOnly', 'RetainAll')
@@ -209,7 +209,61 @@
         }
     }
 
-    foreach ($section in @('storage', 'accounts', 'activation', 'extensions')) {
+    if ($rootProps -contains 'storage') {
+        $storageProps = (Get-ToolkitPropertyNames -InputObject $Config.storage)
+        if ($storageProps -notcontains 'disks') {
+            $errors.Add("Secao 'storage' presente sem 'disks'.")
+        }
+        else {
+            foreach ($disk in @($Config.storage.disks)) {
+                $diskProps = (Get-ToolkitPropertyNames -InputObject $disk)
+                $matchProps = if ($diskProps -contains 'match') { (Get-ToolkitPropertyNames -InputObject $disk.match) } else { @() }
+                $hasStrongId = ($matchProps -contains 'serialNumber' -and -not [string]::IsNullOrWhiteSpace([string]$disk.match.serialNumber)) -or
+                    ($matchProps -contains 'uniqueId' -and -not [string]::IsNullOrWhiteSpace([string]$disk.match.uniqueId)) -or
+                    (($matchProps -contains 'busType') -and ($matchProps -contains 'location') -and ($matchProps -contains 'sizeBytes'))
+                if (-not $hasStrongId) {
+                    $errors.Add("Disco '$($disk.name)': 'match' exige serialNumber, uniqueId, ou busType+location+sizeBytes.")
+                }
+                if ($diskProps -notcontains 'name' -or [string]::IsNullOrWhiteSpace([string]$disk.name)) {
+                    $errors.Add("Disco sem 'name' declarado.")
+                }
+            }
+            if (-not (($rootProps -contains 'policy') -and (Get-ToolkitPropertyNames -InputObject $Config.policy) -contains 'allowDestructiveStorage' -and $Config.policy.allowDestructiveStorage)) {
+                $warnings.Add("Secao 'storage' presente, mas 'policy.allowDestructiveStorage' nao esta true; a etapa avaliara o estado, mas Set recusara qualquer alteracao.")
+            }
+        }
+    }
+
+    if ($rootProps -contains 'accounts') {
+        foreach ($account in @($Config.accounts)) {
+            $accountProps = (Get-ToolkitPropertyNames -InputObject $account)
+            if ($accountProps -notcontains 'name' -or [string]::IsNullOrWhiteSpace([string]$account.name)) {
+                $errors.Add("Conta sem 'name' declarado.")
+            }
+            $ensure = if ($accountProps -contains 'ensure') { [string]$account.ensure } else { 'Present' }
+            if (@('Present', 'Absent') -notcontains $ensure) {
+                $errors.Add("Conta '$($account.name)': 'ensure' invalido: '$ensure' (aceitos: Present, Absent).")
+            }
+            if ($ensure -eq 'Present') {
+                $passwordProps = if ($accountProps -contains 'password') { (Get-ToolkitPropertyNames -InputObject $account.password) } else { @() }
+                if ($passwordProps -notcontains 'secretRef' -or [string]::IsNullOrWhiteSpace([string]$account.password.secretRef)) {
+                    $errors.Add("Conta '$($account.name)': 'password.secretRef' obrigatorio quando ensure=Present.")
+                }
+            }
+        }
+    }
+
+    if ($rootProps -contains 'activation') {
+        $activationProps = (Get-ToolkitPropertyNames -InputObject $Config.activation)
+        if ($activationProps -notcontains 'productKeySecretRef' -or [string]::IsNullOrWhiteSpace([string]$Config.activation.productKeySecretRef)) {
+            $errors.Add("Secao 'activation': 'productKeySecretRef' obrigatorio.")
+        }
+        if ($activationProps -notcontains 'partialProductKey' -or [string]$Config.activation.partialProductKey -notmatch '^[A-Za-z0-9]{5}$') {
+            $errors.Add("Secao 'activation': 'partialProductKey' ausente ou invalido (esperado 5 caracteres alfanumericos).")
+        }
+    }
+
+    foreach ($section in @('extensions')) {
         if ($rootProps -contains $section) {
             $warnings.Add("Secao '$section' presente, mas nenhuma etapa implementada a consome ainda; sera ignorada nesta execucao.")
         }

@@ -50,8 +50,35 @@
     },
     "storage": {
       "type": "object",
-      "description": "Fase 3 — nenhuma etapa implementada consome esta secao.",
-      "additionalProperties": true
+      "additionalProperties": false,
+      "properties": {
+        "disks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "match"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "match": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "serialNumber": { "type": "string" },
+                  "uniqueId": { "type": "string" },
+                  "busType": { "type": "string" },
+                  "location": { "type": "string" },
+                  "sizeBytes": { "type": "integer" },
+                  "sizeToleranceBytes": { "type": "integer" }
+                }
+              },
+              "fileSystem": { "type": "string", "enum": ["NTFS", "ReFS"] },
+              "driveLetter": { "type": "string", "pattern": "^[D-Zd-z]$" },
+              "label": { "type": "string" }
+            }
+          }
+        }
+      }
     },
     "certificates": {
       "type": "array",
@@ -122,13 +149,32 @@
     },
     "accounts": {
       "type": "array",
-      "description": "Fase 3 — nenhuma etapa da Fase 1 consome esta secao.",
-      "items": { "type": "object", "additionalProperties": true }
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "ensure": { "type": "string", "enum": ["Present", "Absent"] },
+          "password": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "secretRef": { "type": "string" }
+            }
+          },
+          "groups": { "type": "array", "items": { "type": "string" } }
+        }
+      }
     },
     "activation": {
       "type": "object",
-      "description": "Fase 3 — nenhuma etapa da Fase 1 consome esta secao.",
-      "additionalProperties": true
+      "additionalProperties": false,
+      "required": ["productKeySecretRef", "partialProductKey"],
+      "properties": {
+        "productKeySecretRef": { "type": "string" },
+        "partialProductKey": { "type": "string", "pattern": "^[A-Za-z0-9]{5}$" }
+      }
     },
     "sysprep": {
       "type": "object",
@@ -147,7 +193,8 @@
         "onError": { "type": "string", "enum": ["Stop", "Continue"] },
         "maxAttemptsPerStep": { "type": "integer", "minimum": 1 },
         "reboot": { "type": "string", "enum": ["Never", "WhenRequired", "Manual"] },
-        "cleanup": { "type": "string", "enum": ["RemoveSecretsAndConfig", "RemoveSecretsOnly", "RetainAll"] }
+        "cleanup": { "type": "string", "enum": ["RemoveSecretsAndConfig", "RemoveSecretsOnly", "RetainAll"] },
+        "allowDestructiveStorage": { "type": "boolean" }
       }
     }
   }

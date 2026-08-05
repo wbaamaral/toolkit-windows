@@ -213,10 +213,10 @@ Describe 'Test-ToolkitProvisioningSchema' {
 
     It 'Emite aviso para secoes de fases futuras' {
         InModuleScope WbaToolkit.Provisioning {
-            $config = @{ schemaVersion = 1; deploymentId = 'x'; accounts = @() } | ConvertTo-Json -Depth 10 | ConvertFrom-Json
+            $config = @{ schemaVersion = 1; deploymentId = 'x'; extensions = @() } | ConvertTo-Json -Depth 10 | ConvertFrom-Json
             $result = Test-ToolkitProvisioningSchema -Config $config
             $result.IsValid | Should -BeTrue
-            $result.Warnings -join ' ' | Should -Match "accounts"
+            $result.Warnings -join ' ' | Should -Match "extensions"
         }
     }
 }
@@ -225,7 +225,7 @@ Describe 'Resolve-ToolkitProvisioningPlan' {
     It 'Produz a ordem determinística das 5 etapas da Fase 1' {
         InModuleScope WbaToolkit.Provisioning {
             $plan = Resolve-ToolkitProvisioningPlan -StepRegistry (Get-ToolkitProvisioningStepRegistry)
-            ($plan | ForEach-Object Id) -join ',' | Should -Be 'preflight.system,identity.hostname,computer.locale,network.configure,certificates.install,remoteaccess.winrm,remoteaccess.rdp,firewall.rules,validation.final,cleanup.finalize'
+            ($plan | ForEach-Object Id) -join ',' | Should -Be 'preflight.system,storage.configure,identity.hostname,computer.locale,network.configure,certificates.install,accounts.local,remoteaccess.winrm,remoteaccess.rdp,firewall.rules,activation.apply,validation.final,cleanup.finalize'
         }
     }
 
@@ -531,7 +531,7 @@ Describe 'Invoke-ToolkitProvisioning - fluxo fim-a-fim mockado' {
 
             $result.GlobalState | Should -Be 'Completed'
             $result.Report | Should -Not -BeNullOrEmpty
-            $result.Report.Steps.Count | Should -Be 10
+            $result.Report.Steps.Count | Should -Be 13
             @($result.Report.Steps | Where-Object Status -eq 'Failed').Count | Should -Be 0
 
             $stateFile = Join-Path $Root 'Work/fluxo-completo-001/state.json'
