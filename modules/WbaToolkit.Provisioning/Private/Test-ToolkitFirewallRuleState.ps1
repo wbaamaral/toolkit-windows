@@ -54,10 +54,11 @@
         }
     }
 
-    $currentProfileNames = @(($rule | Get-NetFirewallProfile -ErrorAction SilentlyContinue).Name)
-    if (-not $currentProfileNames) {
-        $currentProfileNames = @([string]$rule.Profile -split ',\s*')
-    }
+    # O objeto de Get-NetFirewallRule ja expoe o perfil diretamente em .Profile (string
+    # com flags separadas por virgula, ex. 'Domain, Private'); nao ha necessidade de
+    # consultar Get-NetFirewallProfile (que reporta as PROPRIAS definicoes de perfil,
+    # nao a associacao de uma regra).
+    $currentProfileNames = @([string]$rule.Profile -split ',\s*' | Where-Object { $_ })
     $desiredProfileSorted = @($Profile | Sort-Object)
     $currentProfileSorted = @($currentProfileNames | Sort-Object)
 

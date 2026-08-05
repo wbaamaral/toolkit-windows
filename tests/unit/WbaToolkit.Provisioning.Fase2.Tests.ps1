@@ -414,8 +414,7 @@ Describe 'Etapa firewall.rules' {
     It 'Changed quando uma regra declarada nao existe, e Set so aplica as pendentes' {
         InModuleScope WbaToolkit.Provisioning {
             Mock Get-NetFirewallRule { } -ParameterFilter { $Name -eq 'App-Pendente' }
-            Mock Get-NetFirewallRule { [pscustomobject]@{ Name = 'App-Ok'; Enabled = $true } } -ParameterFilter { $Name -eq 'App-Ok' }
-            Mock Get-NetFirewallProfile { @([pscustomobject]@{ Name = 'Domain' }) }
+            Mock Get-NetFirewallRule { [pscustomobject]@{ Name = 'App-Ok'; Enabled = $true; Profile = 'Domain' } } -ParameterFilter { $Name -eq 'App-Ok' }
             Mock New-NetFirewallRule { } -Verifiable
 
             $config = @{
