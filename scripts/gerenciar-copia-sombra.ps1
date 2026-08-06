@@ -94,8 +94,40 @@ param(
     [switch]$Help
 )
 
+function Show-Help {
+    [CmdletBinding()]
+    param()
+    $scriptName = $MyInvocation.ScriptName | Split-Path -Leaf
+    Write-Host ""
+    Write-Host "Copias de Sombra (Volume Shadow Copy)" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Uso:  .\$scriptName [opcoes]"
+    Write-Host ""
+    Write-Host "  -Acao <valor>          Diagnostico (padrao), Criar, Remover, RemoverTodas,"
+    Write-Host "                         ConfigurarEspaco, HabilitarProtecao, DesabilitarProtecao."
+    Write-Host "  -VerificarProtecao     Exibe somente o status da protecao do sistema (VSS) e encerra."
+    Write-Host "  -ListarCopias          Lista as copias de sombra existentes e encerra."
+    Write-Host "  -Volume <letra>        Volume alvo (ex.: C:). Padrao: C:."
+    Write-Host "  -ShadowCopyId <id>     ID do shadow copy para Remover individual."
+    Write-Host "  -LimiteGB <n>          Limite de espaco em GB para ConfigurarEspaco."
+    Write-Host "  -Percentual <n>        Limite de espaco como percentual para ConfigurarEspaco."
+    Write-Host "  -DryRun                Simula a acao sem executar."
+    Write-Host "  -GerarHtml             Gera relatorio HTML adicional."
+    Write-Host "  -AbrirRelatorio        Abre o relatorio ao final."
+    Write-Host "  -DiretorioSaida '<dir>' Diretorio raiz de relatorios."
+    Write-Host "  -Help                  Esta ajuda."
+    Write-Host ""
+    Write-Host "Exemplos:"
+    Write-Host "  .\$scriptName"
+    Write-Host "  .\$scriptName -VerificarProtecao"
+    Write-Host "  .\$scriptName -ListarCopias"
+    Write-Host "  .\$scriptName -Acao Criar"
+    Write-Host "  .\$scriptName -Acao ConfigurarEspaco -LimiteGB 10"
+    Write-Host ""
+}
+
 if ($Help) {
-    Get-Help $MyInvocation.MyCommand.Path -Full
+    Show-Help
     exit 0
 }
 

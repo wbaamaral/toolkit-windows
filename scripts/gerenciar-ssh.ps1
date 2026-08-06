@@ -118,8 +118,40 @@ $ScriptPath = $PSCommandPath
 $ScriptDir  = $PSScriptRoot
 $ToolkitRoot = Split-Path -Parent $PSScriptRoot
 
+function Show-Help {
+    [CmdletBinding()]
+    param()
+    Write-Host ""
+    Write-Host "Gerenciamento do OpenSSH Server, Chaves e Configuracao SSH" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Uso:  .\$script:ScriptName [opcoes]"
+    Write-Host ""
+    Write-Host "  -Acao <valor>            Diagnostico (padrao), Instalar, Habilitar, Desabilitar,"
+    Write-Host "                           Parar, Iniciar, Configurar, GerarChaveHost,"
+    Write-Host "                           GerarChaveUsuario, AdicionarChave, RemoverChave,"
+    Write-Host "                           ListarChaves, TestarConexao."
+    Write-Host "  -Port <porta>            Porta TCP do SSH. Padrao: 22."
+    Write-Host "  -UserName '<usuario>'    Usuario para operacoes de chave. Padrao: usuario atual."
+    Write-Host "  -PublicKeyPath '<arq>'   Caminho da chave publica para authorized_keys."
+    Write-Host "  -KeyType <valor>         Tipo de chave: ed25519 (padrao), rsa, ecdsa."
+    Write-Host "  -ConfigKey <diretiva>    Diretiva do sshd_config a alterar (ex.: PasswordAuthentication)."
+    Write-Host "  -ConfigValue <valor>     Valor da diretiva (ex.: no, yes, 2222)."
+    Write-Host "  -DryRun                  Simula a acao sem executar."
+    Write-Host "  -GerarHtml               Gera relatorio HTML adicional."
+    Write-Host "  -DiretorioSaida '<dir>'  Diretorio raiz de relatorios."
+    Write-Host "  -Help                    Esta ajuda."
+    Write-Host ""
+    Write-Host "Exemplos:"
+    Write-Host "  .\$script:ScriptName"
+    Write-Host "  .\$script:ScriptName -Acao Instalar"
+    Write-Host "  .\$script:ScriptName -Acao Configurar -ConfigKey Port -ConfigValue 2222"
+    Write-Host "  .\$script:ScriptName -Acao GerarChaveHost -KeyType ed25519"
+    Write-Host "  .\$script:ScriptName -Acao AdicionarChave -PublicKeyPath 'C:\chaves\id_ed25519.pub' -UserName 'joao'"
+    Write-Host ""
+}
+
 if ($Help) {
-    Get-Help $MyInvocation.MyCommand.Path -Full
+    Show-Help
     exit 0
 }
 

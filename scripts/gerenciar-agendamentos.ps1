@@ -93,8 +93,39 @@ param(
     [switch]$Help
 )
 
+function Show-Help {
+    [CmdletBinding()]
+    param()
+    $scriptName = $MyInvocation.ScriptName | Split-Path -Leaf
+    Write-Host ""
+    Write-Host "Gerenciamento de Tarefas Agendadas (Task Scheduler)" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Uso:  .\$scriptName [opcoes]"
+    Write-Host ""
+    Write-Host "  -Acao <valor>          Diagnostico (padrao), Listar, Detalhar, Executar, Habilitar,"
+    Write-Host "                         Desabilitar, Remover, Exportar, Importar."
+    Write-Host "  -NomeTarefa '<nome>'   Nome da tarefa agendada."
+    Write-Host "  -Caminho '<pasta>'     Caminho da pasta de tarefas (para Listar)."
+    Write-Host "  -Estado <valor>        Filtrar por estado: Ready, Running, Disabled, All."
+    Write-Host "  -Busca '<termo>'       Termo de busca para Listar."
+    Write-Host "  -CaminhoSaida '<arq>'  Caminho do arquivo de saida para Exportar."
+    Write-Host "  -CaminhoXml '<arq>'    Caminho do arquivo XML para Importar."
+    Write-Host "  -DryRun                Simula a acao sem executar."
+    Write-Host "  -Silent                Suprime confirmacoes."
+    Write-Host "  -GerarHtml             Gera relatorio HTML adicional."
+    Write-Host "  -AbrirRelatorio        Abre o relatorio ao final."
+    Write-Host "  -DiretorioSaida '<dir>' Diretorio raiz de relatorios."
+    Write-Host "  -Help                  Esta ajuda."
+    Write-Host ""
+    Write-Host "Exemplos:"
+    Write-Host "  .\$scriptName"
+    Write-Host "  .\$scriptName -Acao Listar -Caminho '\Microsoft'"
+    Write-Host "  .\$scriptName -Acao Detalhar -NomeTarefa 'Backup'"
+    Write-Host ""
+}
+
 if ($Help) {
-    Get-Help $MyInvocation.MyCommand.Path -Full
+    Show-Help
     exit 0
 }
 

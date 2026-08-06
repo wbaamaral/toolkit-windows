@@ -16,7 +16,7 @@
     Nome do servico para operacoes especificas.
 
 .PARAMETER Filtro
-    Filtra servicos por nome (wildcard). Ex.: 'W32*', '*网络*'.
+    Filtra servicos por nome (wildcard). Ex.: 'W32*', '*Update*'.
 
 .PARAMETER FiltroStatus
     Filtra por status: Running, Stopped, Paused.
@@ -161,8 +161,47 @@ $ScriptPath = $PSCommandPath
 $ScriptDir  = $PSScriptRoot
 $ToolkitRoot = Split-Path -Parent $PSScriptRoot
 
+function Show-Help {
+    [CmdletBinding()]
+    param()
+    Write-Host ""
+    Write-Host "Gerenciamento de Servicos Windows" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Uso:  .\$script:ScriptName [opcoes]"
+    Write-Host ""
+    Write-Host "  -Acao <valor>              Diagnostico (padrao), Listar, Iniciar, Parar, Reiniciar,"
+    Write-Host "                             ConfigurarInicializacao, ConfigurarConta, Detalhar."
+    Write-Host "  -Servico '<nome>'          Nome do servico para operacoes especificas."
+    Write-Host "  -Filtro '<padrao>'         Filtra servicos por nome (wildcard). Ex.: 'W32*', '*Update*'."
+    Write-Host "  -FiltroStatus <valor>      Filtra por status: Running, Stopped, Paused."
+    Write-Host "  -FiltroInicio <valor>      Filtra por inicializacao: Automatic, Manual, Disabled."
+    Write-Host "  -OrdenarPor <valor>        Nome, DisplayName, Status, StartType. Padrao: Nome."
+    Write-Host "  -Decrescente               Inverte a ordem de classificacao."
+    Write-Host "  -Top <n>                   Limita o numero de resultados exibidos. Padrao: 50."
+    Write-Host "  -Interativo                Forca modo interativo em Listar (padrao em terminal interativo)."
+    Write-Host "  -StartupType <valor>       Automatic, Manual ou Disabled para ConfigurarInicializacao."
+    Write-Host "  -Conta '<conta>'           Conta de logon para ConfigurarConta (LocalSystem, etc.)."
+    Write-Host "  -Credencial                Credencial segura da conta (contas de dominio)."
+    Write-Host "  -DryRun                    Simula a acao sem executar."
+    Write-Host "  -GerarHtml                 Gera relatorio HTML adicional."
+    Write-Host "  -AbrirRelatorio            Abre o relatorio ao final (HTML se -GerarHtml, senao TXT)."
+    Write-Host "  -DiretorioSaida '<dir>'    Diretorio raiz de relatorios."
+    Write-Host "  -Help                      Esta ajuda."
+    Write-Host ""
+    Write-Host "Exemplos:"
+    Write-Host "  .\$script:ScriptName"
+    Write-Host "  .\$script:ScriptName -Acao Listar"
+    Write-Host "  .\$script:ScriptName -Acao Listar -Interativo"
+    Write-Host "  .\$script:ScriptName -Acao Listar -Filtro 'W32*' -FiltroStatus Running"
+    Write-Host "  .\$script:ScriptName -Acao Listar -OrdenarPor Status -Decrescente -Top 20"
+    Write-Host "  .\$script:ScriptName -Acao Parar -Servico Spooler"
+    Write-Host "  .\$script:ScriptName -Acao ConfigurarInicializacao -Servico WSearch -StartupType Disabled"
+    Write-Host "  .\$script:ScriptName -Acao Detalhar -Servico W32Time"
+    Write-Host ""
+}
+
 if ($Help) {
-    Get-Help $MyInvocation.MyCommand.Path -Full
+    Show-Help
     exit 0
 }
 

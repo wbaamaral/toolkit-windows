@@ -96,8 +96,42 @@ param(
     [switch]$Help
 )
 
+function Show-Help {
+    [CmdletBinding()]
+    param()
+    $scriptName = $MyInvocation.ScriptName | Split-Path -Leaf
+    Write-Host ""
+    Write-Host "Copias e Pontos de Restauracao do Sistema" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Uso:  .\$scriptName [opcoes]"
+    Write-Host ""
+    Write-Host "  -Acao <valor>              Diagnostico (padrao), CriarPontoRestauracao, ListarPontos,"
+    Write-Host "                             Restaurar, RemoverPontos, LimparAntigos, BackupUsuario,"
+    Write-Host "                             RestaurarUsuario, HistoricoBackup, LimparBackups, SaudeVss,"
+    Write-Host "                             Configurar."
+    Write-Host "  -Descricao '<texto>'      Descricao para CriarPontoRestauracao."
+    Write-Host "  -SequenceNumber <n>       Numero de sequencia do restore point para Restaurar."
+    Write-Host "  -ManterUltimos <n>        Manter apenas os N mais recentes (para RemoverPontos)."
+    Write-Host "  -Dias <n>                 Dias de retencao para LimparAntigos."
+    Write-Host "  -CaminhoDestino '<dir>'   Caminho de destino para BackupUsuario."
+    Write-Host "  -LimiteRestorePoints <n>  Config - maximo de restore points."
+    Write-Host "  -RetencaoDias <n>         Config - dias de retencao."
+    Write-Host "  -DryRun                   Simula a acao sem executar."
+    Write-Host "  -GerarHtml                Gera relatorio HTML adicional."
+    Write-Host "  -AbrirRelatorio           Abre o relatorio ao final."
+    Write-Host "  -DiretorioSaida '<dir>'   Diretorio raiz de relatorios."
+    Write-Host "  -Help                     Esta ajuda."
+    Write-Host ""
+    Write-Host "Exemplos:"
+    Write-Host "  .\$scriptName"
+    Write-Host "  .\$scriptName -Acao CriarPontoRestauracao -Descricao 'Pre-atualizacao'"
+    Write-Host "  .\$scriptName -Acao BackupUsuario"
+    Write-Host "  .\$scriptName -Acao LimparAntigos -Dias 30 -DryRun"
+    Write-Host ""
+}
+
 if ($Help) {
-    Get-Help $MyInvocation.MyCommand.Path -Full
+    Show-Help
     exit 0
 }
 

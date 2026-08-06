@@ -106,8 +106,39 @@ $ScriptPath = $PSCommandPath
 $ScriptDir  = $PSScriptRoot
 $ToolkitRoot = Split-Path -Parent $PSScriptRoot
 
+function Show-Help {
+    [CmdletBinding()]
+    param()
+    Write-Host ""
+    Write-Host "Diagnostico e Gerenciamento do Licenciamento do Windows" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Uso:  .\$script:ScriptName [opcoes]"
+    Write-Host ""
+    Write-Host "  -Acao <valor>              Diagnostico (padrao), Ativar, InstalarChave, Rearm,"
+    Write-Host "                             DefinirKMS, Restaurar."
+    Write-Host "  -ProductKey '<chave>'      Product key XXXXX-XXXXX-XXXXX-XXXXX-XXXXX (com -Acao InstalarChave)."
+    Write-Host "  -KmsServer '<host:porta>'  Servidor KMS (com -Acao DefinirKMS). Porta padrao: 1688."
+    Write-Host "  -BackupPath '<arq>'        Arquivo de backup para -Acao Restaurar."
+    Write-Host "  -GerarHtml                 Gera relatorio HTML adicional."
+    Write-Host "  -AbrirRelatorio            Abre o relatorio (HTML ou JSON) ao final."
+    Write-Host "  -DryRun                    Simula a acao sem executar."
+    Write-Host "  -DiretorioSaida '<dir>'    Diretorio raiz de relatorios."
+    Write-Host "  -Help                      Esta ajuda."
+    Write-Host ""
+    Write-Host "O script e SOMENTE LEITURA por padrao (modo Diagnostico); acoes de escrita exigem"
+    Write-Host "-Acao explicito."
+    Write-Host ""
+    Write-Host "Exemplos:"
+    Write-Host "  .\$script:ScriptName"
+    Write-Host "  .\$script:ScriptName -Acao Ativar"
+    Write-Host "  .\$script:ScriptName -Acao InstalarChave -ProductKey 'XXXXX-XXXXX-XXXXX-XXXXX-XXXXX'"
+    Write-Host "  .\$script:ScriptName -Acao DefinirKMS -KmsServer 'kms.empresa.com'"
+    Write-Host "  .\$script:ScriptName -Acao Rearm -DryRun"
+    Write-Host ""
+}
+
 if ($Help) {
-    Get-Help $MyInvocation.MyCommand.Path -Full
+    Show-Help
     exit 0
 }
 

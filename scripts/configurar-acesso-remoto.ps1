@@ -85,8 +85,39 @@ param(
     [switch]$Help
 )
 
+function Show-Help {
+    [CmdletBinding()]
+    param()
+    $scriptName = $MyInvocation.ScriptName | Split-Path -Leaf
+    Write-Host ""
+    Write-Host "Configuracao de Acesso Remoto (RDP)" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Uso:  .\$scriptName [opcoes]"
+    Write-Host ""
+    Write-Host "  -Acao <valor>              Diagnostico (padrao), Habilitar, Desabilitar, ConfigurarPorta,"
+    Write-Host "                             AdicionarUsuario, RemoverUsuario, AbrirFirewall, FecharFirewall."
+    Write-Host "  -Porta <n>                 Porta TCP do RDP. Padrao: 3389."
+    Write-Host "  -NivelAutenticacao <valor> Nivel de autenticacao NLA: Required (padrao) ou None."
+    Write-Host "  -Usuario '<nome>'          Usuario para adicionar/remover do grupo Remote Desktop Users."
+    Write-Host "  -DryRun                    Simula a acao sem executar."
+    Write-Host "  -GerarHtml                 Gera relatorio HTML adicional."
+    Write-Host "  -AbrirRelatorio            Abre o relatorio ao final."
+    Write-Host "  -DiretorioSaida '<dir>'    Diretorio raiz de relatorios."
+    Write-Host "  -Help                      Esta ajuda."
+    Write-Host ""
+    Write-Host "Windows Home nao suporta hospedagem RDP (requer Pro, Enterprise ou Education)."
+    Write-Host ""
+    Write-Host "Exemplos:"
+    Write-Host "  .\$scriptName"
+    Write-Host "  .\$scriptName -Acao Habilitar"
+    Write-Host "  .\$scriptName -Acao ConfigurarPorta -Porta 3390"
+    Write-Host "  .\$scriptName -Acao AdicionarUsuario -Usuario 'joao'"
+    Write-Host "  .\$scriptName -Acao AbrirFirewall -Porta 3390"
+    Write-Host ""
+}
+
 if ($Help) {
-    Get-Help $MyInvocation.MyCommand.Path -Full
+    Show-Help
     exit 0
 }
 
