@@ -167,3 +167,26 @@ Localização: `modules/WbaToolkit.Inventory/WbaToolkit.Inventory.psm1`
 | Função | Descrição |
 |---|---|
 | `Get-InventoryCoverageMap` | Retorna o mapa do escopo coberto e as lacunas do inventário |
+
+## WbaToolkit.Provisioning
+
+Provisionamento inicial desassistido do Windows no primeiro boot de uma máquina clonada: aplica configuração
+declarativa (rede, contas, firewall, RDP/WinRM, discos, ativação) via tarefa agendada executada como SYSTEM,
+com retomada por checkpoint após reboot (ADR 0033). Instalado uma única vez na imagem de referência, antes da
+captura — nunca invocado diretamente por um operador no dia a dia (ver `provisioning/README.md`).
+
+Localização: `modules/WbaToolkit.Provisioning/WbaToolkit.Provisioning.psm1`
+
+| Função | Descrição |
+|---|---|
+| `Install-ToolkitProvisioning` | Instala a árvore de execução e registra a tarefa agendada, desabilitada |
+| `Uninstall-ToolkitProvisioning` | Remove a tarefa agendada de provisionamento |
+| `Enable-ToolkitProvisioning` | Valida a configuração disponível e habilita a tarefa agendada de provisionamento |
+| `Disable-ToolkitProvisioning` | Desabilita a tarefa agendada de provisionamento sem removê-la |
+| `Test-ToolkitProvisioningConfig` | Valida um arquivo de configuração de provisionamento sem alterar o sistema |
+| `Invoke-ToolkitProvisioning` | Inicia (ou continua) o provisionamento a partir de uma configuração válida |
+| `Resume-ToolkitProvisioning` | Retoma um deployment existente a partir do checkpoint persistido |
+| `Reset-ToolkitProvisioningState` | Permite reexecutar um deployment já concluído ou travado em falha terminal |
+| `Get-ToolkitProvisioningState` | Lê o estado corrente de um deployment |
+| `Get-ToolkitProvisioningConfig` | Lê a cópia de trabalho da configuração de um deployment já iniciado |
+| `Get-ToolkitProvisioningResult` | Lê o relatório final sanitizado de um deployment concluído |

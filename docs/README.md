@@ -43,6 +43,7 @@ Comece pelo diagnóstico. Execute ações de limpeza, reparo ou atualização so
 | limpar arquivos e componentes | `limpar-windows.ps1` ou `limpar-winsxs.ps1` | médio |
 | atualizar o Windows | `atualizar-windows.ps1` | médio |
 | preparar uma imagem | `preparar-imagem-windows.ps1` | alto |
+| instalar provisionamento automático na imagem de referência | `Install-ToolkitProvisioning` | alto |
 
 ## Comandos mais usados
 
@@ -93,6 +94,20 @@ entrada ARP observada durante a coleta; isso não prova que o endereço esteja d
 ```
 
 Não execute preparação de imagem ou atualização em equipamento de produção sem backup e janela de manutenção.
+
+### Provisionamento inicial (imagem de referência)
+
+```powershell
+Import-Module .\modules\WbaToolkit.Provisioning\WbaToolkit.Provisioning.psd1 -Force
+Test-ToolkitProvisioningConfig -Path .\provisioning.json
+Install-ToolkitProvisioning
+```
+
+`Install-ToolkitProvisioning` só grava a árvore de execução e registra a tarefa agendada **desabilitada** — não
+inicia nenhum provisionamento. Use apenas na imagem de referência, antes da captura (Sysprep), nunca em uma
+máquina já em produção; a especialização de cada clone acontece de forma desassistida no primeiro boot, como
+`NT AUTHORITY\SYSTEM`. Detalhes em [`referencia/modulos.md`](referencia/modulos.md#wbatoolkitprovisioning) e em
+`provisioning/README.md` no repositório.
 
 ## Relatórios
 
@@ -158,6 +173,7 @@ Guarde o relatório e o log no chamado. Não envie chaves, senhas ou dados pesso
 | `WbaToolkit.Startup` | Inicialização, serviços e tarefas |
 | `WbaToolkit.Identity` | Identidade local e autologon |
 | `WbaToolkit.Licensing` | Diagnóstico do licenciamento Windows; não expõe comandos públicos |
+| `WbaToolkit.Provisioning` | Provisionamento inicial desassistido no primeiro boot (rede, contas, discos, ativação) |
 
 ## Gerar documentação HTML
 
