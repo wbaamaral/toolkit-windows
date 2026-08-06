@@ -97,6 +97,15 @@ Não execute preparação de imagem ou atualização em equipamento de produçã
 
 ### Provisionamento inicial (imagem de referência)
 
+Para montar o `provisioning.json` sem editar JSON manualmente, use o assistente interativo — ele só faz perguntas
+e escreve o arquivo, não altera o sistema:
+
+```powershell
+.\scripts\gerar-configuracao-provisionamento.ps1
+```
+
+Depois, na imagem de referência:
+
 ```powershell
 Import-Module .\modules\WbaToolkit.Provisioning\WbaToolkit.Provisioning.psd1 -Force
 Test-ToolkitProvisioningConfig -Path .\provisioning.json
@@ -154,6 +163,7 @@ Guarde o relatório e o log no chamado. Não envie chaves, senhas ou dados pesso
 | `gerenciar-inicializacao.ps1` | Diagnóstico de inicialização e serviços |
 | `configurar-idioma-regional.ps1` | Configuração de idioma, região e fuso |
 | `remover-perfis-inativos.ps1` | Identificação e remoção assistida de perfis |
+| `gerar-configuracao-provisionamento.ps1` | Assistente interativo que gera o `provisioning.json` do WbaToolkit.Provisioning |
 
 ## Referência técnica
 
