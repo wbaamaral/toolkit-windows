@@ -18,7 +18,7 @@ BeforeAll {
         'Format-Volume',
         'Get-LocalUser', 'Get-LocalGroup', 'Get-LocalGroupMember', 'New-LocalUser',
         'Add-LocalGroupMember', 'Remove-LocalUser',
-        'Get-CimInstance'
+        'Get-CimInstance', 'Invoke-CimMethod'
     )
     foreach ($cmd in $windowsOnlyCommands) {
         if (-not (Get-Command $cmd -ErrorAction SilentlyContinue)) {
@@ -166,6 +166,61 @@ Describe 'Etapa storage.configure' {
             { Set-ToolkitStorageDesiredState -Context ([pscustomobject]@{ Config = $config }) -Confirm:$false } | Should -Throw '*'
         }
     }
+
+    It 'Set nao toca em nenhum disco do conjunto quando um deles e ambiguo (atomicidade)' {
+        InModuleScope WbaToolkit.Provisioning {
+            # d1 (SN1) resolve limpo; d2 (DUP) tem dois candidatos duplicados -> ambiguo.
+            # d1 aparece primeiro na lista para provar que resolver-e-formatar d1 antes de
+            # falhar em d2 nao acontece mais (ver Set-ToolkitStorageDesiredState.ps1).
+            Mock Get-Disk { @(
+                [pscustomobject]@{ Number = 1; SerialNumber = 'SN1'; IsSystem = $false; IsBoot = $false; BusType = 'SCSI'; Location = 'L1'; Size = 28GB; UniqueId = 'B'; PartitionStyle = 'RAW' }
+                [pscustomobject]@{ Number = 2; SerialNumber = 'DUP'; IsSystem = $false; IsBoot = $false; BusType = 'SCSI'; Location = 'L2'; Size = 46GB; UniqueId = 'C' }
+                [pscustomobject]@{ Number = 3; SerialNumber = 'DUP'; IsSystem = $false; IsBoot = $false; BusType = 'SCSI'; Location = 'L3'; Size = 46GB; UniqueId = 'D' }
+            ) }
+            Mock Initialize-Disk { } -Verifiable
+            Mock New-Partition { [pscustomobject]@{ DriveLetter = 'D' } } -Verifiable
+            Mock Format-Volume { } -Verifiable
+
+            $config = @{
+                schemaVersion = 1; deploymentId = 'x'
+                storage       = @{ disks = @(
+                    @{ name = 'd1'; match = @{ serialNumber = 'SN1' }; driveLetter = 'D'; fileSystem = 'NTFS' }
+                    @{ name = 'd2'; match = @{ serialNumber = 'DUP' } }
+                ) }
+                policy        = @{ allowDestructiveStorage = $true }
+            } | ConvertTo-Json -Depth 10 | ConvertFrom-Json
+
+            { Set-ToolkitStorageDesiredState -Context ([pscustomobject]@{ Config = $config }) -Confirm:$false } | Should -Throw '*ambigua*'
+            Should -Invoke Initialize-Disk -Times 0
+            Should -Invoke New-Partition -Times 0
+            Should -Invoke Format-Volume -Times 0
+        }
+    }
+
+    It 'Set e idempotente: chamar duas vezes em disco ja conforme nao reformata' {
+        InModuleScope WbaToolkit.Provisioning {
+            Mock Get-Disk { @([pscustomobject]@{ Number = 1; SerialNumber = 'SN1'; IsSystem = $false; IsBoot = $false; BusType = 'SCSI'; Location = 'L1'; Size = 28GB; UniqueId = 'B'; PartitionStyle = 'GPT' }) }
+            Mock Get-Partition { [pscustomobject]@{ DriveLetter = 'D'; Type = 'Basic'; Size = 28GB } }
+            Mock Get-Volume { [pscustomobject]@{ FileSystem = 'NTFS'; FileSystemLabel = 'd1' } }
+            Mock Initialize-Disk { }
+            Mock New-Partition { }
+            Mock Format-Volume { }
+
+            $config = @{
+                schemaVersion = 1; deploymentId = 'x'
+                storage       = @{ disks = @(@{ name = 'd1'; match = @{ serialNumber = 'SN1' }; driveLetter = 'D'; fileSystem = 'NTFS' }) }
+                policy        = @{ allowDestructiveStorage = $true }
+            } | ConvertTo-Json -Depth 10 | ConvertFrom-Json
+            $context = [pscustomobject]@{ Config = $config }
+
+            Set-ToolkitStorageDesiredState -Context $context -Confirm:$false | Out-Null
+            Set-ToolkitStorageDesiredState -Context $context -Confirm:$false | Out-Null
+
+            Should -Invoke Initialize-Disk -Times 0
+            Should -Invoke New-Partition -Times 0
+            Should -Invoke Format-Volume -Times 0
+        }
+    }
 }
 
 Describe 'Resolve-ToolkitLocalGroup' {
@@ -248,6 +303,54 @@ Describe 'Etapa accounts.local' {
             { Set-ToolkitAccountsDesiredState -Context ([pscustomobject]@{ Config = $config; Paths = [pscustomobject]@{ Secrets = $TestDrive } }) -Confirm:$false } | Should -Throw '*built-in*'
         }
     }
+
+    It 'Set recusa criar conta quando o secretRef resolve para senha vazia' {
+        InModuleScope WbaToolkit.Provisioning {
+            Mock Get-LocalUser { $null }
+            Mock Resolve-ToolkitProvisioningSecret { New-Object System.Security.SecureString }
+            $config = @{ schemaVersion = 1; deploymentId = 'x'; accounts = @(@{ name = 'semref'; password = @{ secretRef = 'ref-vazio' } }) } |
+                ConvertTo-Json -Depth 10 | ConvertFrom-Json
+            { Set-ToolkitAccountsDesiredState -Context ([pscustomobject]@{ Config = $config; Paths = [pscustomobject]@{ Secrets = $TestDrive } }) -Confirm:$false } | Should -Throw '*vazia*'
+        }
+    }
+
+    It 'Set nunca expoe a senha resolvida no resultado (varredura de segredos)' {
+        InModuleScope WbaToolkit.Provisioning {
+            $script:getLocalUserCalls = 0
+            Mock Get-LocalUser {
+                $script:getLocalUserCalls++
+                if ($script:getLocalUserCalls -eq 1) { $null } else { [pscustomobject]@{ Name = 'novaconta'; SID = 'S-1-5-21-1-2-3-1002' } }
+            }
+            Mock Resolve-ToolkitProvisioningSecret { ConvertTo-SecureString 'SENHA-SECRETA-XYZ' -AsPlainText -Force }
+            Mock New-LocalUser { }
+
+            $config = @{ schemaVersion = 1; deploymentId = 'x'; accounts = @(@{ name = 'novaconta'; password = @{ secretRef = 'ref1' } }) } |
+                ConvertTo-Json -Depth 10 | ConvertFrom-Json
+            $result = Set-ToolkitAccountsDesiredState -Context ([pscustomobject]@{ Config = $config; Paths = [pscustomobject]@{ Secrets = $TestDrive } }) -Confirm:$false
+            ($result | ConvertTo-Json -Depth 10) | Should -Not -Match 'SENHA-SECRETA-XYZ'
+        }
+    }
+
+    It 'Set e idempotente: chamar duas vezes em conta ja conforme nao recria nem reaplica grupo' {
+        InModuleScope WbaToolkit.Provisioning {
+            $sid = 'S-1-5-21-1-2-3-1003'
+            Mock Get-LocalUser { [pscustomobject]@{ Name = 'jaexiste'; SID = $sid } }
+            Mock Get-LocalGroup { [pscustomobject]@{ Name = 'Administradores'; SID = 'S-1-5-32-544' } }
+            Mock Get-LocalGroupMember { @([pscustomobject]@{ SID = $sid }) }
+            Mock New-LocalUser { }
+            Mock Add-LocalGroupMember { }
+
+            $config = @{ schemaVersion = 1; deploymentId = 'x'; accounts = @(@{ name = 'jaexiste'; groups = @('Administrators') }) } |
+                ConvertTo-Json -Depth 10 | ConvertFrom-Json
+            $context = [pscustomobject]@{ Config = $config; Paths = [pscustomobject]@{ Secrets = $TestDrive } }
+
+            Set-ToolkitAccountsDesiredState -Context $context -Confirm:$false | Out-Null
+            Set-ToolkitAccountsDesiredState -Context $context -Confirm:$false | Out-Null
+
+            Should -Invoke New-LocalUser -Times 0
+            Should -Invoke Add-LocalGroupMember -Times 0
+        }
+    }
 }
 
 Describe 'Etapa activation.apply' {
@@ -289,6 +392,45 @@ Describe 'Etapa activation.apply' {
             $config = @{ schemaVersion = 1; deploymentId = 'x'; activation = @{ productKeySecretRef = 'ref1'; partialProductKey = 'ABCDE' } } |
                 ConvertTo-Json -Depth 10 | ConvertFrom-Json
             { Set-ToolkitActivationDesiredState -Context ([pscustomobject]@{ Config = $config; Paths = [pscustomobject]@{ Secrets = $TestDrive } }) -WhatIf } | Should -Not -Throw
+        }
+    }
+
+    It 'Set instala a chave via SoftwareLicensingService::InstallProductKey, nunca via processo externo' {
+        InModuleScope WbaToolkit.Provisioning {
+            Mock Resolve-ToolkitProvisioningSecret { ConvertTo-SecureString 'FAKE-KEY-12345' -AsPlainText -Force }
+            # Sem -ParameterFilter: o stub global de Invoke-CimMethod (necessario fora do
+            # Windows) nao declara parametros, entao Pester nao tem metadado para vincular
+            # -ClassName/-MethodName a variaveis no filtro — o filtro nunca bateria.
+            Mock Invoke-CimMethod { [pscustomobject]@{ ReturnValue = 0 } } -Verifiable
+
+            $config = @{ schemaVersion = 1; deploymentId = 'x'; activation = @{ productKeySecretRef = 'ref1'; partialProductKey = 'ABCDE' } } |
+                ConvertTo-Json -Depth 10 | ConvertFrom-Json
+            $result = Set-ToolkitActivationDesiredState -Context ([pscustomobject]@{ Config = $config; Paths = [pscustomobject]@{ Secrets = $TestDrive } }) -Confirm:$false
+            Should -InvokeVerifiable
+            $result.Evidence.ReturnValue | Should -Be 0
+        }
+    }
+
+    It 'Set lanca erro quando InstallProductKey retorna codigo diferente de zero' {
+        InModuleScope WbaToolkit.Provisioning {
+            Mock Resolve-ToolkitProvisioningSecret { ConvertTo-SecureString 'FAKE-KEY-12345' -AsPlainText -Force }
+            Mock Invoke-CimMethod { [pscustomobject]@{ ReturnValue = 1 } }
+
+            $config = @{ schemaVersion = 1; deploymentId = 'x'; activation = @{ productKeySecretRef = 'ref1'; partialProductKey = 'ABCDE' } } |
+                ConvertTo-Json -Depth 10 | ConvertFrom-Json
+            { Set-ToolkitActivationDesiredState -Context ([pscustomobject]@{ Config = $config; Paths = [pscustomobject]@{ Secrets = $TestDrive } }) -Confirm:$false } | Should -Throw '*1*'
+        }
+    }
+
+    It 'Set nunca expoe a chave resolvida no resultado (varredura de segredos)' {
+        InModuleScope WbaToolkit.Provisioning {
+            Mock Resolve-ToolkitProvisioningSecret { ConvertTo-SecureString 'CHAVE-SECRETA-99999' -AsPlainText -Force }
+            Mock Invoke-CimMethod { [pscustomobject]@{ ReturnValue = 0 } }
+
+            $config = @{ schemaVersion = 1; deploymentId = 'x'; activation = @{ productKeySecretRef = 'ref1'; partialProductKey = 'ABCDE' } } |
+                ConvertTo-Json -Depth 10 | ConvertFrom-Json
+            $result = Set-ToolkitActivationDesiredState -Context ([pscustomobject]@{ Config = $config; Paths = [pscustomobject]@{ Secrets = $TestDrive } }) -Confirm:$false
+            ($result | ConvertTo-Json -Depth 10) | Should -Not -Match 'CHAVE-SECRETA-99999'
         }
     }
 }

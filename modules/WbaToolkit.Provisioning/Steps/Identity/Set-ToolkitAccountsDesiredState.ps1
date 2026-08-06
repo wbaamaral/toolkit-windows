@@ -57,6 +57,9 @@
 
             $securePassword = Resolve-ToolkitProvisioningSecret -SecretRef ([string]$entry.password.secretRef) -Paths $Context.Paths
             try {
+                if (-not $securePassword -or $securePassword.Length -eq 0) {
+                    throw "Conta '$($entry.name)': secretRef '$($entry.password.secretRef)' resolveu para senha vazia; criacao recusada."
+                }
                 New-LocalUser -Name $entry.name -Password $securePassword -PasswordNeverExpires:$false -AccountNeverExpires | Out-Null
             }
             finally {
@@ -72,9 +75,12 @@
             if (-not $group) {
                 throw "Grupo '$groupName' declarado para a conta '$($entry.name)' nao existe nesta maquina."
             }
-            $isMember = [bool](Get-LocalGroupMember -Group $group -ErrorAction SilentlyContinue | Where-Object { $_.SID -eq $user.SID })
+            # -Name (string) em vez de -Group/-Member (LocalGroup/LocalPrincipal): parametro
+            # primitivo, mockavel sem exigir instancia real do tipo forte (padrao-powershell-
+            # practice-and-style.md #6.7).
+            $isMember = [bool](Get-LocalGroupMember -Name $group.Name -ErrorAction SilentlyContinue | Where-Object { $_.SID -eq $user.SID })
             if (-not $isMember -and $PSCmdlet.ShouldProcess("$($entry.name) -> $groupName", 'Adicionar a grupo local')) {
-                Add-LocalGroupMember -Group $group -Member $user
+                Add-LocalGroupMember -Name $group.Name -Member $user.Name
                 if ($applied -notcontains $entry.name) { $applied += $entry.name }
             }
         }

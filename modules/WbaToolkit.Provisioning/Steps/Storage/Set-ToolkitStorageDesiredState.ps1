@@ -11,6 +11,12 @@
         (defesa em profundidade; Resolve-ToolkitDisk ja recusa, mas a etapa nunca confia
         apenas na chamada anterior). Registra inventario antes e depois de cada disco.
 
+        Resolve e valida TODOS os discos declarados em 'storage.disks' antes de tocar em
+        qualquer um deles: se um disco no meio da lista falhar a identificacao ou resolver
+        para o disco de sistema, a etapa falha sem ter formatado nenhum disco do conjunto —
+        nao apenas o que falhou (SPEC-PROVISIONING-TESTS: "disco ambiguo ou disco do sistema
+        nunca e inicializado" aplica ao conjunto declarado, nao disco a disco).
+
     .PARAMETER Context
         Objeto com Config, Paths, DeploymentId e State.
 
@@ -31,9 +37,9 @@
         throw "storage.configure requer 'policy.allowDestructiveStorage: true' explicito no documento; execucao recusada."
     }
 
-    $applied = @()
-    $inventory = @()
-
+    # Resolve e valida o conjunto inteiro ANTES de aplicar qualquer mudanca: um disco
+    # ambiguo/de sistema no meio da lista nao deve deixar discos anteriores ja formatados.
+    $resolvedEntries = @()
     foreach ($entry in @($Context.Config.storage.disks)) {
         $resolved = Resolve-ToolkitDisk -Match $entry.match
         if (-not $resolved.Found) {
@@ -44,6 +50,16 @@
         if ($disk.IsSystem -or $disk.IsBoot) {
             throw "Disco '$($entry.name)' resolveu para o disco de sistema/boot; operacao recusada (defesa em profundidade)."
         }
+
+        $resolvedEntries += [pscustomobject]@{ Entry = $entry; Disk = $disk }
+    }
+
+    $applied = @()
+    $inventory = @()
+
+    foreach ($item in $resolvedEntries) {
+        $entry = $item.Entry
+        $disk = $item.Disk
 
         $before = Get-ToolkitDiskSnapshot -DiskNumber $disk.Number
 

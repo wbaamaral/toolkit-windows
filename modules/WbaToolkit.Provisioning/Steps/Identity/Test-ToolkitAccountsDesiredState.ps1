@@ -53,7 +53,8 @@
             $group = Resolve-ToolkitLocalGroup -Name $groupName
             $isMember = $false
             if ($group) {
-                $isMember = [bool](Get-LocalGroupMember -Group $group -ErrorAction SilentlyContinue | Where-Object { $_.SID -eq $user.SID })
+                # -Name (string) em vez de -Group (LocalGroup) — ver Set-ToolkitAccountsDesiredState.
+                $isMember = [bool](Get-LocalGroupMember -Name $group.Name -ErrorAction SilentlyContinue | Where-Object { $_.SID -eq $user.SID })
             }
             if (-not $isMember) {
                 $missingGroups += $groupName
