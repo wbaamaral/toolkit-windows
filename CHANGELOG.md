@@ -17,6 +17,12 @@
   em erros de severidade Error (ADR-0016)
 
 ### Corrigido
+- `Get-DropboxProblemFileFlags` (BCK-060): exceção ao detectar nome reservado em item com
+  caractere de caminho inválido — só reproduzia em Windows PowerShell real
+- `Get-DropboxFileReport` (BCK-060): auditoria abortava inteira por uma única subpasta com
+  caminho acima do limite do Windows (260 caracteres); agora converte em item `Indeterminado`
+- `auditar-arquivos-dropbox.ps1` (BCK-060): imprimia a lista completa no console mesmo com
+  `-Output` informado, travando sessões remotas em pastas com dezenas de milhares de itens
 - Coluna de erro do relatório HTML de conectividade podia ficar em branco por colisão de
   `$error` (variável automática do PowerShell) em `ConvertTo-ConnectivityReportHtml.ps1`
 - BOM UTF-8 ausente em `New-ToolkitElevationCommand.ps1` e em dois arquivos de teste com
