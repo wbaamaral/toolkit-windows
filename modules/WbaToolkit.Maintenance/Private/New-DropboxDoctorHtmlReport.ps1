@@ -73,6 +73,68 @@ function New-DropboxDoctorHtmlReport {
         "<tr><td>$categoria</td><td>$nome</td><td><span class=`"badge $cssClass`">$status</span></td><td>$detalhe</td><td>$recomendacao</td></tr>"
     }
 
+    # Processar arquivos problemáticos em uma tabela especial
+    $problemFilesContent = ''
+    $fileChecks = $Checks | Where-Object { $_.Nome -eq 'Nomes/caminhos problematicos' }
+    if ($fileChecks.Count -gt 0) {
+        $fileReport = $null
+        # Tentar encontrar o FileReport no contexto - isso pode ser necessário em uma chamada real ao script
+        $problemFilesContent = @"
+<div class="section">
+  <div class="section-hdr">Arquivos com Nomes/Caminhos Problemáticos</div>
+  <div class="section-body">
+    <p>Os seguintes itens foram identificados como problemáticos:</p>
+    <input type="text" id="fileSearch" onkeyup="filterFiles()" placeholder="Pesquisar nomes/caminhos..." style="width: 100%; padding: 8px; margin-bottom: 10px;">
+    <table class="data-table" id="problemFilesTable">
+      <thead><tr><th>Caminho</th><th>Problemas Identificados</th></tr></thead>
+      <tbody>
+"@
+
+        # Processando os arquivos problemáticos
+        foreach ($check in $fileChecks) {
+            $detalhe = [string]$check.Detalhe
+            # Extrair a lista de problemas do detalhe
+            if ($detalhe -match 'Exemplos: (.+)') {
+                $examplesList = $matches[1]
+                $examples = $examplesList -split ' \| '
+                foreach ($example in $examples) {
+                    if ($example -match '^(.+?) \((.+)\)$') {
+                        $filePath = $matches[1]
+                        $flags = $matches[2]
+                        $problemFilesContent += "<tr><td class='file-path'>$filePath</td><td>$flags</td></tr>"
+                    }
+                }
+            }
+        }
+
+        $problemFilesContent += @"
+      </tbody>
+    </table>
+    <script>
+      function filterFiles() {
+        var input, filter, table, tr, td, i, txtValue;
+        input = document.getElementById('fileSearch');
+        filter = input.value.toUpperCase();
+        table = document.getElementById('problemFilesTable');
+        tr = table.getElementsByTagName('tr');
+        for (i = 1; i < tr.length; i++) {
+          td = tr[i].getElementsByTagName('td')[0];
+          if (td) {
+            txtValue = td.textContent || td.innerText;
+            if (txtValue.toUpperCase().indexOf(filter) > -1) {
+              tr[i].style.display = '';
+            } else {
+              tr[i].style.display = 'none';
+            }
+          }
+        }
+      }
+    </script>
+  </div>
+</div>
+"@
+    }
+
     $encodedPath = [System.Net.WebUtility]::HtmlEncode($DropboxPath)
 
     $body = @"
@@ -93,6 +155,7 @@ $($rows -join "`r`n")
     </table>
   </div>
 </div>
+$problemFilesContent
 "@
 
     return New-ToolkitHtmlReport `
