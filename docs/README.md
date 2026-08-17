@@ -39,6 +39,7 @@ Comece pelo diagnóstico. Execute ações de limpeza, reparo ou atualização so
 | coletar dados do computador | `inventario-hardware-software.ps1` | baixo |
 | analisar espaço ocupado | `analisar-espaco-disco.ps1` | baixo |
 | verificar o cliente Active Directory | `diagnosticar-ad-cliente.ps1` | baixo |
+| investigar por que o Dropbox parou de sincronizar | `diagnosticar-dropbox.ps1` | baixo |
 | acertar relógio, fonte NTP e fuso | `sincronizar-relogio.ps1` | médio |
 | limpar arquivos e componentes | `limpar-windows.ps1` ou `limpar-winsxs.ps1` | médio |
 | atualizar o Windows | `atualizar-windows.ps1` | médio |
@@ -152,6 +153,8 @@ Guarde o relatório e o log no chamado. Não envie chaves, senhas ou dados pesso
 | `testar-conectividade-internet.ps1` | Testes de gateway, DNS, ICMP e TCP |
 | `detectar-ip-duplicado.ps1` | Varredura ARP para identificar IPs com múltiplos MACs |
 | `diagnosticar-ad-cliente.ps1` | Diagnóstico de domínio, DNS e canal seguro |
+| `diagnosticar-dropbox.ps1` | Diagnóstico de saúde do cliente Dropbox |
+| `auditar-arquivos-dropbox.ps1` | Auditoria e classificação de arquivos do Dropbox (nuvem/local) |
 | `sincronizar-relogio.ps1` | Diagnóstico e correção contextual de hora, fonte NTP e fuso |
 | `verificar-atualizacoes-hardware.ps1` | Verificação de BIOS e drivers |
 | `preparar-imagem-windows.ps1` | Preparação de imagem e Sysprep |
