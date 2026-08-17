@@ -171,7 +171,7 @@ try {
         foreach ($sub in @('Private', 'Public')) {
             $dir = Join-Path $modRoot $sub
             if (Test-Path -LiteralPath $dir) {
-                Get-ChildItem -LiteralPath $dir -Filter '*.ps1' -File | ForEach-Object { . $_.FullName }
+                Get-ChildItem -LiteralPath $dir -Filter '*.ps1' -File -ErrorAction Stop | ForEach-Object { . $_.FullName }
             }
         }
     }
