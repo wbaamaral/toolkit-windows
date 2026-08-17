@@ -3,6 +3,13 @@
 ## [Não lançado]
 
 ### Adicionado
+- `scripts/diagnosticar-dropbox.ps1` e `scripts/auditar-arquivos-dropbox.ps1`: doctor de
+  diagnóstico de saúde do cliente Dropbox (processo, instalação, espaço em disco,
+  arquivos-problema, frescor de pastas críticas, conectividade, proxy, exclusão no
+  Defender, hora do sistema) e auditoria de arquivos por atributos NTFS/Cloud Files
+  (`SomenteNuvem`/`LocalENuvem`/`Indeterminado`), com reparo guiado em Modo Assistido
+  (reiniciar processo, excluir do Defender). Cinco funções públicas novas em
+  `WbaToolkit.Maintenance` (BCK-060)
 - `Export-ToolkitDocumentation -Mode Help`: gera `manuais/portal.pt-BR.json` (catálogo de
   funções e scripts com ajuda curta/longa) e `manuais/categorias.pt-BR.json`; cria
   `manuais/glossario.pt-BR.md` se ainda não existir (ADR-0013)
