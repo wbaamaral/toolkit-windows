@@ -261,6 +261,7 @@ catch {
 
 Write-Info "Pasta analisada: $resolvedPath"
 Write-Info "Modo: $Modo"
+Write-Info 'Executando checagens... (a checagem de arquivos-problema pode levar varios minutos em pastas corporativas grandes)'
 Write-Host ''
 
 try {

@@ -302,6 +302,7 @@ catch {
 
 Write-Info "Pasta analisada: $resolvedPath"
 Write-Info "Relatorio selecionado: $Report"
+Write-Info 'Enumerando e classificando itens... (pastas corporativas grandes podem levar varios minutos)'
 Write-Host ''
 
 try {
@@ -329,8 +330,17 @@ if ($summary.Count -gt 0) {
 Write-Info "Itens no relatorio '$Report': $($filteredResults.Count)"
 Write-Host ''
 
-if ($filteredResults.Count -gt 0) {
-    $filteredResults | Format-Table Estado, TamanhoMB, Pinned, Offline, Caminho -AutoSize
+# Sem -Output, uma pasta Dropbox corporativa real pode ter dezenas de milhares
+# de itens -- imprimir tudo no console trava sessoes remotas/SSH. Mostra uma
+# amostra e pede -Output para o operador ver a lista completa.
+$consolePreviewLimit = 50
+if ([string]::IsNullOrWhiteSpace($Output) -and $filteredResults.Count -gt 0) {
+    $preview = @($filteredResults | Select-Object -First $consolePreviewLimit)
+    $preview | Format-Table Estado, TamanhoMB, Pinned, Offline, Caminho -AutoSize
+
+    if ($filteredResults.Count -gt $consolePreviewLimit) {
+        Write-Info "Mostrando os primeiros $consolePreviewLimit de $($filteredResults.Count) itens. Use -Output para gravar a lista completa em arquivo."
+    }
 }
 
 # === Saida ==================================================================
