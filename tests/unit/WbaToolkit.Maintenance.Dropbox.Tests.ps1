@@ -258,6 +258,31 @@ Describe 'Get-DropboxFileReport' {
         @($report[0].ProblemFlags).Count | Should -Be 0
     }
 
+    It 'Nao aborta a auditoria inteira quando uma subpasta nao pode ser enumerada' -Skip:($env:OS -eq 'Windows_NT') {
+        # Reproduz o achado real de validacao em Windows (subpasta com caminho >
+        # 260 caracteres faz Get-ChildItem -Recurse abortar a arvore inteira):
+        # aqui simulado via permissao (so em Linux/macOS, onde chmod existe) --
+        # uma unica subpasta inacessivel nao pode descartar o relatorio inteiro,
+        # deve virar um item 'Indeterminado' e o restante da auditoria continua.
+        $root = Join-Path $TestDrive 'dropbox-report-4'
+        $bloqueada = Join-Path $root 'subpasta-bloqueada'
+        New-Item -Path $bloqueada -ItemType Directory -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $root 'arquivo-normal.txt') -Value 'x' -Encoding UTF8
+        Set-Content -LiteralPath (Join-Path $bloqueada 'oculto.txt') -Value 'x' -Encoding UTF8
+        & chmod 000 $bloqueada
+
+        try {
+            { Get-DropboxFileReport -Path $root -Recurse $true } | Should -Not -Throw
+
+            $report = @(Get-DropboxFileReport -Path $root -Recurse $true)
+            $normal = $report | Where-Object Nome -eq 'arquivo-normal.txt'
+            $normal.Estado | Should -Be 'LocalENuvem'
+        }
+        finally {
+            & chmod 755 $bloqueada
+        }
+    }
+
     It 'Lanca erro claro quando o diretorio nao existe' {
         { Get-DropboxFileReport -Path (Join-Path $TestDrive 'nao-existe-mesmo') } | Should -Throw
     }

@@ -58,18 +58,41 @@ function Get-DropboxFileReport {
         $getChildItemParams.Recurse = $true
     }
 
-    try {
-        $items = @(Get-ChildItem @getChildItemParams)
-    }
-    catch {
-        throw "Falha ao enumerar '$Path': $($_.Exception.Message)"
-    }
+    # -ErrorAction SilentlyContinue (nao Stop): uma unica subpasta inacessivel ou
+    # com caminho acima do limite do Windows (260 caracteres) nao pode abortar a
+    # auditoria inteira -- e exatamente o tipo de causa raiz que esta funcao existe
+    # para diagnosticar, entao os erros de enumeracao viram itens 'Indeterminado'
+    # no relatorio em vez de uma excecao que descarta tudo.
+    $enumErrors = $null
+    $items = @(Get-ChildItem @getChildItemParams -ErrorAction SilentlyContinue -ErrorVariable enumErrors)
 
     if (-not $IncludeDirectories) {
         $items = @($items | Where-Object { -not $_.PSIsContainer })
     }
 
     $results = New-Object System.Collections.Generic.List[pscustomobject]
+
+    foreach ($enumError in @($enumErrors)) {
+        $failedPath = if ($enumError.TargetObject) { [string]$enumError.TargetObject } else { $enumError.Exception.Message }
+        $results.Add([pscustomobject]@{
+            Estado             = 'Indeterminado'
+            Tipo               = 'Diretorio'
+            Nome               = Split-Path -Leaf $failedPath
+            Caminho            = $failedPath
+            TamanhoBytes       = $null
+            TamanhoMB          = $null
+            Offline            = $null
+            Pinned             = $null
+            Unpinned           = $null
+            ReparsePoint       = $null
+            RecallOnDataAccess = $null
+            RecallOnOpen       = $null
+            Attributes         = $null
+            Motivo             = "Erro ao enumerar: $($enumError.Exception.Message)"
+            UltimaModificacao  = $null
+            ProblemFlags       = @('Caminho pode exceder o limite do Windows (260 caracteres) ou estar inacessivel para enumeracao.')
+        })
+    }
 
     foreach ($item in $items) {
         try {
