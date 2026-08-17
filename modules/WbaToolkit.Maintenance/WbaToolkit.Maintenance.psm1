@@ -33,4 +33,9 @@ Export-ModuleMember -Function @(
     'Get-ComponentStoreInfo'
     'Invoke-ComponentStoreCleanup'
     'Sync-ComputerTime'
+    'Get-DropboxInstallation'
+    'Get-DropboxFileReport'
+    'Invoke-DropboxHealthCheck'
+    'Restart-DropboxProcess'
+    'Add-DropboxDefenderExclusion'
 )

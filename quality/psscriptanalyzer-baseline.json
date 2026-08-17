@@ -127,6 +127,11 @@
                     },
                     {
                         "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/auditar-arquivos-dropbox.ps1",
+                        "Count":  13
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
                         "File":  "scripts/configurar-acesso-remoto.ps1",
                         "Count":  17
                     },
@@ -149,6 +154,11 @@
                         "Rule":  "PSAvoidUsingWriteHost",
                         "File":  "scripts/diagnosticar-disco-100.ps1",
                         "Count":  10
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/diagnosticar-dropbox.ps1",
+                        "Count":  16
                     },
                     {
                         "Rule":  "PSAvoidUsingWriteHost",
@@ -372,6 +382,11 @@
                     },
                     {
                         "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/auditar-arquivos-dropbox.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
                         "File":  "scripts/configurar-acesso-remoto.ps1",
                         "Count":  1
                     },
@@ -394,6 +409,11 @@
                         "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
                         "File":  "scripts/diagnosticar-disco-100.ps1",
                         "Count":  3
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/diagnosticar-dropbox.ps1",
+                        "Count":  2
                     },
                     {
                         "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
@@ -627,6 +647,31 @@
                     },
                     {
                         "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Maintenance/Private/Get-DropboxProblemFileFlags.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Maintenance/Private/Get-DropboxProcessInfo.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Maintenance/Private/Test-DropboxFrescorPastasCriticas.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Maintenance/Public/Get-DropboxFileReport.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "modules/WbaToolkit.Maintenance/Public/Get-DropboxInstallation.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
                         "File":  "modules/WbaToolkit.Maintenance/Public/Get-FilesystemErrorEvent.ps1",
                         "Count":  1
                     },
@@ -777,6 +822,11 @@
                     },
                     {
                         "Rule":  "PSUseOutputTypeCorrectly",
+                        "File":  "scripts/auditar-arquivos-dropbox.ps1",
+                        "Count":  4
+                    },
+                    {
+                        "Rule":  "PSUseOutputTypeCorrectly",
                         "File":  "scripts/diagnosticar-ad-cliente.ps1",
                         "Count":  5
                     },
@@ -843,6 +893,21 @@
                     {
                         "Rule":  "PSUseShouldProcessForStateChangingFunctions",
                         "File":  "modules/WbaToolkit.Identity/Private/Set-LsaSecret.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "modules/WbaToolkit.Maintenance/Private/New-DropboxCheckResult.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "modules/WbaToolkit.Maintenance/Private/New-DropboxDoctorHtmlReport.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseShouldProcessForStateChangingFunctions",
+                        "File":  "modules/WbaToolkit.Maintenance/Public/Restart-DropboxProcess.ps1",
                         "Count":  1
                     },
                     {
@@ -973,6 +1038,16 @@
                     {
                         "Rule":  "PSUseSingularNouns",
                         "File":  "modules/WbaToolkit.Core/Public/Export-ToolkitFunctionDocs.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseSingularNouns",
+                        "File":  "modules/WbaToolkit.Maintenance/Private/Get-DropboxProblemFileFlags.ps1",
+                        "Count":  1
+                    },
+                    {
+                        "Rule":  "PSUseSingularNouns",
+                        "File":  "modules/WbaToolkit.Maintenance/Private/Test-DropboxFrescorPastasCriticas.ps1",
                         "Count":  1
                     },
                     {

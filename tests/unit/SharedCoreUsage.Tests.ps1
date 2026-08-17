@@ -8,8 +8,8 @@ BeforeAll {
 }
 
 Describe 'Xtudo estrutura do toolkit' {
-    It 'Mantem vinte e seis scripts oficiais em scripts/' {
-        $script:scriptPaths.Count | Should -Be 26
+    It 'Mantem vinte e nove scripts oficiais em scripts/' {
+        $script:scriptPaths.Count | Should -Be 29
         foreach ($path in $script:scriptPaths) {
             Split-Path -Parent $path | Should -Be (Get-XtudoScriptsRoot)
         }

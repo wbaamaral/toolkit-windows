@@ -91,11 +91,27 @@ function New-XtudoCatalog {
             Quick    = $false
         }
         [pscustomobject]@{
+            Id       = 'diagnosticar-dropbox'
+            Label    = 'Diagnosticar Dropbox'
+            Category = 'Diagnóstico'
+            Path     = 'scripts/diagnosticar-dropbox.ps1'
+            Keywords = @('dropbox', 'sincronizacao', 'sync', 'nuvem', 'cloud')
+            Quick    = $false
+        }
+        [pscustomobject]@{
             Id       = 'inventario-hardware-software'
             Label    = 'Inventário hardware e software'
             Category = 'Inventário'
             Path     = 'scripts/inventario-hardware-software.ps1'
             Keywords = @('inventario', 'hardware', 'software', 'drivers', 'ativo', 'asset', 'monitores', 'bios')
+            Quick    = $false
+        }
+        [pscustomobject]@{
+            Id       = 'auditar-arquivos-dropbox'
+            Label    = 'Auditoria de arquivos do Dropbox'
+            Category = 'Inventário'
+            Path     = 'scripts/auditar-arquivos-dropbox.ps1'
+            Keywords = @('dropbox', 'auditoria', 'arquivos', 'nuvem', 'cloud', 'placeholder')
             Quick    = $false
         }
         [pscustomobject]@{
