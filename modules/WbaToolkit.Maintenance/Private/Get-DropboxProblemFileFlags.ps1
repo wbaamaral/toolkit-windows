@@ -46,7 +46,12 @@ function Get-DropboxProblemFileFlags {
         'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9',
         'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'
     )
-    $baseName = [System.IO.Path]::GetFileNameWithoutExtension($Name)
+    # Nao usar [System.IO.Path]::GetFileNameWithoutExtension aqui: no Windows ele
+    # lanca excecao quando $Name ja contem um caractere de caminho invalido (ex.:
+    # '|'), exatamente o cenario que esta funcao existe para detectar. Extracao
+    # manual nunca lanca.
+    $dotIndex = $Name.LastIndexOf('.')
+    $baseName = if ($dotIndex -gt 0) { $Name.Substring(0, $dotIndex) } else { $Name }
     if ($reservedNames -contains $baseName.ToUpperInvariant()) {
         $problems.Add("Nome reservado do Windows: '$Name'.")
     }

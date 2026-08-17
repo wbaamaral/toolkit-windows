@@ -201,10 +201,22 @@ Describe 'Get-DropboxInstallation' {
 
 Describe 'Get-DropboxFileReport' {
     It 'Classifica arquivos comuns como LocalENuvem e preenche ProblemFlags' {
+        # Nomes reservados do Windows (ex.: CON.txt) e caracteres invalidos nao
+        # podem ser materializados como arquivo real em NTFS (o proprio SO
+        # rejeita a criacao) — por isso a deteccao de flags e validada
+        # isoladamente em 'Get-DropboxProblemFileFlags' (strings puras, sem
+        # tocar o disco) e aqui validamos apenas que Get-DropboxFileReport
+        # encaminha o resultado de Get-DropboxProblemFileFlags para o campo
+        # ProblemFlags do relatorio.
         $root = Join-Path $TestDrive 'dropbox-report-1'
         New-Item -Path $root -ItemType Directory -Force | Out-Null
         Set-Content -LiteralPath (Join-Path $root 'arquivo-normal.txt') -Value 'conteudo' -Encoding UTF8
-        Set-Content -LiteralPath (Join-Path $root 'CON.txt') -Value 'conteudo' -Encoding UTF8
+        Set-Content -LiteralPath (Join-Path $root 'arquivo-problema.txt') -Value 'conteudo' -Encoding UTF8
+
+        Mock Get-DropboxProblemFileFlags {
+            if ($Name -eq 'arquivo-problema.txt') { return @('Problema sintetico de teste.') }
+            return @()
+        } -ModuleName WbaToolkit.Maintenance
 
         $report = @(Get-DropboxFileReport -Path $root -Recurse $false)
 
@@ -213,8 +225,8 @@ Describe 'Get-DropboxFileReport' {
         $normal.Estado | Should -Be 'LocalENuvem'
         @($normal.ProblemFlags).Count | Should -Be 0
 
-        $reserved = $report | Where-Object Nome -eq 'CON.txt'
-        @($reserved.ProblemFlags).Count | Should -BeGreaterThan 0
+        $comProblema = $report | Where-Object Nome -eq 'arquivo-problema.txt'
+        @($comProblema.ProblemFlags).Count | Should -BeGreaterThan 0
     }
 
     It 'Nao inclui diretorios por padrao, e inclui com -IncludeDirectories' {
