@@ -157,8 +157,15 @@ function Get-DiretoriosProblematicos {
             $nomeAncestral = Split-Path -Leaf $pai
             if ([string]::IsNullOrWhiteSpace($nomeAncestral)) { $atingiuRaiz = $true; break }
 
+            # Sem o "+1": queremos forcar Get-SafeFileName a de fato encurtar
+            # (nao apenas devolver o nome original inalterado) sempre que
+            # ainda falta reduzir "excesso" caracteres -- com "+1", um
+            # excesso de exatamente 1 char fazia desiredMax == comprimento
+            # atual, e o "ja cabe, devolve sem alteracao" do Get-SafeFileName
+            # disparava sem encurtar nada (achado real: ficava faltando
+            # exatamente 1 caractere e o nivel nunca era tocado).
             $excesso = $maxLen - $alvo
-            $desiredMax = [Math]::Max(11, ($nomeAncestral.Length - $excesso + 1))
+            $desiredMax = [Math]::Max(11, ($nomeAncestral.Length - $excesso))
             $nomeAncestralProposto = Get-SafeFileName -Name $nomeAncestral -MaxLength $desiredMax
 
             # Get-SafeFileName tem um piso de ~10 caracteres (1 char + hifen + hash
