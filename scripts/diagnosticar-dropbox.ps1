@@ -93,6 +93,8 @@ param(
     [Parameter(Mandatory = $false)]
     [string]$DiretorioSaida,
 
+    [switch]$ExportarJson,
+
     [switch]$Help
 )
 
@@ -299,16 +301,71 @@ $lines.Add("Pasta analisada : $resolvedPath") | Out-Null
 $lines.Add("Modo            : $Modo") | Out-Null
 $lines.Add("Status          : $($health.Label)") | Out-Null
 $lines.Add("Pontuacao       : $($health.Score)/100") | Out-Null
-$lines.Add("Falhas criticas : $($health.CriticalCount)") | Out-Null
-$lines.Add("Avisos          : $($health.WarningCount)") | Out-Null
-$lines.Add('') | Out-Null
-foreach ($check in $health.Checks) {
-    $lines.Add(("[{0}] {1} - {2} :: {3}" -f $check.Categoria, $check.Nome, $check.Status, $check.Detalhe)) | Out-Null
-    if (-not [string]::IsNullOrWhiteSpace($check.Recomendacao)) {
-        $lines.Add("  Recomendacao: $($check.Recomendacao)") | Out-Null
+    $lines.Add("Falhas criticas : $($health.CriticalCount)") | Out-Null
+    $lines.Add("Avisos          : $($health.WarningCount)") | Out-Null
+    $lines.Add('') | Out-Null
+    foreach ($check in $health.Checks) {
+        $lines.Add(("[{0}] {1} - {2} :: {3}" -f $check.Categoria, $check.Nome, $check.Status, $check.Detalhe)) | Out-Null
+        if (-not [string]::IsNullOrWhiteSpace($check.Recomendacao)) {
+            $lines.Add("  Recomendacao: $($check.Recomendacao)") | Out-Null
+        }
     }
-}
-Write-TextFileUtf8 -Path $textReportPath -Content (($lines -join "`r`n") + "`r`n")
+    Write-TextFileUtf8 -Path $textReportPath -Content (($lines -join "`r`n") + "`r`n")
+    
+    # === Exportacao em JSON ====================================================
+    if ($ExportarJson) {
+        $jsonReportPath = Join-Path $reportSession.Path 'diagnostico-dropbox.json'
+        
+        # Criar um objeto com metadados e os dados do diagnostico
+        $jsonObj = @{
+            metadata = @{
+                data_geracao = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                versao_toolkit = $ScriptVersion
+                caminho_analisado = $resolvedPath
+            }
+            estatisticas = @{
+                total_arquivos = $health.Checks | Where-Object { $_.Nome -eq 'Arquivos problematicos' } | ForEach-Object { 
+                    if ($_.Detalhe -match "Arquivos problematicos: (\d+)") {
+                        [int]$matches[1]
+                    }
+                }
+                total_problematicos = $health.Checks | Where-Object { $_.Nome -eq 'Arquivos problematicos' } | ForEach-Object { 
+                    if ($_.Detalhe -match "Arquivos problematicos: \d+ \((\d+) problema.*\)") {
+                        [int]$matches[1]
+                    }
+                }
+                percentual = $health.Checks | Where-Object { $_.Nome -eq 'Arquivos problematicos' } | ForEach-Object { 
+                    if ($_.Detalhe -match "Arquivos problematicos: \d+ \(\d+ problema.*\)\s*\(percentual (.+%)") {
+                        [double]$matches[1].Replace('%', '') / 100
+                    }
+                }
+            }
+            arquivos_problematicos = @()
+        }
+        
+        # Coletar dados detalhados de arquivos problematicos
+        $problematicFiles = @()
+        foreach ($check in $health.Checks) {
+            if ($check.Nome -eq 'Arquivos problematicos') {
+                # Verificar se há algum item com problemas em particular
+                $lines = $check.Detalhe -split "`r?`n"
+                foreach ($line in $lines) {
+                    if ($line -match "^(.*?):(\s*)(.*)$") {
+                        $filePath = $matches[1].Trim()
+                        $problem = $matches[3].Trim()
+                        $problematicFiles += [PSCustomObject]@{
+                            Caminho = $filePath
+                            Problema = $problem
+                        }
+                    }
+                }
+            }
+        }
+        
+        $jsonObj.arquivos_problematicos = $problematicFiles
+        
+        Write-TextFileUtf8 -Path $jsonReportPath -Content ($jsonObj | ConvertTo-Json -Depth 5)
+    }
 
 if ($GerarHtml) {
     $html = New-DropboxDoctorHtmlReport -DropboxPath $resolvedPath -Score $health.Score -Label $health.Label `
