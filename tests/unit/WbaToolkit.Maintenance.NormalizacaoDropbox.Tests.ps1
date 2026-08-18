@@ -146,6 +146,60 @@ Describe 'Get-SafeFileName' {
         }
     }
 
+    Context 'CamelCase e abreviacao (achado real BCK-061 -- Thermo BR Sul)' {
+        It 'Aplica CamelCase (sem espacos/acentos) em vez de ja partir para hash' {
+            # Arrange -- nome real de negocio, comum ter muitos espacos/hifens
+            $nome = 'RELATÓRIOS  - CONCLUÍDOS'
+
+            # Act
+            $resultado = Get-SafeFileName -Name $nome -MaxLength 20
+
+            # Assert -- reconhecivel, sem hash, sem espaco, sem acento
+            $resultado | Should -Be 'RelatoriosConcluidos'
+            $resultado.Length | Should -BeLessOrEqual 20
+            $resultado | Should -Not -Match '-[a-f0-9]{8}$'
+        }
+
+        It 'Abrevia cada palavra quando o CamelCase sozinho nao couber' {
+            # Arrange -- caso real: "1 - CONTRATO - MENSALIDADES - EMITIR ATE DIA 10"
+            $nome = '1 - CONTRATO - MENSALIDADES - EMITIR ATE DIA 10'
+
+            # Act
+            $resultado = Get-SafeFileName -Name $nome -MaxLength 34
+
+            # Assert -- CamelCase puro tem 35 chars (nao cabe em 34); abreviado cabe
+            $resultado | Should -Be '1ContMensEmitAteDia10'
+            $resultado.Length | Should -BeLessOrEqual 34
+            $resultado | Should -Not -Match '-[a-f0-9]{8}$'
+        }
+
+        It 'Nome de uma palavra so ininterrupta pula CamelCase/abreviacao e vai direto pro hash' {
+            # Arrange -- abreviar uma palavra unica destruiria a unicidade sem
+            # ganho real (mesmo caso da suite de Get-DiretoriosProblematicos)
+            $nome = 'x' * 300
+
+            # Act
+            $resultado = Get-SafeFileName -Name $nome -MaxLength 50
+
+            # Assert
+            $resultado.Length | Should -BeLessOrEqual 50
+            $resultado | Should -Match '-[a-f0-9]{8}$'
+        }
+
+        It 'Preserva a extensao do arquivo atraves do nivel CamelCase' {
+            # Arrange -- 30 chars com espacos (nao cabe em 28); CamelCase da
+            # 28 chars exatos (cabe), sem precisar abreviar
+            $nome = 'Relatorio Corretiva Renner.pdf'
+
+            # Act
+            $resultado = Get-SafeFileName -Name $nome -MaxLength 28
+
+            # Assert
+            $resultado | Should -Be 'RelatorioCorretivaRenner.pdf'
+            $resultado | Should -Match '\.pdf$'
+        }
+    }
+
     Context 'Nome vazio ou apenas espaços' {
         It 'Deve lançar erro para string vazia' {
             # Act & Assert
