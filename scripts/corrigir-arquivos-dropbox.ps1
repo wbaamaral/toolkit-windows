@@ -30,6 +30,10 @@
 .PARAMETER DiretorioSaida
     Diretorio onde serao salvos os logs e backups das operacoes.
 
+.PARAMETER GerarHtml
+    Gera relatorio HTML com o resultado da correcao. Gerado automaticamente
+    quando houver erros, mesmo sem este parametro.
+
 .PARAMETER Help
     Exibe esta ajuda e encerra.
 
@@ -82,6 +86,8 @@ param(
     [Parameter(Mandatory = $false)]
     [string]$DiretorioSaida,
 
+    [switch]$GerarHtml,
+
     [switch]$Help
 )
 
@@ -120,6 +126,7 @@ function Show-Help {
     Write-Host "  -Correcao '<tipo>'           Renomeacao (padrao) ou MudancaLocalizacao."
     Write-Host "  -Simular                     Executa dry-run para preview das alteracoes."
     Write-Host "  -DiretorioSaida '<dir>'      Diretorio de saida para logs e backups."
+    Write-Host "  -GerarHtml                   Gera relatorio HTML (gerado automaticamente se houver erros)."
     Write-Host "  -Help                        Esta ajuda."
     Write-Host ""
     Write-Host "Saida:"
@@ -463,6 +470,24 @@ if ($Simular) {
     Write-TextFileUtf8 -Path $simulacaoJsonPath -Content $simulacaoJson
 }
 
+# === Relatorio HTML ========================================================
+# Gerar HTML quando houver erros ou quando -GerarHtml for explicito
+$htmlPath = Join-Path $DiretorioSaida 'correcoes-dropbox.html'
+if ($erros -gt 0 -or $GerarHtml) {
+    $html = New-DropboxCorrecaoHtmlReport `
+        -DropboxPath $jsonData.metadata.caminho_analisado `
+        -Modo $Correcao `
+        -Simular:$Simular `
+        -TotalProcessados $resultados.Count `
+        -Corrigidos $corrigidos `
+        -Erros $erros `
+        -SemAlteracao $semAlteracao `
+        -Simulados $simulados `
+        -Resultados @($resultados)
+
+    Write-TextFileUtf8 -Path $htmlPath -Content $html
+}
+
 # === Resumo ===============================================================
 Write-Host ''
 Write-Title "Resumo da correcao"
@@ -498,6 +523,9 @@ if ($erros -gt 0) {
 if ($Simular) {
     "Simulacao JSON  : $simulacaoJsonPath" | Out-File -FilePath $summaryLog -Encoding UTF8 -Append
 }
+if ($erros -gt 0 -or $GerarHtml) {
+    "Relatorio HTML  : $htmlPath" | Out-File -FilePath $summaryLog -Encoding UTF8 -Append
+}
 
 Write-Host ''
 Write-Info "Alteracoes JSON : $alteracoesJsonPath"
@@ -507,6 +535,9 @@ if ($erros -gt 0) {
 }
 if ($Simular) {
     Write-Info "Simulacao JSON  : $simulacaoJsonPath"
+}
+if ($erros -gt 0 -or $GerarHtml) {
+    Write-Info "Relatorio HTML  : $htmlPath"
 }
 
 Write-Host ''
