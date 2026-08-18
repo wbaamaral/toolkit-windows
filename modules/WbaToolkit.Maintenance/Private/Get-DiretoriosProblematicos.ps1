@@ -161,6 +161,17 @@ function Get-DiretoriosProblematicos {
             $desiredMax = [Math]::Max(11, ($nomeAncestral.Length - $excesso + 1))
             $nomeAncestralProposto = Get-SafeFileName -Name $nomeAncestral -MaxLength $desiredMax
 
+            # Get-SafeFileName tem um piso de ~10 caracteres (1 char + hifen + hash
+            # de 8) quando aciona o truncamento -- para nomes ja curtos, isso pode
+            # gerar um nome IGUAL ou MAIOR que o original (nunca menor). Encurtar
+            # esse nivel nao ajudaria (so trocaria um nome legivel por ruido sem
+            # reduzir o comprimento), entao mantemos o nome original e continuamos
+            # subindo ate encontrar um ancestral cujo encurtamento realmente poupe
+            # caracteres.
+            if ($nomeAncestralProposto.Length -ge $nomeAncestral.Length) {
+                $nomeAncestralProposto = $nomeAncestral
+            }
+
             [void]$cadeiaProfundaParaRasa.Add([pscustomobject]@{ caminho_original = $pai; nome_proposto = $nomeAncestralProposto })
             $atualDir = $pai
         }

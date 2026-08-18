@@ -607,6 +607,43 @@ Describe 'Get-DiretoriosProblematicos' {
         }
     }
 
+    Context 'Ancestral curto demais para o hash de Get-SafeFileName encurtar' {
+        It 'Mantem o nome original do ancestral em vez de troca-lo por algo do mesmo tamanho ou maior' {
+            # Arrange: achado real na validacao contra o Dropbox de producao (BCK-061)
+            # -- um ancestral curto (aqui 8 chars) fica no meio da cadeia. O hash de
+            # Get-SafeFileName tem piso de ~10 chars (1 char + hifen + hash de 8),
+            # entao "encurtar" um nome de 8 chars produziria algo MAIOR (10 chars),
+            # nunca menor. O ancestral genuinamente longo (nivel1) e quem deve
+            # resolver o excesso.
+            $raiz = '/tmp/wba-pester-raiz-ancestral-curto'
+            $nivel1 = 'L' + ('x' * 300)
+            $nivel2Curto = 'M' * 8
+            $nivelProfundo = 'N' * 20
+            $dirProfundo = Join-Path $raiz (Join-Path $nivel1 (Join-Path $nivel2Curto $nivelProfundo))
+            $nomeArquivo = ('o' * 20) + '.pdf'
+            $caminhoArquivo = Join-Path $dirProfundo $nomeArquivo
+            $arquivos = @([pscustomobject]@{ Caminho = $caminhoArquivo; Nome = $nomeArquivo })
+
+            # Act
+            $resultado = Get-DiretoriosProblematicos -Arquivos $arquivos -CaminhoRaiz $raiz
+
+            # Assert
+            $resultado[0].resolvido | Should -BeTrue
+
+            $cadeiaOrdenada = @($resultado[0].cadeia | Sort-Object nivel)
+            $entradaNivel2 = $cadeiaOrdenada | Where-Object { (Split-Path -Leaf $_.caminho_original) -eq $nivel2Curto }
+            $entradaNivel2 | Should -Not -BeNullOrEmpty
+            $entradaNivel2.nome_proposto | Should -Be $nivel2Curto
+
+            $entradaNivel1 = $cadeiaOrdenada | Where-Object { (Split-Path -Leaf $_.caminho_original) -eq $nivel1 }
+            $entradaNivel1 | Should -Not -BeNullOrEmpty
+            $entradaNivel1.nome_proposto.Length | Should -BeLessThan $nivel1.Length
+
+            $comprimentoFinal = $resultado[0].caminho_proposto.Length + $resultado[0].maior_sufixo
+            $comprimentoFinal | Should -BeLessOrEqual 250
+        }
+    }
+
     Context 'Encadeamento atinge CaminhoRaiz sem conseguir caber' {
         It 'Reporta nao resolvido automaticamente em vez de falhar silenciosamente' {
             # Arrange: nome de diretorio gigantesco cujo unico ancestral disponivel
