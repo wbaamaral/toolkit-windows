@@ -81,16 +81,27 @@ Modos: Renomeação (ajusta nome do arquivo) ou Mudança de Localização (move 
 Implementa TUI interativa para seleção/edição de propostas, validação via HTML
 e aplicação controlada com relatório detalhado de → para.
 
+Quando encurtar apenas o diretório mais profundo não é suficiente para o caminho
+completo caber no limite (`-LimiteCaminho`, padrão 260, menos `-MargemSeguranca`,
+padrão 10), a proposta encadeia o encurtamento subindo para diretórios ancestrais
+até caber ou até atingir a raiz protegida do Dropbox. A aplicação (`-Modo Aplicar`)
+renomeia essa cadeia sempre do nível mais raso para o mais profundo.
+
 **Modos:**
-- `TUI` (padrão): interface interativa para selecionar/editar propostas
+- `TUI` (padrão): interface interativa para selecionar/editar propostas. O comando
+  `E <id>` permite editar manualmente o nome proposto do nível mais profundo,
+  validando caracteres inválidos e mostrando o comprimento resultante ao vivo.
 - `Proposta`: gera proposta sem interação (todos selecionados)
-- `Aplicar`: aplica proposta após validação
+- `Aplicar`: aplica proposta após validação (cadeia raso → profundo)
 - `Relatorio`: gera relatório HTML detalhado
 
 **Entrada:** JSON gerado pelo `diagnosticar-dropbox.ps1 -ExportarJson`.
 
 **Saída:** `correcoes-propostas.json`, `correcoes-propostas.html`,
-`correcoes-aplicadas.json`, `correcoes-aplicadas.html`.
+`correcoes-aplicadas.json`, `correcoes-aplicadas.html`. O HTML de proposta é
+editável no navegador (checkbox de seleção, nome proposto editável, comprimento
+recalculado ao digitar) com botão para baixar um JSON corrigido pronto para
+`-Modo Aplicar -PropostaFile`.
 
 **Exemplos:**
 

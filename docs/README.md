@@ -84,9 +84,18 @@ C:\WBA\Relatorios\diagnosticar-dropbox\<ddMMyyyy_HHmmss>\
 
 O script `normalizar-dropbox.ps1` implementa um fluxo iterativo completo:
 1. **TUI** (padrão): interface interativa para selecionar/editar propostas de correção
+   (comando `E <id>` edita manualmente o nome proposto, com validação e comprimento
+   resultante ao vivo)
 2. **Proposta**: gera proposta sem interação (todos selecionados)
-3. **Aplicar**: aplica proposta após validação
+3. **Aplicar**: aplica proposta após validação, renomeando a cadeia de diretórios
+   (quando encurtar só o nível mais profundo não basta) do mais raso para o mais
+   profundo
 4. **Relatorio**: gera relatório HTML detalhado de → para
+
+O relatório HTML de proposta (`correcoes-propostas.html`) também é editável no
+navegador: marque/desmarque linhas, edite o nome proposto (o comprimento do caminho
+resultante é recalculado ao digitar) e baixe um JSON corrigido para reaplicar com
+`-Modo Aplicar -PropostaFile`.
 
 O script `corrigir-arquivos-dropbox.ps1` é a versão simplificada que consome o JSON
 do diagnóstico e corrige em massa os arquivos problemáticos (caminho > 260 caracteres,
