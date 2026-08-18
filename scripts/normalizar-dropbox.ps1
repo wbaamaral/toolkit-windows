@@ -522,7 +522,7 @@ if ($Modo -in @('TUI', 'Proposta')) {
     $totalArquivos = @($diretorios | ForEach-Object { $_.total_arquivos } | Measure-Object -Sum).Sum
     $naoResolvidos = @($diretorios | Where-Object { $_.atingiu_raiz -and -not $_.resolvido }).Count
 
-    Write-Ok "Diretorios analisados: $($diretorios.Count)"
+    Write-Ok "Diretorios analisados: $(@($diretorios).Count)"
     Write-Info "Diretorios com problemas: $dirsComProblema"
     Write-Info "Total de arquivos afetados: $totalArquivos"
     if ($naoResolvidos -gt 0) {
