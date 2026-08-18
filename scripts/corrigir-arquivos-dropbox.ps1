@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Corrige em massa arquivos problematicos do Dropbox identificados pelo toolkit.
@@ -192,13 +192,13 @@ function Backup-Item {
         [string]$Path,
         [string]$BackupDir
     )
-    
-    if (-not (Test-Path -LiteralPath $Path)) { return }
-    
+
+    if (-not (Test-Path -LiteralPath $Path)) { return $false }
+
     try {
         $fileName = Split-Path -Leaf $Path
         $backupPath = Join-Path $BackupDir "$fileName.backup"
-        
+
         # Criar backup
         Copy-Item -LiteralPath $Path -Destination $backupPath -Force
         Write-Debug "Criado backup: $backupPath"
@@ -215,26 +215,29 @@ function Get-ValidFileName {
         [string]$Name,
         [int]$MaxLenght = 259
     )
-    
+
     # Remove caracteres invalidos
     $validChars = $Name -replace '[<>:"/\\|?*]', ''
-    
+
     # Se o nome for vazio ou apenas espacos, dar um nome padrao
     if ([string]::IsNullOrWhiteSpace($validChars)) {
         $validChars = "arquivo_sem_nome"
     }
-    
+
     # Remover espacos no final
     $validChars = $validChars.TrimEnd()
-    
-    # Manter os primeiros 250 caracteres e adicionar hash se necessario
+
+    # Manter os primeiros (MaxLenght - 10) caracteres e anexar hash curto do nome.
+    # Get-FileHash exige caminho de arquivo existente; aqui o hash e calculado
+    # diretamente sobre a string do nome via SHA256 (sem depender de arquivo).
     if ($validChars.Length -gt ($MaxLenght - 10)) {
-        $hash = Get-FileHash -Path ([System.IO.Path]::GetFileName($Name)) -Algorithm SHA256 | Select-Object -ExpandProperty Hash
-        $hashShort = $hash.Substring(0, 8)
+        $sha = [System.Security.Cryptography.SHA256]::Create()
+        $hashBytes = $sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($Name))
+        $hashShort = ([System.BitConverter]::ToString($hashBytes) -replace '-', '').Substring(0, 8)
         $base = $validChars.Substring(0, ($MaxLenght - 10))
         $validChars = "$base-$hashShort"
     }
-    
+
     return $validChars
 }
 
@@ -243,42 +246,64 @@ function Corrigir-Rename {
         [pscustomobject]$Item,
         [string]$BackupDir
     )
-    
+
     Write-Debug "Corrigindo arquivo por renomeacao: $($Item.Caminho)"
-    
+
+    $resultado = [pscustomobject]@{
+        Acao     = 'Renomeacao'
+        Status   = 'Erro'
+        Caminho  = [string]$Item.Caminho
+        NovoPath = $null
+        Mensagem = ''
+        Erro     = ''
+    }
+
     try {
         # Obter o diretório do item
         $itemDir = Split-Path -Parent $Item.Caminho
         $originalName = $Item.Nome
-        
+
         # Gerar um nome valido
         $newName = Get-ValidFileName -Name $originalName
-        
+
         # Se o nome for o mesmo, não precisa corrigir
         if ($originalName -eq $newName) {
-            Write-Info "Nome ja valido: $originalName"
-            return $true
+            $resultado.Status   = 'SemAlteracao'
+            $resultado.NovoPath = $Item.Caminho
+            $resultado.Mensagem = "Nome ja valido, nenhuma alteracao necessaria: $originalName"
+            Write-Info $resultado.Mensagem
+            return $resultado
         }
-        
+
         $newPath = Join-Path $itemDir $newName
-        
+
         if ($Simular) {
-            Write-Warn "[SIMULACAO] Renomeando para: $newPath"
+            $resultado.Status   = 'Simulado'
+            $resultado.NovoPath = $newPath
+            $resultado.Mensagem = "[SIMULACAO] Seria renomeado para: $newPath"
+            Write-Warn $resultado.Mensagem
         }
         else {
-            # Criar backup
-            Backup-Item -Path $Item.Caminho -BackupDir $BackupDir
-            
+            # Criar backup (seguranca: sem backup confiavel, abortar antes de alterar)
+            if (-not (Backup-Item -Path $Item.Caminho -BackupDir $BackupDir)) {
+                throw "Falha ao criar backup de '$($Item.Caminho)'; operacao abortada por seguranca."
+            }
+
             # Realizar o renomeio
             Rename-Item -LiteralPath $Item.Caminho -NewName $newName
-            Write-Ok "Renomeado para: $newName"
+            $resultado.Status   = 'Corrigido'
+            $resultado.NovoPath = $newPath
+            $resultado.Mensagem = "Renomeado para: $newPath"
+            Write-Ok $resultado.Mensagem
         }
-        
-        return $true
+
+        return $resultado
     }
     catch {
+        $resultado.Status = 'Erro'
+        $resultado.Erro   = $_.Exception.Message
         Write-Fail "Falha ao corrigir arquivo '$($Item.Nome)': $($_.Exception.Message)"
-        return $false
+        return $resultado
     }
 }
 
@@ -288,37 +313,57 @@ function Corrigir-MudancaLocalizacao {
         [string]$BackupDir,
         [string]$NewLocationDir
     )
-    
+
     Write-Debug "Corrigindo arquivo por mudanca de localizacao: $($Item.Caminho)"
-    
+
+    $resultado = [pscustomobject]@{
+        Acao     = 'MudancaLocalizacao'
+        Status   = 'Erro'
+        Caminho  = [string]$Item.Caminho
+        NovoPath = $null
+        Mensagem = ''
+        Erro     = ''
+    }
+
     try {
+        $destPath = Join-Path $NewLocationDir $Item.Nome
+
         if ($Simular) {
-            Write-Warn "[SIMULACAO] Movendo para: $NewLocationDir"
+            $resultado.Status   = 'Simulado'
+            $resultado.NovoPath = $destPath
+            $resultado.Mensagem = "[SIMULACAO] Seria movido para: $destPath"
+            Write-Warn $resultado.Mensagem
         }
         else {
-            # Criar backup
-            Backup-Item -Path $Item.Caminho -BackupDir $BackupDir
-            
+            # Criar backup (seguranca: sem backup confiavel, abortar antes de mover)
+            if (-not (Backup-Item -Path $Item.Caminho -BackupDir $BackupDir)) {
+                throw "Falha ao criar backup de '$($Item.Caminho)'; operacao abortada por seguranca."
+            }
+
             # Criar diretorio de destino se nao existir
             if (-not (Test-Path -LiteralPath $NewLocationDir -PathType Container)) {
                 New-Item -ItemType Directory -Path $NewLocationDir -Force | Out-Null
             }
-            
+
             # Copiar o arquivo para o novo local
-            $destPath = Join-Path $NewLocationDir $Item.Nome
             Copy-Item -LiteralPath $Item.Caminho -Destination $destPath -Force
-            
+
             # Remover o arquivo original
             Remove-Item -LiteralPath $Item.Caminho -Force
-            
-            Write-Ok "Movido para novo local: $destPath"
+
+            $resultado.Status   = 'Corrigido'
+            $resultado.NovoPath = $destPath
+            $resultado.Mensagem = "Movido para novo local: $destPath"
+            Write-Ok $resultado.Mensagem
         }
-        
-        return $true
+
+        return $resultado
     }
     catch {
+        $resultado.Status = 'Erro'
+        $resultado.Erro   = $_.Exception.Message
         Write-Fail "Falha ao mover arquivo '$($Item.Nome)': $($_.Exception.Message)"
-        return $false
+        return $resultado
     }
 }
 
@@ -331,38 +376,104 @@ if (-not (Test-Path -LiteralPath $backupDir -PathType Container)) {
     New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
 }
 
-$corrigidos = 0
-$erros = 0
+$resultados = New-Object System.Collections.Generic.List[pscustomobject]
+
+$newLocation = Join-Path $DiretorioSaida 'arquivos_corrigidos'
 
 foreach ($arquivo in $jsonData.arquivos_problematicos) {
-    Write-Host '' 
-    Write-Info "Processando: $($arquivo.Nome)"
-    
+    Write-Host ''
+
+    # Normaliza o item: tolera JSONs antigos sem o campo Nome, derivando-o do Caminho.
+    $nome = [string]$arquivo.Nome
+    if ([string]::IsNullOrWhiteSpace($nome)) {
+        $nome = Split-Path -Leaf ([string]$arquivo.Caminho)
+    }
+    $item = [pscustomobject]@{
+        Caminho = [string]$arquivo.Caminho
+        Nome    = $nome
+    }
+
+    Write-Info "Processando: $nome"
+
     if ($Correcao -eq 'Renomeacao') {
-        # Correção por renomeação
-        if (Corrigir-Rename -Item $arquivo -BackupDir $backupDir) {
-            $corrigidos++
-        }
-        else {
-            $erros++
-        }
+        $resultado = Corrigir-Rename -Item $item -BackupDir $backupDir
     }
     elseif ($Correcao -eq 'MudancaLocalizacao') {
-        # Correção por mudança de localização
-        $newLocation = Join-Path $DiretorioSaida 'arquivos_corrigidos'
-        if (Corrigir-MudancaLocalizacao -Item $arquivo -BackupDir $backupDir -NewLocationDir $newLocation) {
-            $corrigidos++
-        }
-        else {
-            $erros++
-        }
+        $resultado = Corrigir-MudancaLocalizacao -Item $item -BackupDir $backupDir -NewLocationDir $newLocation
     }
+    else {
+        $resultado = $null
+    }
+
+    if ($null -ne $resultado) {
+        [void]$resultados.Add($resultado)
+    }
+}
+
+$corrigidos   = @($resultados | Where-Object { $_.Status -eq 'Corrigido' }).Count
+$simulados    = @($resultados | Where-Object { $_.Status -eq 'Simulado' }).Count
+$semAlteracao = @($resultados | Where-Object { $_.Status -eq 'SemAlteracao' }).Count
+$erros        = @($resultados | Where-Object { $_.Status -eq 'Erro' }).Count
+
+# === Saida em JSON (alteracoes, rollback e erros reprocessaveis) ==========
+$alteracoesJsonPath = Join-Path $DiretorioSaida 'alteracoes.json'
+$rollbackJsonPath = Join-Path $DiretorioSaida 'rollback.json'
+$errosJsonPath = Join-Path $DiretorioSaida 'erros.json'
+$simulacaoJsonPath = Join-Path $DiretorioSaida 'simulacao.json'
+
+$alteracoesArray = @($resultados | Where-Object { $_.Status -eq 'Corrigido' } | ForEach-Object {
+    [pscustomobject]@{
+        Acao     = $_.Acao
+        Caminho  = $_.Caminho
+        NovoPath = $_.NovoPath
+        Mensagem = $_.Mensagem
+    }
+})
+$rollbackArray = @($resultados | Where-Object { $_.Status -eq 'Corrigido' } | ForEach-Object {
+    [pscustomobject]@{
+        Acao            = $_.Acao
+        CaminhoOriginal = $_.Caminho
+        CaminhoNovo     = $_.NovoPath
+    }
+})
+$errosArray = @($resultados | Where-Object { $_.Status -eq 'Erro' } | ForEach-Object {
+    [pscustomobject]@{
+        Acao    = $_.Acao
+        Caminho = $_.Caminho
+        Erro    = $_.Erro
+    }
+})
+$simulacaoArray = @($resultados | Where-Object { $_.Status -eq 'Simulado' } | ForEach-Object {
+    [pscustomobject]@{
+        Acao     = $_.Acao
+        Caminho  = $_.Caminho
+        NovoPath = $_.NovoPath
+        Mensagem = $_.Mensagem
+    }
+})
+
+$alteracoesJson = ConvertTo-Json -InputObject $alteracoesArray -Depth 5
+$rollbackJson = ConvertTo-Json -InputObject $rollbackArray -Depth 5
+$errosJson = ConvertTo-Json -InputObject $errosArray -Depth 5
+$simulacaoJson = ConvertTo-Json -InputObject $simulacaoArray -Depth 5
+
+Write-TextFileUtf8 -Path $alteracoesJsonPath -Content $alteracoesJson
+Write-TextFileUtf8 -Path $rollbackJsonPath -Content $rollbackJson
+Write-TextFileUtf8 -Path $errosJsonPath -Content $errosJson
+if ($Simular) {
+    Write-TextFileUtf8 -Path $simulacaoJsonPath -Content $simulacaoJson
 }
 
 # === Resumo ===============================================================
 Write-Host ''
 Write-Title "Resumo da correcao"
 Write-Ok "Arquivos corrigidos: $corrigidos"
+if ($simulados -gt 0) {
+    Write-Warn "Alteracoes simuladas (dry-run): $simulados"
+}
+if ($semAlteracao -gt 0) {
+    Write-Info "Itens sem alteracao necessaria: $semAlteracao"
+}
 if ($erros -gt 0) {
     Write-Fail "Erros encontrados: $erros"
 }
@@ -371,10 +482,33 @@ Write-Info "Log gerado em: $logFile"
 # Salvar resumo
 "Processo concluido em $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" | Out-File -FilePath $summaryLog -Encoding UTF8
 "Arquivos corrigidos: $corrigidos" | Out-File -FilePath $summaryLog -Encoding UTF8 -Append
+if ($simulados -gt 0) {
+    "Alteracoes simuladas (dry-run): $simulados" | Out-File -FilePath $summaryLog -Encoding UTF8 -Append
+}
+if ($semAlteracao -gt 0) {
+    "Itens sem alteracao necessaria: $semAlteracao" | Out-File -FilePath $summaryLog -Encoding UTF8 -Append
+}
 if ($erros -gt 0) {
     "Erros encontrados: $erros" | Out-File -FilePath $summaryLog -Encoding UTF8 -Append
 }
 "Logs e backups salvos em: $DiretorioSaida" | Out-File -FilePath $summaryLog -Encoding UTF8 -Append
+'' | Out-File -FilePath $summaryLog -Encoding UTF8 -Append
+"Alteracoes JSON : $alteracoesJsonPath" | Out-File -FilePath $summaryLog -Encoding UTF8 -Append
+"Rollback JSON   : $rollbackJsonPath" | Out-File -FilePath $summaryLog -Encoding UTF8 -Append
+"Erros JSON      : $errosJsonPath" | Out-File -FilePath $summaryLog -Encoding UTF8 -Append
+if ($Simular) {
+    "Simulacao JSON  : $simulacaoJsonPath" | Out-File -FilePath $summaryLog -Encoding UTF8 -Append
+}
+
+Write-Host ''
+Write-Info "Alteracoes JSON : $alteracoesJsonPath"
+Write-Info "Rollback JSON   : $rollbackJsonPath"
+if ($erros -gt 0) {
+    Write-Warn "Erros JSON      : $errosJsonPath"
+}
+if ($Simular) {
+    Write-Info "Simulacao JSON  : $simulacaoJsonPath"
+}
 
 Write-Host ''
 Write-Info "Proximo passo: verifique o log para confirmar as correcoes."

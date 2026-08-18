@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Diagnostica a saude do cliente Dropbox e investiga por que a sincronizacao pode parar.
@@ -48,6 +48,10 @@
 .PARAMETER DiretorioSaida
     Raiz de relatorios. Quando omitido, usa a raiz persistente do toolkit.
 
+.PARAMETER ExportarJson
+    Gera tambem o relatorio em JSON (diagnostico-dropbox.json) com a lista
+    estruturada dos arquivos problematicos (Caminho, Nome, Tipo, Problemas).
+
 .PARAMETER Help
     Exibe esta ajuda e encerra.
 
@@ -59,6 +63,9 @@
 
 .EXAMPLE
     .\diagnosticar-dropbox.ps1 -Modo Assistido -ReiniciarProcesso -ExcluirDoDefender -CriticalFolders 'Financeiro','Contratos'
+
+.EXAMPLE
+    .\diagnosticar-dropbox.ps1 -ExportarJson
 
 .NOTES
     Projeto: wba-windows-toolkit
@@ -139,12 +146,14 @@ function Show-Help {
     Write-Host "  -GerarHtml               Gera tambem o relatorio em HTML."
     Write-Host "  -AbrirRelatorio          Abre o relatorio HTML ao final."
     Write-Host "  -DiretorioSaida '<dir>'  Raiz de relatorios. Padrao: raiz persistente do toolkit."
+    Write-Host "  -ExportarJson            Gera tambem o relatorio JSON dos arquivos problematicos."
     Write-Host "  -Help                    Esta ajuda."
     Write-Host ""
     Write-Host "Exemplos:"
     Write-Host "  .\$ScriptName"
     Write-Host "  .\$ScriptName -GerarHtml -AbrirRelatorio"
     Write-Host "  .\$ScriptName -Modo Assistido -ReiniciarProcesso -ExcluirDoDefender"
+    Write-Host "  .\$ScriptName -ExportarJson"
     Write-Host ""
 }
 
@@ -250,6 +259,7 @@ function Resolve-DropboxDiagnosticPath {
 $reportSession = Initialize-ToolkitReportSession -ReportsRoot $DiretorioSaida -ModuleName 'diagnosticar-dropbox'
 $textReportPath = Join-Path $reportSession.Path 'diagnostico-dropbox.txt'
 $htmlReportPath = Join-Path $reportSession.Path 'diagnostico-dropbox.html'
+$jsonReportPath = Join-Path $reportSession.Path 'diagnostico-dropbox.json'
 
 Write-Title "Diagnostico do Cliente Dropbox - $ScriptVersion"
 
@@ -310,62 +320,42 @@ $lines.Add("Pontuacao       : $($health.Score)/100") | Out-Null
             $lines.Add("  Recomendacao: $($check.Recomendacao)") | Out-Null
         }
     }
-    Write-TextFileUtf8 -Path $textReportPath -Content (($lines -join "`r`n") + "`r`n")
-    
-    # === Exportacao em JSON ====================================================
-    if ($ExportarJson) {
-        $jsonReportPath = Join-Path $reportSession.Path 'diagnostico-dropbox.json'
-        
-        # Criar um objeto com metadados e os dados do diagnostico
-        $jsonObj = @{
-            metadata = @{
-                data_geracao = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-                versao_toolkit = $ScriptVersion
-                caminho_analisado = $resolvedPath
-            }
-            estatisticas = @{
-                total_arquivos = $health.Checks | Where-Object { $_.Nome -eq 'Arquivos problematicos' } | ForEach-Object { 
-                    if ($_.Detalhe -match "Arquivos problematicos: (\d+)") {
-                        [int]$matches[1]
-                    }
-                }
-                total_problematicos = $health.Checks | Where-Object { $_.Nome -eq 'Arquivos problematicos' } | ForEach-Object { 
-                    if ($_.Detalhe -match "Arquivos problematicos: \d+ \((\d+) problema.*\)") {
-                        [int]$matches[1]
-                    }
-                }
-                percentual = $health.Checks | Where-Object { $_.Nome -eq 'Arquivos problematicos' } | ForEach-Object { 
-                    if ($_.Detalhe -match "Arquivos problematicos: \d+ \(\d+ problema.*\)\s*\(percentual (.+%)") {
-                        [double]$matches[1].Replace('%', '') / 100
-                    }
-                }
-            }
-            arquivos_problematicos = @()
-        }
-        
-        # Coletar dados detalhados de arquivos problematicos
-        $problematicFiles = @()
-        foreach ($check in $health.Checks) {
-            if ($check.Nome -eq 'Arquivos problematicos') {
-                # Verificar se há algum item com problemas em particular
-                $lines = $check.Detalhe -split "`r?`n"
-                foreach ($line in $lines) {
-                    if ($line -match "^(.*?):(\s*)(.*)$") {
-                        $filePath = $matches[1].Trim()
-                        $problem = $matches[3].Trim()
-                        $problematicFiles += [PSCustomObject]@{
-                            Caminho = $filePath
-                            Problema = $problem
-                        }
-                    }
-                }
+Write-TextFileUtf8 -Path $textReportPath -Content (($lines -join "`r`n") + "`r`n")
+
+# === Exportacao em JSON ====================================================
+if ($ExportarJson) {
+    # Usa $health.FileReport (dado estruturado de Get-DropboxFileReport) em vez
+    # de parsear o Detalhe textual da checagem. Cada item tem ProblemFlags (array).
+    $allFiles = @($health.FileReport)
+    $problematicFiles = @(
+        $allFiles | Where-Object { $_.ProblemFlags -and @($_.ProblemFlags).Count -gt 0 } | ForEach-Object {
+            [pscustomobject]@{
+                Caminho           = [string]$_.Caminho
+                Nome              = [string]$_.Nome
+                Tipo              = [string]$_.Tipo
+                TamanhoBytes      = $_.TamanhoBytes
+                Problemas         = @($_.ProblemFlags)
+                UltimaModificacao = $_.UltimaModificacao
             }
         }
-        
-        $jsonObj.arquivos_problematicos = $problematicFiles
-        
-        Write-TextFileUtf8 -Path $jsonReportPath -Content ($jsonObj | ConvertTo-Json -Depth 5)
+    )
+
+    $jsonObj = [pscustomobject]@{
+        metadata = [pscustomobject]@{
+            data_geracao      = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+            versao_toolkit    = $ScriptVersion
+            caminho_analisado = $resolvedPath
+        }
+        estatisticas = [pscustomobject]@{
+            total_arquivos      = $allFiles.Count
+            total_problematicos = $problematicFiles.Count
+            percentual          = if ($allFiles.Count -gt 0) { [math]::Round(($problematicFiles.Count / $allFiles.Count) * 100, 2) } else { 0 }
+        }
+        arquivos_problematicos = $problematicFiles
     }
+
+    Write-TextFileUtf8 -Path $jsonReportPath -Content ($jsonObj | ConvertTo-Json -Depth 6)
+}
 
 if ($GerarHtml) {
     $html = New-DropboxDoctorHtmlReport -DropboxPath $resolvedPath -Score $health.Score -Label $health.Label `
@@ -406,6 +396,9 @@ if ($GerarHtml) {
         try { Start-Process $htmlReportPath | Out-Null }
         catch { Write-Warn "Nao foi possivel abrir o relatorio HTML: $($_.Exception.Message)" }
     }
+}
+if ($ExportarJson) {
+    Write-Info "Relatorio JSON : $jsonReportPath"
 }
 
 if ($health.CriticalCount -gt 0) {

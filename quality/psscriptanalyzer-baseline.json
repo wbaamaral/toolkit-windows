@@ -142,6 +142,11 @@
                     },
                     {
                         "Rule":  "PSAvoidUsingWriteHost",
+                        "File":  "scripts/corrigir-arquivos-dropbox.ps1",
+                        "Count":  10
+                    },
+                    {
+                        "Rule":  "PSAvoidUsingWriteHost",
                         "File":  "scripts/detectar-ip-duplicado.ps1",
                         "Count":  13
                     },
@@ -322,6 +327,11 @@
                     },
                     {
                         "Rule":  "PSUseApprovedVerbs",
+                        "File":  "scripts/corrigir-arquivos-dropbox.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseApprovedVerbs",
                         "File":  "scripts/diagnosticar-memoria.ps1",
                         "Count":  1
                     },
@@ -393,6 +403,11 @@
                     {
                         "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
                         "File":  "scripts/configurar-idioma-regional.ps1",
+                        "Count":  2
+                    },
+                    {
+                        "Rule":  "PSUseDeclaredVarsMoreThanAssignments",
+                        "File":  "scripts/corrigir-arquivos-dropbox.ps1",
                         "Count":  2
                     },
                     {
