@@ -38,4 +38,6 @@ Export-ModuleMember -Function @(
     'Invoke-DropboxHealthCheck'
     'Restart-DropboxProcess'
     'Add-DropboxDefenderExclusion'
+    'Backup-DropboxItem'
+    'Get-SafeFileName'
 )

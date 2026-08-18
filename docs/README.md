@@ -68,6 +68,10 @@ fora do domínio, usa `pool.ntp.br` por padrão. O fuso só é alterado quando `
 .\scripts\diagnosticar-dropbox.ps1 -ExportarJson
 .\scripts\diagnosticar-dropbox.ps1 -Modo Assistido -ReiniciarProcesso -ExcluirDoDefender
 .\scripts\auditar-arquivos-dropbox.ps1 -Report CloudOnly
+.\scripts\normalizar-dropbox.ps1 -InputFile '.\diagnostico-dropbox.json'
+.\scripts\normalizar-dropbox.ps1 -InputFile '.\diagnostico-dropbox.json' -Modo Proposta -NonInteractive
+.\scripts\normalizar-dropbox.ps1 -Modo Aplicar -PropostaFile '.\correcoes-propostas.json'
+.\scripts\normalizar-dropbox.ps1 -Modo Relatorio -PropostaFile '.\correcoes-propostas.json'
 .\scripts\corrigir-arquivos-dropbox.ps1 -InputFile '.\diagnostico-dropbox.json' -Simular
 .\scripts\corrigir-arquivos-dropbox.ps1 -InputFile '.\diagnostico-dropbox.json' -Correcao MudancaLocalizacao
 ```
@@ -78,10 +82,16 @@ O diagnóstico gera relatório TXT, HTML (`-GerarHtml`) e JSON (`-ExportarJson`)
 C:\WBA\Relatorios\diagnosticar-dropbox\<ddMMyyyy_HHmmss>\
 ```
 
-O script `corrigir-arquivos-dropbox.ps1` consome o JSON do diagnóstico e corrige em massa os
-arquivos problemáticos (caminho > 260 caracteres, caracteres inválidos). Gera `erros.json`,
-`alteracoes.json`, `rollback.json` e `simulacao.json` (no modo `-Simular`). Use `-Simular` antes
-de aplicar para verificar o que será alterado.
+O script `normalizar-dropbox.ps1` implementa um fluxo iterativo completo:
+1. **TUI** (padrão): interface interativa para selecionar/editar propostas de correção
+2. **Proposta**: gera proposta sem interação (todos selecionados)
+3. **Aplicar**: aplica proposta após validação
+4. **Relatorio**: gera relatório HTML detalhado de → para
+
+O script `corrigir-arquivos-dropbox.ps1` é a versão simplificada que consome o JSON
+do diagnóstico e corrige em massa os arquivos problemáticos (caminho > 260 caracteres,
+caracteres inválidos). Gera `erros.json`, `alteracoes.json`, `rollback.json` e
+`simulacao.json` (no modo `-Simular`).
 
 ### Rede e endereços IP
 

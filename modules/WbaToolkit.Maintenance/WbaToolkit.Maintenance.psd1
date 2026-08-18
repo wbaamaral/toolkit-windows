@@ -30,6 +30,8 @@
         'Invoke-DropboxHealthCheck'
         'Restart-DropboxProcess'
         'Add-DropboxDefenderExclusion'
+        'Backup-DropboxItem'
+        'Get-SafeFileName'
     )
     CmdletsToExport   = @()
     VariablesToExport = @()

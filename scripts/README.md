@@ -75,6 +75,33 @@ Modos: Renomeação (ajusta nome do arquivo) ou Mudança de Localização (move 
 .\scripts\corrigir-arquivos-dropbox.ps1 -InputFile '.\diagnostico-dropbox.json' -Correcao MudancaLocalizacao
 ```
 
+### `normalizar-dropbox.ps1`
+
+**Função:** Ferramenta completa de normalização com fluxo iterativo controlado.
+Implementa TUI interativa para seleção/edição de propostas, validação via HTML
+e aplicação controlada com relatório detalhado de → para.
+
+**Modos:**
+- `TUI` (padrão): interface interativa para selecionar/editar propostas
+- `Proposta`: gera proposta sem interação (todos selecionados)
+- `Aplicar`: aplica proposta após validação
+- `Relatorio`: gera relatório HTML detalhado
+
+**Entrada:** JSON gerado pelo `diagnosticar-dropbox.ps1 -ExportarJson`.
+
+**Saída:** `correcoes-propostas.json`, `correcoes-propostas.html`,
+`correcoes-aplicadas.json`, `correcoes-aplicadas.html`.
+
+**Exemplos:**
+
+```powershell
+.\scripts\normalizar-dropbox.ps1 -InputFile '.\diagnostico-dropbox.json'
+.\scripts\normalizar-dropbox.ps1 -InputFile '.\diagnostico-dropbox.json' -Modo Proposta -NonInteractive
+.\scripts\normalizar-dropbox.ps1 -Modo Aplicar -PropostaFile '.\correcoes-propostas.json'
+.\scripts\normalizar-dropbox.ps1 -Modo Relatorio -PropostaFile '.\correcoes-propostas.json'
+.\scripts\normalizar-dropbox.ps1 -Modo Relatorio -ResultadoFile '.\correcoes-aplicadas.json'
+```
+
 ## Inventário
 
 ### `inventario-hardware-software.ps1`

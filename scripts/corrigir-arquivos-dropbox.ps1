@@ -187,59 +187,6 @@ $summaryLog = Join-Path $DiretorioSaida 'resumo-correcoes.txt'
 '' | Out-File -FilePath $logFile -Encoding UTF8 -Append
 
 # === Funcoes de correcao ===================================================
-function Backup-Item {
-    param(
-        [string]$Path,
-        [string]$BackupDir
-    )
-
-    if (-not (Test-Path -LiteralPath $Path)) { return $false }
-
-    try {
-        $fileName = Split-Path -Leaf $Path
-        $backupPath = Join-Path $BackupDir "$fileName.backup"
-
-        # Criar backup
-        Copy-Item -LiteralPath $Path -Destination $backupPath -Force
-        Write-Debug "Criado backup: $backupPath"
-        return $true
-    }
-    catch {
-        Write-Warn "Nao foi possivel criar backup de '$Path': $($_.Exception.Message)"
-        return $false
-    }
-}
-
-function Get-ValidFileName {
-    param(
-        [string]$Name,
-        [int]$MaxLenght = 259
-    )
-
-    # Remove caracteres invalidos
-    $validChars = $Name -replace '[<>:"/\\|?*]', ''
-
-    # Se o nome for vazio ou apenas espacos, dar um nome padrao
-    if ([string]::IsNullOrWhiteSpace($validChars)) {
-        $validChars = "arquivo_sem_nome"
-    }
-
-    # Remover espacos no final
-    $validChars = $validChars.TrimEnd()
-
-    # Manter os primeiros (MaxLenght - 10) caracteres e anexar hash curto do nome.
-    # Get-FileHash exige caminho de arquivo existente; aqui o hash e calculado
-    # diretamente sobre a string do nome via SHA256 (sem depender de arquivo).
-    if ($validChars.Length -gt ($MaxLenght - 10)) {
-        $sha = [System.Security.Cryptography.SHA256]::Create()
-        $hashBytes = $sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($Name))
-        $hashShort = ([System.BitConverter]::ToString($hashBytes) -replace '-', '').Substring(0, 8)
-        $base = $validChars.Substring(0, ($MaxLenght - 10))
-        $validChars = "$base-$hashShort"
-    }
-
-    return $validChars
-}
 
 function Corrigir-Rename {
     param(
@@ -263,8 +210,8 @@ function Corrigir-Rename {
         $itemDir = Split-Path -Parent $Item.Caminho
         $originalName = $Item.Nome
 
-        # Gerar um nome valido
-        $newName = Get-ValidFileName -Name $originalName
+        # Gerar um nome válido usando função do módulo
+        $newName = Get-SafeFileName -Name $originalName
 
         # Se o nome for o mesmo, não precisa corrigir
         if ($originalName -eq $newName) {
@@ -284,8 +231,8 @@ function Corrigir-Rename {
             Write-Warn $resultado.Mensagem
         }
         else {
-            # Criar backup (seguranca: sem backup confiavel, abortar antes de alterar)
-            if (-not (Backup-Item -Path $Item.Caminho -BackupDir $BackupDir)) {
+            # Criar backup usando função do módulo (segurança: sem backup confiável, abortar antes de alterar)
+            if (-not (Backup-DropboxItem -Path $Item.Caminho -BackupDir $BackupDir)) {
                 throw "Falha ao criar backup de '$($Item.Caminho)'; operacao abortada por seguranca."
             }
 
@@ -335,8 +282,8 @@ function Corrigir-MudancaLocalizacao {
             Write-Warn $resultado.Mensagem
         }
         else {
-            # Criar backup (seguranca: sem backup confiavel, abortar antes de mover)
-            if (-not (Backup-Item -Path $Item.Caminho -BackupDir $BackupDir)) {
+            # Criar backup usando função do módulo (segurança: sem backup confiável, abortar antes de mover)
+            if (-not (Backup-DropboxItem -Path $Item.Caminho -BackupDir $BackupDir)) {
                 throw "Falha ao criar backup de '$($Item.Caminho)'; operacao abortada por seguranca."
             }
 
