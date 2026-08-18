@@ -530,7 +530,12 @@ Describe 'Get-DiretoriosProblematicos' {
             $resultado = Get-DiretoriosProblematicos -Arquivos $arquivos -CaminhoRaiz $raiz
 
             # Assert
-            $resultado.Count | Should -Be 1
+            # @() forca o wrap em array antes do .Count: em PowerShell 5.1 real
+            # (diferente do pwsh 7+), quando a funcao retorna exatamente 1 objeto
+            # via pipeline, PowerShell nao o envolve em array, e .Count num
+            # pscustomobject unico retorna $null em vez de lancar erro (mesma
+            # classe de bug ja documentada no BCK-031).
+            @($resultado).Count | Should -Be 1
             $resultado[0].resolvido | Should -BeTrue
             $resultado[0].atingiu_raiz | Should -BeFalse
             $resultado[0].ja_valido | Should -BeTrue
