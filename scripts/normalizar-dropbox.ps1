@@ -555,14 +555,38 @@ if ($Modo -in @('TUI', 'Proposta')) {
         New-Item -ItemType Directory -Path $DiretorioSaida -Force | Out-Null
     }
 
+    $propostaJsonPath = Join-Path $DiretorioSaida 'correcoes-propostas.json'
+    Write-Info "Gerando proposta em: $propostaJsonPath"
+
+    # Agrupar arquivos por diretorio pai uma unica vez (O(arquivos)) em vez de
+    # revarrer a lista inteira para cada diretorio selecionado (O(diretorios x
+    # arquivos) -- com centenas de diretorios e milhares de arquivos isso levava
+    # minutos sem nenhum indicador de progresso na tela).
+    $arquivosPorDiretorio = @{}
+    foreach ($arq in $jsonData.arquivos_problematicos) {
+        $dirPai = Split-Path -Parent ([string]$arq.Caminho)
+        if (-not $arquivosPorDiretorio.ContainsKey($dirPai)) {
+            $arquivosPorDiretorio[$dirPai] = New-Object System.Collections.Generic.List[object]
+        }
+        [void]$arquivosPorDiretorio[$dirPai].Add($arq)
+    }
+
     # Gerar proposta (expandir diretorios selecionados em arquivos individuais)
     $propostas = New-Object System.Collections.Generic.List[pscustomobject]
+    $diretoriosSelecionados = @($diretorios | Where-Object { $_.selecionado })
     $id = 1
-    foreach ($dir in ($diretorios | Where-Object { $_.selecionado })) {
-        # Encontrar todos os arquivos deste diretorio
-        $arquivosDoDir = @($jsonData.arquivos_problematicos | Where-Object {
-            (Split-Path -Parent ([string]$_.Caminho)) -eq $dir.diretorio
-        })
+    $contadorDir = 0
+    foreach ($dir in $diretoriosSelecionados) {
+        $contadorDir++
+        if ($diretoriosSelecionados.Count -gt 20) {
+            Write-Step "Gerando proposta: diretorio $contadorDir de $($diretoriosSelecionados.Count)" ([math]::Round(($contadorDir / $diretoriosSelecionados.Count) * 100))
+        }
+        $arquivosDoDir = if ($arquivosPorDiretorio.ContainsKey($dir.diretorio)) {
+            $arquivosPorDiretorio[$dir.diretorio]
+        }
+        else {
+            @()
+        }
         foreach ($arq in $arquivosDoDir) {
             $nome = [string]$arq.Nome
             if ([string]::IsNullOrWhiteSpace($nome)) { $nome = Split-Path -Leaf ([string]$arq.Caminho) }
@@ -593,7 +617,6 @@ if ($Modo -in @('TUI', 'Proposta')) {
     }
 
     # Salvar JSON de proposta
-    $propostaJsonPath = Join-Path $DiretorioSaida 'correcoes-propostas.json'
     $propostaJson = [pscustomobject]@{
         metadata = [pscustomobject]@{
             data_geracao       = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
@@ -627,6 +650,16 @@ if ($Modo -in @('TUI', 'Proposta')) {
     Write-TextFileUtf8 -Path $propostaJsonPath -Content ($propostaJson | ConvertTo-Json -Depth 6)
     Write-Ok "Proposta salva em: $propostaJsonPath"
 
+    # Gerar tambem o HTML da proposta na mesma chamada (evita um passo -Modo
+    # Relatorio separado -- mesmo padrao que -Modo Aplicar ja usa para o
+    # relatorio de resultado).
+    $propostaHtmlPath = Join-Path $DiretorioSaida 'correcoes-propostas.html'
+    $propostaHtml = New-DropboxPropostaHtmlReport -DropboxPath $dropboxPath `
+        -TotalPropostas $totalPropostas -Selecionadas $totalPropostas -Propostas $propostaJson.propostas `
+        -Diretorios $propostaJson.diretorios -MetadataOriginal $propostaJson.metadata -LimiteCaminho $LimiteCaminho
+    Write-TextFileUtf8 -Path $propostaHtmlPath -Content $propostaHtml
+    Write-Ok "Relatorio HTML gerado: $propostaHtmlPath"
+
     # Resumo
     Write-Host ''
     Write-Title "Resumo"
@@ -635,8 +668,9 @@ if ($Modo -in @('TUI', 'Proposta')) {
     }
     Write-Host ''
     Write-Info "Proposta JSON : $propostaJsonPath"
+    Write-Info "Proposta HTML : $propostaHtmlPath"
     Write-Host ''
-    Write-Info "Proximo passo: revise a proposta e aplique com -Modo Aplicar -PropostaFile '$propostaJsonPath'"
+    Write-Info "Proximo passo: revise a proposta (JSON ou HTML) e aplique com -Modo Aplicar -PropostaFile '$propostaJsonPath'"
 }
 
 # Modo Aplicar: aplicar proposta (por diretorios)
