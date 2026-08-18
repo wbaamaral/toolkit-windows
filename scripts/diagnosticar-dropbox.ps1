@@ -1,7 +1,7 @@
 ﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
-    Diagnostica a saude do cliente Dropbox e investiga por que a sincronizacao pode parar.
+    Diagnostica a saude do cliente Dropbox e gera JSON para normalizacao iterativa.
 
 .DESCRIPTION
     Consolida checagens de saude do cliente Dropbox: processo em execucao, instalacao
@@ -10,6 +10,18 @@
     exclusao no Windows Defender e sincronizacao de hora. Reaproveita a classificacao
     de arquivos de Get-DropboxFileReport para apontar itens que podem travar a
     sincronizacao.
+
+    Este script e a FASE 1 do ciclo de normalizacao do Dropbox:
+
+      diagnosticar-dropbox.ps1 -ExportarJson        (gera JSON)
+                ↓
+      normalizar-dropbox.ps1                         (TUI interativa)
+                ↓
+      correcoes-propostas.json + HTML                (validacao)
+                ↓
+      normalizar-dropbox.ps1 -Modo Aplicar           (aplica correcoes)
+                ↓
+      correcoes-aplicadas.json + HTML (de → para)    (resultado)
 
     No modo Diagnostico, o script e somente leitura. No modo Assistido, quando o
     processo Dropbox estiver parado ou a exclusao no Defender estiver ausente, o
@@ -51,6 +63,7 @@
 .PARAMETER ExportarJson
     Gera tambem o relatorio em JSON (diagnostico-dropbox.json) com a lista
     estruturada dos arquivos problematicos (Caminho, Nome, Tipo, Problemas).
+    O JSON gerado e a entrada para normalizar-dropbox.ps1 (fase 2 do ciclo).
 
 .PARAMETER Help
     Exibe esta ajuda e encerra.
@@ -58,19 +71,47 @@
 .EXAMPLE
     .\diagnosticar-dropbox.ps1
 
+    Diagnostico basico com saida TXT.
+
+.EXAMPLE
+    .\diagnosticar-dropbox.ps1 -ExportarJson
+
+    Diagnostico com saida TXT + JSON (para normalizacao).
+
 .EXAMPLE
     .\diagnosticar-dropbox.ps1 -GerarHtml -AbrirRelatorio
+
+    Diagnostico com saida TXT + HTML, abre o relatorio.
+
+.EXAMPLE
+    .\diagnosticar-dropbox.ps1 -Path 'C:\Dropbox\Thermo BR Sul' -ExportarJson
+
+    Diagnostico de pasta Dropbox especifica com saida JSON.
+
+.EXAMPLE
+    .\diagnosticar-dropbox.ps1 -DiretorioSaida 'C:\Temp\Relatorios' -ExportarJson
+
+    Diagnostico com diretorio de saida personalizado.
 
 .EXAMPLE
     .\diagnosticar-dropbox.ps1 -Modo Assistido -ReiniciarProcesso -ExcluirDoDefender -CriticalFolders 'Financeiro','Contratos'
 
-.EXAMPLE
-    .\diagnosticar-dropbox.ps1 -ExportarJson
+    Diagnostico com reparo guiado (reiniciar processo + exclusao no Defender).
 
 .NOTES
     Projeto: wba-windows-toolkit
     Autor: wbaamaral
     Modulos requeridos: WbaToolkit.Core, WbaToolkit.Maintenance.
+
+    Ciclo de normalizacao:
+      1. diagnosticar-dropbox.ps1 -ExportarJson    (gera JSON)
+      2. normalizar-dropbox.ps1                    (TUI interativa)
+      3. normalizar-dropbox.ps1 -Modo Aplicar      (aplica correcoes)
+
+    Saida:
+      TXT  : <ReportsRoot>\diagnosticar-dropbox\<ddMMyyyy_HHmmss>\diagnostico-dropbox.txt
+      HTML : <ReportsRoot>\diagnosticar-dropbox\<ddMMyyyy_HHmmss>\diagnostico-dropbox.html
+      JSON : <ReportsRoot>\diagnosticar-dropbox\<ddMMyyyy_HHmmss>\diagnostico-dropbox.json
 #>
 
 [CmdletBinding()]
@@ -146,14 +187,26 @@ function Show-Help {
     Write-Host "  -GerarHtml               Gera tambem o relatorio em HTML."
     Write-Host "  -AbrirRelatorio          Abre o relatorio HTML ao final."
     Write-Host "  -DiretorioSaida '<dir>'  Raiz de relatorios. Padrao: raiz persistente do toolkit."
-    Write-Host "  -ExportarJson            Gera tambem o relatorio JSON dos arquivos problematicos."
+    Write-Host "  -ExportarJson            Gera tambem o relatorio JSON (entrada para normalizar-dropbox.ps1)."
     Write-Host "  -Help                    Esta ajuda."
+    Write-Host ""
+    Write-Host "Saida:"
+    Write-Host "  TXT  : <ReportsRoot>\diagnosticar-dropbox\<ddMMyyyy_HHmmss>\diagnostico-dropbox.txt"
+    Write-Host "  HTML : <ReportsRoot>\diagnosticar-dropbox\<ddMMyyyy_HHmmss>\diagnostico-dropbox.html"
+    Write-Host "  JSON : <ReportsRoot>\diagnosticar-dropbox\<ddMMyyyy_HHmmss>\diagnostico-dropbox.json"
+    Write-Host ""
+    Write-Host "Ciclo de normalizacao:"
+    Write-Host "  1. diagnosticar-dropbox.ps1 -ExportarJson    (gera JSON)"
+    Write-Host "  2. normalizar-dropbox.ps1                    (TUI interativa)"
+    Write-Host "  3. normalizar-dropbox.ps1 -Modo Aplicar      (aplica correcoes)"
     Write-Host ""
     Write-Host "Exemplos:"
     Write-Host "  .\$ScriptName"
-    Write-Host "  .\$ScriptName -GerarHtml -AbrirRelatorio"
-    Write-Host "  .\$ScriptName -Modo Assistido -ReiniciarProcesso -ExcluirDoDefender"
     Write-Host "  .\$ScriptName -ExportarJson"
+    Write-Host "  .\$ScriptName -GerarHtml -AbrirRelatorio"
+    Write-Host "  .\$ScriptName -Path 'C:\Dropbox\Thermo BR Sul' -ExportarJson"
+    Write-Host "  .\$ScriptName -DiretorioSaida 'C:\Temp\Relatorios' -ExportarJson"
+    Write-Host "  .\$ScriptName -Modo Assistido -ReiniciarProcesso -ExcluirDoDefender"
     Write-Host ""
 }
 
@@ -399,6 +452,15 @@ if ($GerarHtml) {
 }
 if ($ExportarJson) {
     Write-Info "Relatorio JSON : $jsonReportPath"
+}
+
+# === Proximo passo =========================================================
+if ($ExportarJson) {
+    Write-Host ''
+    Write-Title "Proximo passo"
+    Write-Info "Para normalizar os arquivos problematicos interativamente:"
+    Write-Host "  .\scripts\normalizar-dropbox.ps1 -InputFile '$jsonReportPath'" -ForegroundColor Yellow
+    Write-Host ''
 }
 
 if ($health.CriticalCount -gt 0) {

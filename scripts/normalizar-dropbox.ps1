@@ -11,6 +11,18 @@
     4. Aplica correções após confirmação
     5. Gera relatório detalhado de resultado (de → para)
 
+    Este script e a FASE 2 do ciclo de normalizacao do Dropbox:
+
+      diagnosticar-dropbox.ps1 -ExportarJson        (gera JSON)
+                ↓
+      normalizar-dropbox.ps1                         (TUI interativa)
+                ↓
+      correcoes-propostas.json + HTML                (validacao)
+                ↓
+      normalizar-dropbox.ps1 -Modo Aplicar           (aplica correcoes)
+                ↓
+      correcoes-aplicadas.json + HTML (de → para)    (resultado)
+
 .PARAMETER InputFile
     Arquivo JSON com a lista de arquivos problemáticos gerado pelo
     diagnosticar-dropbox.ps1 -ExportarJson.
@@ -43,19 +55,45 @@
 .EXAMPLE
     .\normalizar-dropbox.ps1 -InputFile '.\diagnostico-dropbox.json'
 
+    Modo TUI interativo — selecione/edite propostas antes de aplicar.
+
 .EXAMPLE
     .\normalizar-dropbox.ps1 -InputFile '.\diagnostico-dropbox.json' -Modo Proposta -NonInteractive
+
+    Gera proposta automaticamente (todos selecionados) sem TUI.
 
 .EXAMPLE
     .\normalizar-dropbox.ps1 -Modo Aplicar -PropostaFile '.\correcoes-propostas.json'
 
+    Aplica proposta após validação.
+
 .EXAMPLE
     .\normalizar-dropbox.ps1 -Modo Relatorio -PropostaFile '.\correcoes-propostas.json'
+
+    Gera relatório HTML de uma proposta.
+
+.EXAMPLE
+    .\normalizar-dropbox.ps1 -Modo Relatorio -ResultadoFile '.\correcoes-aplicadas.json'
+
+    Gera relatório HTML de um resultado já aplicado.
 
 .NOTES
     Projeto: wba-windows-toolkit
     Autor: wbaamaral
     Modulos requeridos: WbaToolkit.Core, WbaToolkit.Maintenance.
+
+    Ciclo de normalizacao:
+      1. diagnosticar-dropbox.ps1 -ExportarJson    (gera JSON)
+      2. normalizar-dropbox.ps1                    (TUI interativa)
+      3. normalizar-dropbox.ps1 -Modo Aplicar      (aplica correcoes)
+
+    Saida (TUI/Proposta):
+      correcoes-propostas.json : proposta de correcoes
+      correcoes-propostas.html : relatorio visual da proposta
+
+    Saida (Aplicar):
+      correcoes-aplicadas.json : resultado detalhado (de → para)
+      correcoes-aplicadas.html : relatorio visual do resultado
 #>
 
 [CmdletBinding()]
@@ -124,11 +162,23 @@ function Show-Help {
     Write-Host "  -NonInteractive              Gera proposta sem TUI."
     Write-Host "  -Help                        Esta ajuda."
     Write-Host ""
+    Write-Host "Modos:"
+    Write-Host "  TUI          Interface interativa para selecionar/editar propostas (padrao)."
+    Write-Host "  Proposta     Gera proposta sem interacao (todos selecionados)."
+    Write-Host "  Aplicar      Aplica proposta de um arquivo JSON."
+    Write-Host "  Relatorio    Gera relatorio HTML de uma proposta ou resultado."
+    Write-Host ""
+    Write-Host "Ciclo de normalizacao:"
+    Write-Host "  1. diagnosticar-dropbox.ps1 -ExportarJson    (gera JSON)"
+    Write-Host "  2. normalizar-dropbox.ps1                    (TUI interativa)"
+    Write-Host "  3. normalizar-dropbox.ps1 -Modo Aplicar      (aplica correcoes)"
+    Write-Host ""
     Write-Host "Exemplos:"
     Write-Host "  .\$ScriptName -InputFile '.\diagnostico-dropbox.json'"
     Write-Host "  .\$ScriptName -InputFile '.\diagnostico-dropbox.json' -Modo Proposta -NonInteractive"
     Write-Host "  .\$ScriptName -Modo Aplicar -PropostaFile '.\correcoes-propostas.json'"
     Write-Host "  .\$ScriptName -Modo Relatorio -PropostaFile '.\correcoes-propostas.json'"
+    Write-Host "  .\$ScriptName -Modo Relatorio -ResultadoFile '.\correcoes-aplicadas.json'"
     Write-Host ""
 }
 

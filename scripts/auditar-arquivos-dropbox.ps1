@@ -146,10 +146,17 @@ function Show-Help {
     Write-Host "  -IncludeDirectories   Inclui diretorios no relatorio."
     Write-Host "  -Help                 Esta ajuda."
     Write-Host ""
+    Write-Host "Saida:"
+    Write-Host "  Sem -Output : amostra de 50 itens no console."
+    Write-Host "  Com -Output : lista completa no arquivo (CSV/JSON/TXT)."
+    Write-Host ""
     Write-Host "Exemplos:"
     Write-Host "  .\$ScriptName"
     Write-Host "  .\$ScriptName -Report CloudOnly"
     Write-Host "  .\$ScriptName -NonInteractive -Path 'D:\Dropbox' -Output '.\auditoria.csv'"
+    Write-Host "  .\$ScriptName -Path 'D:\Dropbox' -Report All -Format JSON -Output '.\auditoria.json'"
+    Write-Host ""
+    Write-Host "Para diagnostico de saude completo, use diagnosticar-dropbox.ps1."
     Write-Host ""
 }
 

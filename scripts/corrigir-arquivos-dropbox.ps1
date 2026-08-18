@@ -4,9 +4,19 @@
     Corrige em massa arquivos problematicos do Dropbox identificados pelo toolkit.
 
 .DESCRIPTION
-    Ferramenta que processa relatorios de arquivos problematicos do Dropbox,
+    Ferramenta simplificada que processa relatorios de arquivos problematicos do Dropbox,
     com foco em problemas de tamanho de caminho acima de 260 caracteres.
     Oferece duas abordagens de correção: ajuste de nome ou mudança de localizacao.
+
+    Para o fluxo iterativo com TUI e validacao, use normalizar-dropbox.ps1.
+
+    Ciclo de normalizacao:
+      1. diagnosticar-dropbox.ps1 -ExportarJson    (gera JSON)
+      2. normalizar-dropbox.ps1                    (TUI interativa)  ← RECOMENDADO
+      3. normalizar-dropbox.ps1 -Modo Aplicar      (aplica correcoes)
+
+    Este script (corrigir-arquivos-dropbox.ps1) e a versao simplificada que
+    aplica correcoes diretamente sem TUI.
 
 .PARAMETER InputFile
     Arquivo JSON com a lista de arquivos problematicos gerado pelo diagnosticar-dropbox.ps1 -ExportarJson
@@ -24,20 +34,42 @@
     Exibe esta ajuda e encerra.
 
 .EXAMPLE
+    .\corrigir-arquivos-dropbox.ps1 -InputFile '.\diagnostico-dropbox.json' -Simular
+
+    Simula correcoes (dry-run) — mostra o que seria alterado sem tocar nos arquivos.
+
+.EXAMPLE
     .\corrigir-arquivos-dropbox.ps1 -InputFile '.\diagnostico-dropbox.json'
+
+    Aplica correcoes por renomeacao (padrao).
 
 .EXAMPLE
     .\corrigir-arquivos-dropbox.ps1 -InputFile '.\diagnostico-dropbox.json' -Correcao MudancaLocalizacao -Simular
+
+    Simula mudanca de localizacao.
+
+.EXAMPLE
+    .\corrigir-arquivos-dropbox.ps1 -InputFile '.\diagnostico-dropbox.json' -Correcao MudancaLocalizacao
+
+    Aplica mudanca de localizacao.
 
 .NOTES
     Projeto: wba-windows-toolkit
     Autor: wbaamaral
     Modulos requeridos: WbaToolkit.Core, WbaToolkit.Maintenance.
+
+    Saida:
+      alteracoes.json   : mudancas reais aplicadas
+      erros.json        : falhas encontradas
+      rollback.json     : mudancas reversiveis
+      simulacao.json    : preview do modo -Simular
+
+    Para o fluxo iterativo com TUI, use normalizar-dropbox.ps1.
 #>
 
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $false)]
     [string]$InputFile,
 
     [Parameter(Mandatory = $false)]
@@ -90,9 +122,24 @@ function Show-Help {
     Write-Host "  -DiretorioSaida '<dir>'      Diretorio de saida para logs e backups."
     Write-Host "  -Help                        Esta ajuda."
     Write-Host ""
+    Write-Host "Saida:"
+    Write-Host "  alteracoes.json   : mudancas reais aplicadas"
+    Write-Host "  erros.json        : falhas encontradas"
+    Write-Host "  rollback.json     : mudancas reversiveis"
+    Write-Host "  simulacao.json    : preview do modo -Simular"
+    Write-Host ""
+    Write-Host "Ciclo de normalizacao:"
+    Write-Host "  1. diagnosticar-dropbox.ps1 -ExportarJson    (gera JSON)"
+    Write-Host "  2. normalizar-dropbox.ps1                    (TUI interativa)  ← RECOMENDADO"
+    Write-Host "  3. normalizar-dropbox.ps1 -Modo Aplicar      (aplica correcoes)"
+    Write-Host ""
     Write-Host "Exemplos:"
+    Write-Host "  .\$ScriptName -InputFile '.\diagnostico-dropbox.json' -Simular"
     Write-Host "  .\$ScriptName -InputFile '.\diagnostico-dropbox.json'"
     Write-Host "  .\$ScriptName -InputFile '.\diagnostico-dropbox.json' -Correcao MudancaLocalizacao -Simular"
+    Write-Host "  .\$ScriptName -InputFile '.\diagnostico-dropbox.json' -Correcao MudancaLocalizacao"
+    Write-Host ""
+    Write-Host "Para o fluxo iterativo com TUI, use normalizar-dropbox.ps1."
     Write-Host ""
 }
 
@@ -134,6 +181,11 @@ catch {
 }
 
 # === Verificacoes iniciais ==================================================
+if ([string]::IsNullOrWhiteSpace($InputFile)) {
+    Write-Fail "Parametro -InputFile obrigatorio. Use -Help para ver a ajuda."
+    exit 1
+}
+
 if (-not (Test-Path -LiteralPath $InputFile)) {
     Write-Fail "Arquivo de entrada nao encontrado: $InputFile"
     exit 1
