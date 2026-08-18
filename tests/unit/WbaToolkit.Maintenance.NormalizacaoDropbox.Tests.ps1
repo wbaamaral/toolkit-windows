@@ -206,56 +206,83 @@ Describe 'New-DropboxPropostaHtmlReport' {
     }
 
     Context 'Geração de HTML' {
-        It 'Deve gerar HTML válido com propostas' {
-            # Arrange
-            $propostas = @(
+        It 'Deve gerar HTML válido com o editor de diretórios (De/Para)' {
+            # Arrange -- a unidade de correcao e o diretorio, nao o arquivo
+            # (a renomeacao acontece na pasta), entao o relatorio nao tem mais
+            # tabela por arquivo; -Diretorios e quem popula o conteudo real.
+            $propostas = @([pscustomobject]@{
+                id = 1; selecionado = $true
+                caminho_original = 'C:\Dropbox\PastaComNomeGrande\arquivo.txt'
+            })
+            $diretorios = @(
                 [pscustomobject]@{
                     id = 1
+                    diretorio = 'C:\Dropbox\PastaComNomeGrande'
+                    nome_original = 'PastaComNomeGrande'
+                    nome_proposto = 'PastaCurta'
+                    caminho_original = 'C:\Dropbox\PastaComNomeGrande'
+                    caminho_proposto = 'C:\Dropbox\PastaCurta'
+                    total_arquivos = 1
+                    maior_sufixo = 12
+                    problema_pred = 'Caminho > 260'
                     selecionado = $true
-                    caminho_original = 'C:\Dropbox\arquivo<inválido>.txt'
-                    caminho_proposto = 'C:\Dropbox\arquivoinv_lido.txt'
-                    tipo_correcao = 'Renomeacao'
-                    motivo = 'Caracteres inválidos'
-                },
-                [pscustomobject]@{
-                    id = 2
-                    selecionado = $false
-                    caminho_original = 'C:\Dropbox\documento.txt'
-                    caminho_proposto = 'C:\Dropbox\documento.txt'
-                    tipo_correcao = 'Nenhuma'
-                    motivo = ''
+                    cadeia = @([pscustomobject]@{ nivel = 1; caminho_original = 'C:\Dropbox\PastaComNomeGrande'; nome_proposto = 'PastaCurta' })
                 }
             )
 
             # Act
             $html = New-DropboxPropostaHtmlReport -DropboxPath 'C:\Dropbox' `
-                -TotalPropostas 2 -Selecionadas 1 -Propostas $propostas
+                -TotalPropostas 1 -Selecionadas 1 -Propostas $propostas -Diretorios $diretorios
 
             # Assert
             $html | Should -Not -BeNullOrEmpty
             $html | Should -Match 'Propostas de Normalização Dropbox'
-            $html | Should -Match 'arquivoinv_lido.txt'
-            $html | Should -Match 'documento.txt'
+            $html | Should -Match 'PastaComNomeGrande'
+            $html | Should -Match 'PastaCurta'
         }
 
-        It 'Deve incluir filtro de busca JavaScript' {
+        It 'Mostra De/Para empilhado com zebra e cabecalho fixo' {
             # Arrange
-            $propostas = @([pscustomobject]@{
-                id = 1
-                selecionado = $true
-                caminho_original = 'C:\Dropbox\teste.txt'
-                caminho_proposto = 'C:\Dropbox\teste.txt'
-                tipo_correcao = 'Nenhuma'
-                motivo = ''
-            })
+            $propostas = @([pscustomobject]@{ id = 1; selecionado = $true; caminho_original = 'C:\Dropbox\Teste\a.txt' })
+            $diretorios = @(
+                [pscustomobject]@{
+                    id = 1; diretorio = 'C:\Dropbox\Teste'; nome_original = 'Teste'; nome_proposto = 'Teste'
+                    caminho_original = 'C:\Dropbox\Teste'; caminho_proposto = 'C:\Dropbox\Teste'
+                    total_arquivos = 1; maior_sufixo = 10; problema_pred = 'Caminho > 260'; selecionado = $true
+                    cadeia = @([pscustomobject]@{ nivel = 1; caminho_original = 'C:\Dropbox\Teste'; nome_proposto = 'Teste' })
+                }
+            )
 
             # Act
             $html = New-DropboxPropostaHtmlReport -DropboxPath 'C:\Dropbox' `
-                -TotalPropostas 1 -Selecionadas 1 -Propostas $propostas
+                -TotalPropostas 1 -Selecionadas 1 -Propostas $propostas -Diretorios $diretorios
 
             # Assert
-            $html | Should -Match 'filterTable'
-            $html | Should -Match 'function filterTable'
+            $html | Should -Match 'depara-rotulo-de'
+            $html | Should -Match 'depara-rotulo-para'
+            $html | Should -Match 'nth-child\(even\)'
+            $html | Should -Match 'position:sticky'
+        }
+
+        It 'Deve incluir filtro de busca do editor de diretorios' {
+            # Arrange
+            $propostas = @([pscustomobject]@{ id = 1; selecionado = $true; caminho_original = 'C:\Dropbox\Teste\a.txt' })
+            $diretorios = @(
+                [pscustomobject]@{
+                    id = 1; diretorio = 'C:\Dropbox\Teste'; nome_original = 'Teste'; nome_proposto = 'Teste'
+                    caminho_original = 'C:\Dropbox\Teste'; caminho_proposto = 'C:\Dropbox\Teste'
+                    total_arquivos = 1; maior_sufixo = 10; problema_pred = 'Caminho > 260'; selecionado = $true
+                    cadeia = @([pscustomobject]@{ nivel = 1; caminho_original = 'C:\Dropbox\Teste'; nome_proposto = 'Teste' })
+                }
+            )
+
+            # Act
+            $html = New-DropboxPropostaHtmlReport -DropboxPath 'C:\Dropbox' `
+                -TotalPropostas 1 -Selecionadas 1 -Propostas $propostas -Diretorios $diretorios
+
+            # Assert
+            $html | Should -Match 'filterDiretorios'
+            $html | Should -Match 'function filterDiretorios'
         }
     }
 
