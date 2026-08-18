@@ -11,6 +11,23 @@
     4. Aplica correções após confirmação
     5. Gera relatorio detalhado de resultado (de -> para)
 
+    Quando encurtar apenas o diretório mais profundo não é suficiente para o
+    caminho completo caber no limite, a proposta é encadeada: sobe-se para o
+    diretório ancestral e repete-se o encurtamento nesse nível, até caber ou
+    até atingir a raiz protegida. A aplicação (-Modo Aplicar) renomeia essa
+    cadeia sempre do nível mais raso para o mais profundo.
+
+    Na TUI, o comando "E <id>" permite editar manualmente o nome proposto
+    para o nível mais profundo de um diretório (em vez de aceitar apenas a
+    sugestão automática), validando caracteres inválidos e mostrando o
+    comprimento do caminho resultante antes de confirmar.
+
+    O relatório HTML de proposta (correcoes-propostas.html) também é
+    editável no navegador: cada linha tem checkbox de seleção e campo de
+    texto para o nome proposto, com recálculo ao vivo do comprimento do
+    caminho e um botão "Baixar JSON corrigido" que gera um arquivo pronto
+    para reinjeção em -Modo Aplicar -PropostaFile.
+
     Este script e a FASE 2 do ciclo de normalizacao do Dropbox:
 
       diagnosticar-dropbox.ps1 -ExportarJson        (gera JSON)
@@ -45,6 +62,15 @@
 
 .PARAMETER PageSize
     Número de itens por página na TUI. Padrão: 50.
+
+.PARAMETER LimiteCaminho
+    Comprimento máximo de caminho tolerado ao propor o encadeamento de
+    encurtamento de diretórios. Padrão: 260 (limite clássico do Windows sem
+    long paths habilitado).
+
+.PARAMETER MargemSeguranca
+    Caracteres reservados como margem de segurança, subtraídos de
+    -LimiteCaminho para formar o alvo real de encurtamento. Padrão: 10.
 
 .PARAMETER NonInteractive
     Gera proposta sem TUI, com todos os itens selecionados.
@@ -94,6 +120,14 @@
     Saida (Aplicar):
       correcoes-aplicadas.json : resultado detalhado (de -> para)
       correcoes-aplicadas.html : relatorio visual do resultado
+
+    Ciclo do editor HTML interativo (correcoes-propostas.html):
+      1. Gerar a proposta (TUI ou -Modo Proposta)
+      2. Abrir correcoes-propostas.html num navegador
+      3. Marcar/desmarcar linhas e editar o nome proposto (o comprimento do
+         caminho resultante e recalculado ao digitar, ok/excede)
+      4. Clicar em "Baixar JSON corrigido" -- gera um novo arquivo JSON
+      5. Reaplicar com: normalizar-dropbox.ps1 -Modo Aplicar -PropostaFile '<json-corrigido>'
 #>
 
 [CmdletBinding()]
@@ -116,6 +150,12 @@ param(
 
     [Parameter(Mandatory = $false)]
     [int]$PageSize = 50,
+
+    [Parameter(Mandatory = $false)]
+    [int]$LimiteCaminho = 260,
+
+    [Parameter(Mandatory = $false)]
+    [int]$MargemSeguranca = 10,
 
     [switch]$NonInteractive,
 
@@ -159,6 +199,8 @@ function Show-Help {
     Write-Host "  -ResultadoFile '<arquivo>'   Arquivo JSON do resultado (para Relatorio)."
     Write-Host "  -DiretorioSaida '<dir>'      Diretorio de saida para arquivos gerados."
     Write-Host "  -PageSize <n>                Itens por pagina na TUI (padrao: 50)."
+    Write-Host "  -LimiteCaminho <n>           Comprimento maximo de caminho tolerado (padrao: 260)."
+    Write-Host "  -MargemSeguranca <n>         Margem de seguranca subtraida do limite (padrao: 10)."
     Write-Host "  -NonInteractive              Gera proposta sem TUI."
     Write-Host "  -Help                        Esta ajuda."
     Write-Host ""
@@ -167,6 +209,11 @@ function Show-Help {
     Write-Host "  Proposta     Gera proposta sem interacao (todos selecionados)."
     Write-Host "  Aplicar      Aplica proposta de um arquivo JSON."
     Write-Host "  Relatorio    Gera relatorio HTML de uma proposta ou resultado."
+    Write-Host ""
+    Write-Host "Comandos da TUI:"
+    Write-Host "  [1-9] Selecionar/deselecionar diretorio     [T]odos  [N]enhum"
+    Write-Host "  [V]er detalhes    [E <id>] Editar nome proposto manualmente"
+    Write-Host "  [G]erar proposta  [Q]uit"
     Write-Host ""
     Write-Host "Ciclo de normalizacao:"
     Write-Host "  1. diagnosticar-dropbox.ps1 -ExportarJson    (gera JSON)"
@@ -220,95 +267,11 @@ catch {
 }
 
 # === Funcoes auxiliares ===================================================
-
-function Get-DiretoriosProblematicos {
-    <#
-    .SYNOPSIS
-        Agrupa arquivos problemáticos por diretório pai e identifica o problema predominante.
-    .DESCRIPTION
-        Analisa a lista de arquivos problemáticos e agrupa por diretório pai.
-        Para cada diretório, identifica o tipo de problema predominante e sugere
-        um nome mais curto (Opção C: encurtar o diretório mais profundo).
-    #>
-    param(
-        [Parameter(Mandatory = $true)]
-        [object[]]$Arquivos
-    )
-
-    # Agrupar por diretório pai
-    $grupos = @{}
-    foreach ($arq in $Arquivos) {
-        $dir = Split-Path -Parent ([string]$arq.Caminho)
-        if (-not $grupos.ContainsKey($dir)) {
-            $grupos[$dir] = New-Object System.Collections.Generic.List[object]
-        }
-        [void]$grupos[$dir].Add($arq)
-    }
-
-    $diretorios = New-Object System.Collections.Generic.List[object]
-    $id = 1
-
-    foreach ($dir in ($grupos.Keys | Sort-Object)) {
-        $itens = $grupos[$dir]
-        $dirName = Split-Path -Leaf $dir
-        $dirPath = Split-Path -Parent $dir
-
-        # Identificar problemas predominantes
-        $problemas = @{}
-        foreach ($arq in $itens) {
-            $nome = [string]$arq.Nome
-            if ([string]::IsNullOrWhiteSpace($nome)) { $nome = Split-Path -Leaf ([string]$arq.Caminho) }
-
-            # Caminho > 260
-            if ([string]$arq.Caminho.Length -gt 260) {
-                if (-not $problemas.ContainsKey('Caminho > 260')) { $problemas['Caminho > 260'] = 0 }; $problemas['Caminho > 260']++
-            }
-            # Caracteres inválidos
-            if ($nome -match '[<>:"/\\|?*]') {
-                if (-not $problemas.ContainsKey('Caracteres invalidos')) { $problemas['Caracteres invalidos'] = 0 }; $problemas['Caracteres invalidos']++
-            }
-            # Nome reservado
-            $reservedNames = @('CON','PRN','AUX','NUL','COM1','COM2','COM3','COM4','COM5','COM6','COM7','COM8','COM9','LPT1','LPT2','LPT3','LPT4','LPT5','LPT6','LPT7','LPT8','LPT9')
-            $dotIdx = $nome.LastIndexOf('.')
-            $baseName = if ($dotIdx -gt 0) { $nome.Substring(0, $dotIdx) } else { $nome }
-            if ($reservedNames -contains $baseName.ToUpperInvariant()) {
-                if (-not $problemas.ContainsKey('Nome reservado')) { $problemas['Nome reservado'] = 0 }; $problemas['Nome reservado']++
-            }
-            # Termina em ponto/espaco
-            if ($nome.EndsWith('.') -or $nome.EndsWith(' ')) {
-                if (-not $problemas.ContainsKey('Termina em ponto/espaco')) { $problemas['Termina em ponto/espaco'] = 0 }; $problemas['Termina em ponto/espaco']++
-            }
-        }
-
-        # Problema predominante
-        $problemaPredominante = ($problemas.GetEnumerator() | Sort-Object Value -Descending | Select-Object -First 1).Key
-        if ([string]::IsNullOrWhiteSpace($problemaPredominante)) { $problemaPredominante = 'Outro' }
-
-        # Gerar nome proposto (encurtar o diretório mais profundo)
-        $nomeProposto = Get-SafeFileName -Name $dirName
-        $novoDir = Join-Path $dirPath $nomeProposto
-
-        # Verificar se já é válido
-        $jaValido = ($dirName -eq $nomeProposto)
-
-        [void]$diretorios.Add([pscustomobject]@{
-            id               = $id
-            diretorio        = $dir
-            nome_original    = $dirName
-            nome_proposto    = $nomeProposto
-            caminho_original = $dir
-            caminho_proposto = $novoDir
-            total_arquivos   = $itens.Count
-            problemas        = $problemas
-            problema_pred    = $problemaPredominante
-            selecionado      = (-not $jaValido)
-            ja_valido        = $jaValido
-        })
-        $id++
-    }
-
-    return $diretorios
-}
+# Get-DiretoriosProblematicos foi extraida para funcao privada testavel do
+# modulo WbaToolkit.Maintenance (Private/Get-DiretoriosProblematicos.ps1).
+# Ela e carregada pelo dot-source acima e implementa o encadeamento real de
+# encurtamento (recalcula o comprimento do caminho completo e sobe niveis
+# ate caber ou atingir -CaminhoRaiz).
 
 function Show-TUI {
     <#
@@ -341,17 +304,21 @@ function Show-TUI {
         Write-Host ("-" * 4 + "-+-" + "-" * 6 + "-+-" + "-" * 50 + "-+-" + "-" * 8 + "-+-" + "-" * 25)
 
         foreach ($d in $Diretorios) {
-            $status = if ($d.ja_valido) { '[OK]' } elseif ($d.selecionado) { '[X]' } else { '[ ]' }
-            $statusColor = if ($d.ja_valido) { 'Gray' } elseif ($d.selecionado) { 'Green' } else { 'Red' }
+            $naoResolvido = ($d.atingiu_raiz -and -not $d.resolvido)
+            $status = if ($d.ja_valido) { '[OK]' } elseif ($naoResolvido) { '[!!]' } elseif ($d.selecionado) { '[X]' } else { '[ ]' }
+            $statusColor = if ($d.ja_valido) { 'Gray' } elseif ($naoResolvido) { 'Magenta' } elseif ($d.selecionado) { 'Green' } else { 'Red' }
             $dirDisplay = if ($d.diretorio.Length -gt 50) {
                 '...' + $d.diretorio.Substring($d.diretorio.Length - 47)
             } else {
                 $d.diretorio
             }
+            $problemaDisplay = $d.problema_pred
+            if ($d.cadeia -and @($d.cadeia).Count -gt 1) { $problemaDisplay = "$problemaDisplay (cadeia: $(@($d.cadeia).Count) niveis)" }
+            if ($naoResolvido) { $problemaDisplay = "$problemaDisplay - NAO RESOLVIDO, edite manualmente" }
 
             Write-Host (" {0,-4} | " -f $d.id) -NoNewline
             Write-Host ("{0,-6}" -f $status) -ForegroundColor $statusColor -NoNewline
-            Write-Host (" | {0,-50} | {1,-8} | {2}" -f $dirDisplay, $d.total_arquivos, $d.problema_pred)
+            Write-Host (" | {0,-50} | {1,-8} | {2}" -f $dirDisplay, $d.total_arquivos, $problemaDisplay)
         }
 
         Write-Host ""
@@ -359,6 +326,7 @@ function Show-TUI {
         Write-Host "  [1-9] Selecionar/deselecionar diretorio"
         Write-Host "  [T]odos  [N]enhum"
         Write-Host "  [V]er detalhes de um diretorio"
+        Write-Host "  [E <id>] Editar nome proposto manualmente"
         Write-Host "  [G]erar proposta  [Q]uit"
         Write-Host ""
 
@@ -404,12 +372,80 @@ function Show-TUI {
                     Write-Host ""
                     Write-Host "Arquivos afetados: $($dir.total_arquivos)" -ForegroundColor Cyan
                     Write-Host ""
+                    if ($dir.cadeia -and @($dir.cadeia).Count -gt 1) {
+                        Write-Host "Cadeia de encurtamento (raso -> profundo):" -ForegroundColor Yellow
+                        foreach ($nivelItem in @($dir.cadeia)) {
+                            Write-Host ("  Nivel $($nivelItem.nivel): $($nivelItem.caminho_original) -> $($nivelItem.nome_proposto)") -ForegroundColor White
+                        }
+                        Write-Host ""
+                    }
+                    if ($dir.atingiu_raiz -and -not $dir.resolvido) {
+                        Write-Warn "Nao foi possivel encurtar automaticamente ate a raiz protegida. Use [E $id] para editar manualmente."
+                        Write-Host ""
+                    }
                     Write-Host "Problemas encontrados:" -ForegroundColor Yellow
                     foreach ($p in $dir.problemas.GetEnumerator()) {
                         Write-Host "  $($p.Key): $($p.Value) arquivo(s)" -ForegroundColor White
                     }
                     Write-Host ""
                     Read-Host "Pressione Enter para voltar"
+                }
+            }
+            '^E\s*(\d+)$' {
+                $id = [int]$Matches[1]
+                $dir = $Diretorios | Where-Object { $_.id -eq $id }
+                if (-not $dir) {
+                    Write-Warn "Diretorio $id nao encontrado."
+                    Start-Sleep -Milliseconds 1000
+                }
+                else {
+                    Clear-Host
+                    Write-Host "=== Editar nome proposto - Diretorio $id ===" -ForegroundColor Cyan
+                    Write-Host ""
+                    Write-Host "Diretorio atual : $($dir.diretorio)" -ForegroundColor White
+                    Write-Host "Nome proposto atual (nivel mais profundo): $($dir.nome_proposto)" -ForegroundColor Yellow
+                    Write-Host ""
+
+                    $prefixoAncestral = Split-Path -Parent $dir.caminho_proposto
+                    $novoNome = Read-UserInput -Question "Novo nome para o diretorio mais profundo" -DefaultValue $dir.nome_proposto
+
+                    $nomeValidado = Get-SafeFileName -Name $novoNome
+                    if ($nomeValidado -ne $novoNome) {
+                        Write-Warn "Nome contem caracteres invalidos ou precisou de ajuste. Sugestao corrigida: $nomeValidado"
+                        $novoNome = $nomeValidado
+                    }
+
+                    $novoCaminhoDir = Join-Path $prefixoAncestral $novoNome
+                    $comprimentoResultante = $novoCaminhoDir.Length + $dir.maior_sufixo
+                    $cabe = $comprimentoResultante -le $LimiteCaminho
+
+                    Write-Host ""
+                    Write-Host "Diretorio resultante : $novoCaminhoDir"
+                    Write-Host -NoNewline "Comprimento maximo resultante (arquivo mais longo do diretorio): "
+                    Write-Host "$comprimentoResultante / $LimiteCaminho" -ForegroundColor $(if ($cabe) { 'Green' } else { 'Red' })
+                    if (-not $cabe) {
+                        Write-Warn "O caminho resultante ainda ultrapassa o limite configurado."
+                    }
+                    Write-Host ""
+
+                    $confirmar = Read-YesNo -Question "Confirma este nome para o diretorio $id?" -DefaultYes $cabe
+                    if ($confirmar) {
+                        $dir.nome_proposto = $novoNome
+                        $dir.caminho_proposto = $novoCaminhoDir
+                        $dir.editado_manualmente = $true
+                        $dir.selecionado = $true
+                        $dir.ja_valido = $false
+                        if ($dir.cadeia -and @($dir.cadeia).Count -gt 0) {
+                            $cadeiaLista = @($dir.cadeia)
+                            $cadeiaLista[$cadeiaLista.Count - 1].nome_proposto = $novoNome
+                            $dir.cadeia = $cadeiaLista
+                        }
+                        Write-Ok "Nome do diretorio $id atualizado manualmente."
+                    }
+                    else {
+                        Write-Host "Edicao descartada." -ForegroundColor Yellow
+                    }
+                    Start-Sleep -Milliseconds 800
                 }
             }
             '^G$' {
@@ -480,13 +516,18 @@ if ($Modo -in @('TUI', 'Proposta')) {
     Write-Host ''
     Write-Title "Analisando diretorios problematicos"
 
-    $diretorios = Get-DiretoriosProblematicos -Arquivos $jsonData.arquivos_problematicos
+    $diretorios = Get-DiretoriosProblematicos -Arquivos $jsonData.arquivos_problematicos `
+        -CaminhoRaiz $dropboxPath -LimiteCaminho $LimiteCaminho -MargemSeguranca $MargemSeguranca
     $dirsComProblema = @($diretorios | Where-Object { -not $_.ja_valido }).Count
     $totalArquivos = @($diretorios | ForEach-Object { $_.total_arquivos } | Measure-Object -Sum).Sum
+    $naoResolvidos = @($diretorios | Where-Object { $_.atingiu_raiz -and -not $_.resolvido }).Count
 
     Write-Ok "Diretorios analisados: $($diretorios.Count)"
     Write-Info "Diretorios com problemas: $dirsComProblema"
     Write-Info "Total de arquivos afetados: $totalArquivos"
+    if ($naoResolvidos -gt 0) {
+        Write-Warn "Diretorios que nao couberam automaticamente ate a raiz protegida: $naoResolvidos (edite manualmente na TUI ou no HTML)"
+    }
 
     # TUI ou NonInteractive
     if ($Modo -eq 'TUI' -and -not $NonInteractive) {
@@ -563,16 +604,24 @@ if ($Modo -in @('TUI', 'Proposta')) {
         }
         diretorios = @($diretorios | Where-Object { $_.selecionado } | ForEach-Object {
             [pscustomobject]@{
-                id               = $_.id
-                diretorio        = $_.diretorio
-                nome_original    = $_.nome_original
-                nome_proposto    = $_.nome_proposto
-                total_arquivos   = $_.total_arquivos
-                problemas        = $_.problemas
-                selecionado      = $_.selecionado
+                id                  = $_.id
+                diretorio           = $_.diretorio
+                nome_original       = $_.nome_original
+                nome_proposto       = $_.nome_proposto
+                caminho_original    = $_.caminho_original
+                caminho_proposto    = $_.caminho_proposto
+                total_arquivos      = $_.total_arquivos
+                maior_sufixo        = $_.maior_sufixo
+                problemas           = $_.problemas
+                problema_pred       = $_.problema_pred
+                selecionado         = $_.selecionado
+                resolvido           = $_.resolvido
+                atingiu_raiz        = $_.atingiu_raiz
+                editado_manualmente = $_.editado_manualmente
+                cadeia              = @($_.cadeia)
             }
         })
-        propostas = @($propostas)
+        propostas = $propostas.ToArray()
     }
 
     Write-TextFileUtf8 -Path $propostaJsonPath -Content ($propostaJson | ConvertTo-Json -Depth 6)
@@ -622,16 +671,39 @@ elseif ($Modo -eq 'Aplicar') {
         exit 0
     }
 
+    # Cadeia efetiva por diretorio: usa a cadeia do JSON quando presente
+    # (proposta gerada apos esta tarefa); sintetiza uma cadeia de 1 nivel
+    # para JSON antigo (compatibilidade com propostas geradas antes do
+    # encadeamento).
+    foreach ($d in $diretoriosParaAplicar) {
+        $cadeiaEfetiva = if ($d.PSObject.Properties['cadeia'] -and @($d.cadeia).Count -gt 0) {
+            @($d.cadeia)
+        }
+        else {
+            @([pscustomobject]@{ nivel = 1; caminho_original = $d.diretorio; nome_proposto = $d.nome_proposto })
+        }
+        Add-Member -InputObject $d -MemberType NoteProperty -Name '_cadeiaEfetiva' -Value $cadeiaEfetiva -Force
+    }
+
     # Mostrar antes/depois (antes de confirmar)
     Write-Host ''
     Write-Title "Correcoes a aplicar"
     foreach ($d in $diretoriosParaAplicar) {
-        $dirNovo = Join-Path (Split-Path -Parent $d.diretorio) $d.nome_proposto
+        $cadeiaOrdenada = @($d._cadeiaEfetiva | Sort-Object nivel)
+        $dirNovo = Split-Path -Parent $cadeiaOrdenada[0].caminho_original
+        foreach ($nivelItem in $cadeiaOrdenada) { $dirNovo = Join-Path $dirNovo $nivelItem.nome_proposto }
+
         Write-Host "  De : " -NoNewline
         Write-Host "$($d.diretorio)" -ForegroundColor Red
         Write-Host "  Para: " -NoNewline
         Write-Host "$dirNovo" -ForegroundColor Green
         Write-Host "  Itens: $($d.total_arquivos)" -ForegroundColor Cyan
+        if ($cadeiaOrdenada.Count -gt 1) {
+            Write-Host "  Cadeia ($($cadeiaOrdenada.Count) niveis, raso -> profundo):" -ForegroundColor Yellow
+            foreach ($nivelItem in $cadeiaOrdenada) {
+                Write-Host "    Nivel $($nivelItem.nivel): $(Split-Path -Leaf $nivelItem.caminho_original) -> $($nivelItem.nome_proposto)"
+            }
+        }
         Write-Host ''
     }
 
@@ -666,39 +738,32 @@ elseif ($Modo -eq 'Aplicar') {
 
     foreach ($dir in $diretoriosParaAplicar) {
         $contador++
-        $dirNovo = Join-Path (Split-Path -Parent $dir.diretorio) $dir.nome_proposto
+        $cadeiaOrdenada = @($dir._cadeiaEfetiva | Sort-Object nivel)
+        $nomeNovoProfundo = $cadeiaOrdenada[$cadeiaOrdenada.Count - 1].nome_proposto
 
         Write-Step "Processando diretorio $contador de $($diretoriosParaAplicar.Count)" ([math]::Round(($contador / $diretoriosParaAplicar.Count) * 100))
+
+        $aplicacaoCadeia = Invoke-DropboxCadeiaRename -Cadeia $cadeiaOrdenada
 
         $resultado = [pscustomobject]@{
             id                = $dir.id
             diretorio_origem  = $dir.diretorio
-            diretorio_destino = $dirNovo
+            diretorio_destino = $aplicacaoCadeia.caminho_final
             nome_original     = $dir.nome_original
-            nome_novo         = $dir.nome_proposto
+            nome_novo         = $nomeNovoProfundo
             arquivos_afetados = $dir.total_arquivos
-            status            = 'Erro'
-            erro              = ''
+            status            = if ($aplicacaoCadeia.sucesso) { 'Sucesso' } else { 'Erro' }
+            erro              = $aplicacaoCadeia.erro
             timestamp         = (Get-Date).ToString('yyyy-MM-ddTHH:mm:ssZ')
+            cadeia            = $aplicacaoCadeia.niveis
         }
 
-        try {
-            if (-not (Test-Path -LiteralPath $dir.diretorio -PathType Container)) {
-                throw "Diretorio nao encontrado: $($dir.diretorio)"
-            }
-            if (Test-Path -LiteralPath $dirNovo -PathType Container) {
-                throw "Diretorio de destino ja existe: $dirNovo"
-            }
-
-            Rename-Item -LiteralPath $dir.diretorio -NewName $dir.nome_proposto
-            $resultado.status = 'Sucesso'
+        if ($aplicacaoCadeia.sucesso) {
             $totalArquivosAfetados += $dir.total_arquivos
-            Write-Ok "$($dir.nome_original) -> $($dir.nome_proposto) ($($dir.total_arquivos) arquivos)"
+            Write-Ok "$($dir.nome_original) -> $nomeNovoProfundo ($($dir.total_arquivos) arquivos, $($cadeiaOrdenada.Count) nivel(is))"
         }
-        catch {
-            $resultado.status = 'Erro'
-            $resultado.erro = $_.Exception.Message
-            Write-Fail "$($dir.nome_original): $($_.Exception.Message)"
+        else {
+            Write-Fail "$($dir.nome_original): $($aplicacaoCadeia.erro)"
         }
 
         [void]$resultados.Add($resultado)
@@ -718,7 +783,7 @@ elseif ($Modo -eq 'Aplicar') {
             diretorios_falha      = $falha
             arquivos_afetados    = $totalArquivosAfetados
         }
-        resultado = @($resultados)
+        resultado = $resultados.ToArray()
     }
 
     Write-TextFileUtf8 -Path $resultadoJsonPath -Content ($resultadoJson | ConvertTo-Json -Depth 6)
@@ -778,20 +843,21 @@ elseif ($Modo -eq 'Relatorio') {
         # É uma proposta
         $dropboxPath = $dados.metadata.diagnostico_origem
         $totalPropostas = $dados.metadata.total_propostas
-        $selecionadas = $dados.metadata.selecionadas
+        $selecionadas = @($dados.propostas | Where-Object { $_.selecionado }).Count
 
         $htmlPath = Join-Path $DiretorioSaida 'correcoes-propostas.html'
         $html = New-DropboxPropostaHtmlReport -DropboxPath $dropboxPath `
-            -TotalPropostas $totalPropostas -Selecionadas $selecionadas -Propostas $dados.propostas
+            -TotalPropostas $totalPropostas -Selecionadas $selecionadas -Propostas $dados.propostas `
+            -Diretorios @($dados.diretorios) -MetadataOriginal $dados.metadata -LimiteCaminho $LimiteCaminho
         Write-TextFileUtf8 -Path $htmlPath -Content $html
         Write-Ok "Relatório de propostas gerado: $htmlPath"
     }
     elseif ($dados.resultado) {
         # É um resultado
         $dropboxPath = $dados.metadata.proposta_origem
-        $totalAplicadas = $dados.metadata.total_aplicadas
-        $sucesso = $dados.metadata.sucesso
-        $falha = $dados.metadata.falha
+        $totalAplicadas = @($dados.resultado).Count
+        $sucesso = @($dados.resultado | Where-Object { $_.status -eq 'Sucesso' }).Count
+        $falha = @($dados.resultado | Where-Object { $_.status -ne 'Sucesso' }).Count
 
         $htmlPath = Join-Path $DiretorioSaida 'correcoes-aplicadas.html'
         $html = New-DropboxResultadoHtmlReport -DropboxPath $dropboxPath `
