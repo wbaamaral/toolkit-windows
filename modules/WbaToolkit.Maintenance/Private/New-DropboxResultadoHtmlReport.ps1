@@ -1,13 +1,17 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Gera relatório HTML com o resultado da aplicação das correções do Dropbox.
 
 .DESCRIPTION
     Constrói cards de resumo e tabela detalhada com o resultado de cada
-    correção aplicada (de → para, status, backup, erros), delegando o
-    esqueleto HTML para New-ToolkitHtmlReport.
-    Inclui filtro de busca JavaScript para facilitar navegação.
+    correção aplicada (de → para, status, erros), delegando o esqueleto
+    HTML para New-ToolkitHtmlReport. Inclui filtro de busca JavaScript para
+    facilitar navegação.
+
+    Quando um resultado tem cadeia de encadeamento com mais de um nível
+    (propriedade 'cadeia'), os níveis intermediários (raso -> profundo) são
+    listados abaixo da linha principal para auditoria.
 
 .PARAMETER DropboxPath
     Caminho raiz do Dropbox analisado.
@@ -22,7 +26,9 @@
     Número de correções que falharam.
 
 .PARAMETER Resultados
-    Lista de resultados (objetos com id, de, para, status, backup, erro, timestamp).
+    Lista de resultados (objetos com id, diretorio_origem,
+    diretorio_destino, nome_original, nome_novo, status, erro, timestamp e,
+    opcionalmente, cadeia).
 
 .EXAMPLE
     $html = New-DropboxResultadoHtmlReport -DropboxPath 'C:\Dropbox' `
@@ -60,19 +66,42 @@ function New-DropboxResultadoHtmlReport {
 </div>
 "@
 
-    # Tabela de resultados
+    # Aceita tanto o esquema atual (diretorio_origem/diretorio_destino/nome_novo)
+    # quanto um esquema legado (de/para/backup), para compatibilidade com
+    # JSON de resultado gerado por versoes anteriores do script.
     $rows = foreach ($r in $Resultados) {
         $status = if ($r.status -eq 'Sucesso') {
             '<span class="badge badge-green">✓ Sucesso</span>'
         } else {
             '<span class="badge badge-red">✗ Erro</span>'
         }
-        $de = [System.Net.WebUtility]::HtmlEncode($r.de)
-        $para = [System.Net.WebUtility]::HtmlEncode($r.para)
-        $backup = if ($r.backup) { [System.Net.WebUtility]::HtmlEncode($r.backup) } else { '-' }
-        $erro = if ($r.erro) { [System.Net.WebUtility]::HtmlEncode($r.erro) } else { '' }
-        $timestamp = if ($r.timestamp) { [System.Net.WebUtility]::HtmlEncode($r.timestamp) } else { '' }
-        "<tr><td>$($r.id)</td><td>$status</td><td class='mono'>$de</td><td class='mono'>$para</td><td class='mono small'>$backup</td><td>$erro</td><td class='small'>$timestamp</td></tr>"
+
+        $origemVal = if ($r.PSObject.Properties['diretorio_origem']) { $r.diretorio_origem } else { $r.de }
+        $destinoVal = if ($r.PSObject.Properties['diretorio_destino']) { $r.diretorio_destino } else { $r.para }
+
+        $de = [System.Net.WebUtility]::HtmlEncode([string]$origemVal)
+        $para = [System.Net.WebUtility]::HtmlEncode([string]$destinoVal)
+        $erro = if ($r.erro) { [System.Net.WebUtility]::HtmlEncode([string]$r.erro) } else { '' }
+        $timestamp = if ($r.timestamp) { [System.Net.WebUtility]::HtmlEncode([string]$r.timestamp) } else { '' }
+
+        $cadeiaHtml = ''
+        if ($r.PSObject.Properties['cadeia'] -and @($r.cadeia).Count -gt 1) {
+            $niveis = foreach ($nivelItem in (@($r.cadeia) | Sort-Object nivel)) {
+                $nivelStatus = if ($nivelItem.status -eq 'Sucesso') { 'badge-green' } elseif ($nivelItem.status -eq 'NaoExecutado') { 'badge-gray' } else { 'badge-red' }
+                $origemNivel = [System.Net.WebUtility]::HtmlEncode([string]$nivelItem.caminho_original)
+                $nomeNivel = [System.Net.WebUtility]::HtmlEncode([string]$nivelItem.nome_proposto)
+                "<div><span class='badge $nivelStatus'>Nível $($nivelItem.nivel)</span> <span class='mono small'>$origemNivel</span> -&gt; $nomeNivel</div>"
+            }
+            $cadeiaHtml = "<td colspan='7'>$($niveis -join "`n")</td>"
+        }
+
+        $linhaPrincipal = "<tr><td>$($r.id)</td><td>$status</td><td class='mono'>$de</td><td class='mono'>$para</td><td>$erro</td><td class='small'>$timestamp</td></tr>"
+        if ($cadeiaHtml) {
+            "$linhaPrincipal`n<tr class='cadeia-detalhe'>$cadeiaHtml</tr>"
+        }
+        else {
+            $linhaPrincipal
+        }
     }
 
     $table = @"
@@ -81,7 +110,7 @@ function New-DropboxResultadoHtmlReport {
   <div class="section-body">
     <input type="text" id="search" onkeyup="filterTable()" placeholder="Pesquisar caminhos..." style="width:100%;padding:8px;margin-bottom:10px;border:1px solid #e2e8f0;border-radius:4px;">
     <table class="data-table" id="resultadosTable">
-      <thead><tr><th>ID</th><th>Status</th><th>De</th><th>Para</th><th>Backup</th><th>Erro</th><th>Timestamp</th></tr></thead>
+      <thead><tr><th>ID</th><th>Status</th><th>De</th><th>Para</th><th>Erro</th><th>Timestamp</th></tr></thead>
       <tbody>
         $($rows -join "`n")
       </tbody>
