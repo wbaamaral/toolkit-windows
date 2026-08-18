@@ -26,6 +26,55 @@ Exemplos:
 .\scripts\diagnosticar-ad-cliente.ps1
 ```
 
+## Dropbox
+
+### `diagnosticar-dropbox.ps1`
+
+**Função:** Diagnóstico de saúde do cliente Dropbox — processo, instalação, disco, arquivos
+problemáticos, frescor de pastas, conectividade, proxy, Defender e hora. Score 0–100.
+
+**Saída:** TXT, HTML (`-GerarHtml`), JSON (`-ExportarJson`).
+
+**Exemplos:**
+
+```powershell
+.\scripts\diagnosticar-dropbox.ps1
+.\scripts\diagnosticar-dropbox.ps1 -ExportarJson
+.\scripts\diagnosticar-dropbox.ps1 -GerarHtml -AbrirRelatorio
+.\scripts\diagnosticar-dropbox.ps1 -Modo Assistido -ReiniciarProcesso -ExcluirDoDefender
+.\scripts\diagnosticar-dropbox.ps1 -Path 'D:\Dropbox' -ExportarJson -DiretorioSaida 'C:\Temp'
+```
+
+### `auditar-arquivos-dropbox.ps1`
+
+**Função:** Auditoria e classificação de arquivos do Dropbox via atributos NTFS / Cloud Files.
+Identifica estados: SomenteNuvem, LocalENuvem, SomenteLocal, Indeterminado.
+
+**Exemplos:**
+
+```powershell
+.\scripts\auditar-arquivos-dropbox.ps1
+.\scripts\auditar-arquivos-dropbox.ps1 -Report CloudOnly
+.\scripts\auditar-arquivos-dropbox.ps1 -NonInteractive -Path 'D:\Dropbox' -Report All -Output '.\auditoria.csv'
+```
+
+### `corrigir-arquivos-dropbox.ps1`
+
+**Função:** Correção em massa de arquivos problemáticos do Dropbox identificados pelo diagnóstico.
+Modos: Renomeação (ajusta nome do arquivo) ou Mudança de Localização (move para pasta simplificada).
+
+**Entrada:** JSON gerado pelo `diagnosticar-dropbox.ps1 -ExportarJson`.
+
+**Saída:** `alteracoes.json`, `erros.json`, `rollback.json` e `simulacao.json` (modo `-Simular`).
+
+**Exemplos:**
+
+```powershell
+.\scripts\corrigir-arquivos-dropbox.ps1 -InputFile '.\diagnostico-dropbox.json' -Simular
+.\scripts\corrigir-arquivos-dropbox.ps1 -InputFile '.\diagnostico-dropbox.json'
+.\scripts\corrigir-arquivos-dropbox.ps1 -InputFile '.\diagnostico-dropbox.json' -Correcao MudancaLocalizacao
+```
+
 ## Inventário
 
 ### `inventario-hardware-software.ps1`
