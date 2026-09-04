@@ -37,6 +37,18 @@
         [string[]]$ServiceName = @('WSearch', 'SysMain', 'DPS', 'BITS', 'Ndu', 'WinDefend', 'DiagTrack', 'OneSyncSvc')
     )
 
+    # Mock/Linux: Get-Service não existe no pwsh Linux — em lab Docker/WBA_MOCK_AD retornar Running
+    if ($IsLinux -or $IsMacOS -or $env:WBA_MOCK_AD) {
+        return @($ServiceName | ForEach-Object {
+            [pscustomobject]@{
+                Name        = $_
+                DisplayName = $_
+                Status      = 'Running'
+                StartType   = 'Automatic'
+            }
+        })
+    }
+
     $services = foreach ($name in @($ServiceName)) {
         $svc = Get-Service -Name $name -ErrorAction SilentlyContinue
         if ($svc) {

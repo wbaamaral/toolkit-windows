@@ -403,7 +403,36 @@ function Invoke-XtudoScript {
         }
     }
 
-    & $target @invokeArgs
+    # Converter lista flat (-Nome Valor) para splatting correto: hashtable para parametros nomeados,
+    # array para posicionais. Array splatting direto com '-Nome' falha em ValidateSet (tratado como valor posicional).
+    $htArgs = @{}
+    $posArgs = @()
+    for ($i = 0; $i -lt $invokeArgs.Count; $i++) {
+        $tok = $invokeArgs[$i]
+        if ($tok -match '^-([A-Za-z0-9_]+)$') {
+            $pName = $Matches[1]
+            if (($i + 1) -lt $invokeArgs.Count -and $invokeArgs[$i + 1] -notmatch '^-') {
+                $htArgs[$pName] = $invokeArgs[$i + 1]
+                $i++
+            } else {
+                $htArgs[$pName] = $true
+            }
+        } elseif ($tok -match '^-([A-Za-z0-9_]+):(.+)$') {
+            $htArgs[$Matches[1]] = $Matches[2]
+        } else {
+            $posArgs += $tok
+        }
+    }
+
+    if ($htArgs.Count -gt 0 -and $posArgs.Count -gt 0) {
+        & $target @htArgs @posArgs
+    } elseif ($htArgs.Count -gt 0) {
+        & $target @htArgs
+    } elseif ($posArgs.Count -gt 0) {
+        & $target @posArgs
+    } else {
+        & $target
+    }
 }
 
 function Select-XtudoEntry {

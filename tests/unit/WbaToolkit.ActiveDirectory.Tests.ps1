@@ -10,14 +10,20 @@ BeforeAll {
 Describe 'Xtudo diagnostico AD do cliente' {
     It 'Mantem o script oficial de AD em scripts/' {
         Test-Path -LiteralPath $script:adPath | Should -BeTrue
-        $script:adContent | Should -Match "ValidateSet\('Diagnostico', 'Assistido'\)"
+        $script:adContent | Should -Match "ValidateSet\('Diagnostico', 'Assistido', 'Corrigir'\)"
         $script:adContent | Should -Match '\[switch\]\$Hora'
         $script:adContent | Should -Match '\[switch\]\$Canal'
+        $script:adContent | Should -Match '\[switch\]\$CorrigirDns'
+        $script:adContent | Should -Match '\[switch\]\$CorrigirServicos'
+        $script:adContent | Should -Match '\[switch\]\$CorrigirTodos'
+        $script:adContent | Should -Match '\[switch\]\$DryRun'
+        $script:adContent | Should -Match '\[switch\]\$Force'
+        $script:adContent | Should -Match 'SupportsShouldProcess'
         $script:adContent | Should -Match 'WbaToolkit\.Core'
         $script:adContent | Should -Match 'WbaToolkit\.Startup'
     }
 
-    It 'Cobre o contrato de diagnóstico do cliente AD' {
+    It 'Cobre o contrato de diagnóstico e correção do cliente AD' {
         $script:adContent | Should -Match 'Test-ComputerSecureChannel'
         $script:adContent | Should -Match 'Reset-ComputerMachinePassword'
         $script:adContent | Should -Match 'Resolve-DnsName'
@@ -26,8 +32,12 @@ Describe 'Xtudo diagnostico AD do cliente' {
         $script:adContent | Should -Match 'Get-ServiceStartupState'
         $script:adContent | Should -Match 'gpresult'
         $script:adContent | Should -Match 'Repair-AdTimeSync'
+        $script:adContent | Should -Match 'Repair-AdDnsConfiguration'
+        $script:adContent | Should -Match 'Repair-AdServices'
         $script:adContent | Should -Match 'Deseja reparar o canal seguro agora\?'
         $script:adContent | Should -Match 'w32tm'
+        $script:adContent | Should -Match 'Set-DnsClientServerAddress'
+        $script:adContent | Should -Match 'DryRun'
     }
 
     It 'Nao referencia experimental no script oficial de AD' {

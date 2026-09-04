@@ -21,7 +21,7 @@
     .OUTPUTS
         Objeto com contexto da máquina, fonte, serviço, fuso, ações e erros.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true)]
     param(
         [switch]$Apply,
 
@@ -30,6 +30,32 @@
 
         [string]$TimeZoneId
     )
+
+    # Mock para lab Docker/Linux (WBA_MOCK_AD) — simula sucesso sem w32tm real
+    if ($env:WBA_MOCK_AD) {
+        $computerMock = try { Get-CimInstance -ClassName Win32_ComputerSystem -ErrorAction SilentlyContinue } catch { $null }
+        $tzMock = try { Get-TimeZone -ErrorAction SilentlyContinue } catch { $null }
+        $mockSource = '172.20.0.10 (mock WBA_MOCK_AD)'
+        $actionsMock = New-Object 'System.Collections.Generic.List[string]'
+        if ($Apply) { $actionsMock.Add('Fonte configurada (mock WBA_MOCK_AD)') ; $actionsMock.Add('Sincronização solicitada (mock)') }
+        return [pscustomobject]@{
+            ComputerName   = if ($computerMock) { [string]$computerMock.Name } else { $env:COMPUTERNAME }
+            PartOfDomain   = $true
+            Domain         = 'wba.test'
+            SourceMode     = 'domhier'
+            NtpServer      = $null
+            SourceBefore   = $mockSource
+            SourceAfter    = $mockSource
+            ServiceStatus  = 'Running'
+            TimeZoneBefore = if ($tzMock) { [string]$tzMock.Id } else { 'E. South America Standard Time' }
+            TimeZoneAfter  = if ($tzMock) { [string]$tzMock.Id } else { 'E. South America Standard Time' }
+            ApplyRequested = [bool]$Apply
+            Actions        = @($actionsMock)
+            Errors         = @()
+            Success        = $true
+            GeneratedAt    = Get-Date
+        }
+    }
 
     $actions = New-Object 'System.Collections.Generic.List[string]'
     $errors = New-Object 'System.Collections.Generic.List[string]'

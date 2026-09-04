@@ -165,17 +165,34 @@ $txtPath  = Join-Path $ReportSession.Path 'conectividade-internet.txt'
 
 $report | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $jsonPath -Encoding UTF8
 
+$generatedAt = if ($null -ne $report.FinishedAt) { $report.FinishedAt } elseif ($null -ne $report.StartedAt) { $report.StartedAt } else { Get-Date }
+$computerName = if ($report.Context -and $report.Context.Hostname) { $report.Context.Hostname } elseif ($env:COMPUTERNAME) { $env:COMPUTERNAME } else { 'N/I' }
+$overall = if ($report.Blocked) { 'BLOQUEADO: ' + $report.BlockReason }
+           elseif ($report.Summary) {
+               if ($report.Summary.Failed -gt 0 -or $report.Summary.Error -gt 0) { 'FALHA' }
+               elseif ($report.Summary.Warning -gt 0) { 'AVISO' }
+               else { 'OK' }
+           } else { 'N/I' }
+
 $lines = New-Object 'System.Collections.Generic.List[string]'
 $lines.Add('WBA Windows Toolkit — Teste de Conectividade com a Internet')
-$lines.Add(('Gerado em       : {0}' -f $report.GeneratedAt.ToString('yyyy-MM-dd HH:mm:ss')))
-$lines.Add(('Computador      : {0}' -f $report.ComputerName))
-$lines.Add(('Resultado geral : {0}' -f $report.OverallStatus))
+$lines.Add(('Gerado em       : {0}' -f $generatedAt.ToString('yyyy-MM-dd HH:mm:ss')))
+$lines.Add(('Computador      : {0}' -f $computerName))
+$lines.Add(('Resultado geral : {0}' -f $overall))
+if ($report.Summary) {
+    $lines.Add(('Resumo          : Total={0} Sucesso={1} Falhas={2} Avisos={3} Inconclusivo={4}' -f $report.Summary.Total, $report.Summary.Success, $report.Summary.Failed, $report.Summary.Warning, $report.Summary.Inconclusive))
+}
 $lines.Add('')
 $lines.Add('Testes:')
-foreach ($test in $report.Tests) {
+foreach ($test in @($report.Results)) {
+    $testName = if ($test.TestName) { $test.TestName } elseif ($test.Name) { $test.Name } else { 'Teste' }
     $status = if ($test.Success) { 'OK' } else { 'FALHA' }
-    $lines.Add(('  [{0}] {1}' -f $status, $test.Name))
-    if ($test.Detail) { $lines.Add(('        {0}' -f $test.Detail)) }
+    $detail = if ($test.Status) { $test.Status } elseif ($test.Detail) { $test.Detail } else { '' }
+    $targetInfo = if ($test.Target) { " [$($test.Target)]" } else { '' }
+    $lines.Add(('  [{0}] {1}{2} - {3}' -f $status, $testName, $targetInfo, $detail))
+    if ($test.Recommendation) { $lines.Add(('        Dica: {0}' -f $test.Recommendation)) }
+    elseif ($test.Detail -and $test.Detail -ne $detail) { $lines.Add(('        {0}' -f $test.Detail)) }
+    if ($test.ErrorMessage) { $lines.Add(('        Erro: {0}' -f $test.ErrorMessage)) }
 }
 $lines | Set-Content -LiteralPath $txtPath -Encoding UTF8
 

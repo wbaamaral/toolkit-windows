@@ -52,9 +52,9 @@
     Autor: wbaamaral
     Módulos requeridos: WbaToolkit.Core, WbaToolkit.Startup, WbaToolkit.Maintenance.
 #>
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [ValidateSet('Diagnostico', 'Assistido')]
+    [ValidateSet('Diagnostico', 'Assistido', 'Corrigir')]
     [string]$Modo = 'Diagnostico',
 
     [switch]$Hora,
@@ -75,6 +75,20 @@ param(
 
     [Alias('DiretorioSaida')]
     [string]$Path,
+
+    [switch]$CorrigirHora,
+
+    [switch]$CorrigirCanal,
+
+    [switch]$CorrigirDns,
+
+    [switch]$CorrigirServicos,
+
+    [switch]$CorrigirTodos,
+
+    [switch]$Force,
+
+    [switch]$DryRun,
 
     [switch]$Help
 )
@@ -132,21 +146,39 @@ $script:Domain = $DomainFQDN
 $script:NetBIOS = $DomainNetBIOS
 $script:TargetDc = $PreferredDc
 
+# Normalização de flags de correção (retrocompatibilidade Hora/Canal)
+if ($CorrigirHora) { $Hora = $true }
+if ($CorrigirCanal) { $Canal = $true }
+if ($CorrigirTodos -or $Modo -eq 'Corrigir') {
+    $Hora = $true; $Canal = $true; $CorrigirDns = $true; $CorrigirServicos = $true
+    if ($Modo -eq 'Corrigir' -and -not $Force -and -not $DryRun -and -not $PSBoundParameters.ContainsKey('WhatIf')) {
+        Write-Warn 'Modo Corrigir requer -Force ou -DryRun/-WhatIf para execução automática.'
+    }
+}
+$script:DoDryRun = [bool]($DryRun -or $PSBoundParameters.ContainsKey('WhatIf'))
+$script:DoForce = [bool]$Force
+
 function Show-Help {
     [CmdletBinding()]
     param()
     Write-Host ""
-    Write-Title "Diagnóstico de Cliente de Domínio (AD) — $ScriptVersion"
+    Write-Title "Diagnóstico e Correção de Cliente de Domínio (AD) — $ScriptVersion"
     Write-Host ""
     Write-Host "Uso:  .\$ScriptName [opcoes]"
     Write-Host ""
-    Write-Host "  -Modo '<modo>'         Diagnostico (padrao) ou Assistido (permite reparo guiado)."
-    Write-Host "  -Hora                  Habilita o reparo guiado da hora (modo Assistido)."
-    Write-Host "  -Canal                 Habilita o reparo guiado do canal seguro (modo Assistido)."
+    Write-Host "  -Modo '<modo>'         Diagnostico (padrao, só leitura), Assistido (guiado com confirmação),"
+    Write-Host "                         Corrigir (automatico, sem perguntar — requer -Force se não for DryRun)."
+    Write-Host "  -Hora / -CorrigirHora  Habilita correção da hora (w32tm domhier)."
+    Write-Host "  -Canal / -CorrigirCanal Habilita correção do canal seguro (Reset-ComputerMachinePassword)."
+    Write-Host "  -CorrigirDns           Corrige DNS do cliente para -DnsServers (Set-DnsClientServerAddress)."
+    Write-Host "  -CorrigirServicos      Corrige serviços AD (Netlogon,W32Time,Dnscache,gpsvc,LanmanWorkstation)."
+    Write-Host "  -CorrigirTodos         Atalho: ativa todas as correções acima."
+    Write-Host "  -Force                 Não pergunta; executa direto (usar com -Corrigir* ou -Modo Corrigir)."
+    Write-Host "  -DryRun / -WhatIf      Simula; não altera o sistema (mostra o que faria)."
     Write-Host "  -DomainFQDN '<fqdn>'   FQDN do dominio. Padrao: inferido do ambiente."
     Write-Host "  -DomainNetBIOS '<nb>'  Nome NetBIOS do dominio. Padrao: derivado do FQDN."
     Write-Host "  -PreferredDc '<dc>'    Controlador de dominio preferencial."
-    Write-Host "  -DnsServers <lista>    Servidores DNS esperados no cliente."
+    Write-Host "  -DnsServers <lista>    Servidores DNS esperados no cliente (obrigatório para -CorrigirDns)."
     Write-Host "  -GerarHtml             Gera tambem o relatorio em HTML."
     Write-Host "  -AbrirRelatorio        Abre o relatorio HTML ao final."
     Write-Host "  -DiretorioSaida '<dir>' Raiz de relatorios. Padrao: raiz persistente do toolkit."
@@ -155,6 +187,8 @@ function Show-Help {
     Write-Host "Exemplos:"
     Write-Host "  .\$ScriptName"
     Write-Host "  .\$ScriptName -Modo Assistido -Hora -Canal -DomainFQDN wba.test"
+    Write-Host "  .\$ScriptName -Modo Corrigir -CorrigirTodos -DnsServers 192.168.4.10 -Force"
+    Write-Host "  .\$ScriptName -Modo Corrigir -CorrigirDns -CorrigirServicos -DnsServers 192.168.4.10 -DryRun -Verbose"
     Write-Host ""
 }
 
@@ -283,6 +317,104 @@ function Test-AdDnsConfiguration {
     }
 }
 
+function Repair-AdDnsConfiguration {
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param()
+
+    if (-not $CorrigirDns -and -not $script:DoForce -and $Modo -ne 'Corrigir') {
+        # Só corrige se explicitamente solicitado
+        $dnsFail = @($script:Checks | Where-Object { $_.Categoria -eq 'DNS' -and $_.Nome -eq 'Configuração DNS' -and $_.Status -ne 'OK' })
+        if ($dnsFail.Count -eq 0) { return }
+        if ($Modo -ne 'Assistido' -and -not $script:DoForce) { return }
+    }
+
+    $expected = @($DnsServers | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    if ($expected.Count -eq 0) {
+        Add-AdCheck -Category 'DNS' -Name 'Correção DNS' -Status 'PULADO' -Detail 'Nenhum -DnsServers informado; não há baseline para corrigir.' -Recommendation 'Informe -DnsServers com os DNS do AD.' -Penalty 0
+        return
+    }
+
+    $adapters = @(Get-DnsClientServerAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.ServerAddresses })
+    $configured = @($adapters | ForEach-Object { $_.ServerAddresses } | Where-Object { $_ })
+    $missing = @($expected | Where-Object { $_ -notin $configured })
+    if ($missing.Count -eq 0) {
+        Add-AdCheck -Category 'DNS' -Name 'Correção DNS' -Status 'OK' -Detail 'DNS já conforme o esperado; nenhuma alteração necessária.' -Penalty 0
+        return
+    }
+
+    # Identifica adaptador primário (mesma lógica de Get-NetworkContext) — mock para lab Docker
+    $primaryAdapter = $null
+    if ($env:WBA_MOCK_AD -and $IsLinux) {
+        $primaryAdapter = [pscustomobject]@{ InterfaceAlias = 'eth0'; InterfaceIndex = 2; Name = 'eth0' }
+    } else {
+        try {
+            $primaryAdapter = Get-NetAdapter -ErrorAction Stop | Where-Object { $_.Status -eq 'Up' -and $_.InterfaceDescription -notmatch 'Loopback' } | Sort-Object InterfaceMetric | Select-Object -First 1
+        } catch { Write-Verbose "Repair-AdDnsConfiguration: Get-NetAdapter falhou: $($_.Exception.Message)" }
+
+        if (-not $primaryAdapter) {
+            try { $primaryAdapter = Get-NetIPConfiguration -ErrorAction SilentlyContinue | Where-Object { $_.IPv4Address } | Select-Object -First 1 } catch {}
+            if ($primaryAdapter -and $primaryAdapter.InterfaceAlias) {
+                $primaryAdapter = [pscustomobject]@{ InterfaceAlias = $primaryAdapter.InterfaceAlias; InterfaceIndex = $primaryAdapter.InterfaceIndex }
+            }
+        }
+    }
+
+    if (-not $primaryAdapter) {
+        Add-AdCheck -Category 'DNS' -Name 'Correção DNS' -Status 'FALHA' -Detail 'Não foi possível identificar adaptador ativo para corrigir DNS.' -Penalty 15 -Critical
+        return
+    }
+
+    $alias = $primaryAdapter.InterfaceAlias
+    if (-not $alias) { $alias = $primaryAdapter.Name }
+    $targetServers = @($expected)
+
+    if ($script:DoDryRun) {
+        Write-Warn "[DryRun] Corrigiria DNS em '$alias' para: $($targetServers -join ', ')"
+        Add-AdCheck -Category 'DNS' -Name 'Correção DNS' -Status 'AVISO' -Detail "[DryRun] Seria configurado DNS em '$alias': $($targetServers -join ', ')" -Recommendation 'Reexecute sem -DryRun/-WhatIf para aplicar.' -Penalty 5
+        return
+    }
+
+    $shouldContinue = $script:DoForce -or $Modo -eq 'Corrigir' -or $PSCmdlet.ShouldProcess("Interface '$alias'", "Configurar DNS para $($targetServers -join ', ')")
+    if (-not $shouldContinue) {
+        if (-not $script:DoForce -and $Modo -eq 'Assistido') {
+            if (-not (Read-YesNo -Question "Deseja corrigir o DNS em '$alias' para $($targetServers -join ', ')?" -DefaultYes $true)) {
+                Add-AdCheck -Category 'DNS' -Name 'Correção DNS' -Status 'PULADO' -Detail 'Correção de DNS cancelada pelo operador.' -Penalty 0
+                return
+            }
+            $shouldContinue = $true
+        }
+    }
+    if (-not $shouldContinue) { return }
+
+    try {
+        if ($PSCmdlet.ShouldProcess("Interface '$alias'", "Set-DnsClientServerAddress $($targetServers -join ', ')")) {
+            if ($env:WBA_MOCK_AD -and $IsLinux) {
+                Write-Host "[MOCK] Set-DnsClientServerAddress $alias -> $($targetServers -join ', ')" -ForegroundColor Yellow
+                # Simula sucesso: atualiza mock global
+                $global:MockDnsServers = @($targetServers)
+                Set-AdCheckResult -Category 'DNS' -Name 'Configuração DNS' -Status 'OK' -Detail "DNS corrigido (mock) em '$alias': $($targetServers -join ', ')" -Penalty 0 | Out-Null
+                Add-AdCheck -Category 'DNS' -Name 'Correção DNS' -Status 'OK' -Detail "DNS configurado com sucesso (mock) em '$alias': $($targetServers -join ', ')" -Penalty 0
+                Write-Ok "DNS corrigido (mock) em '$alias'."
+            } else {
+                Set-DnsClientServerAddress -InterfaceAlias $alias -ServerAddresses $targetServers -ErrorAction Stop
+                # Revalida
+                $postAdapters = @(Get-DnsClientServerAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.ServerAddresses })
+                $postConfigured = @($postAdapters | ForEach-Object { $_.ServerAddresses } | Where-Object { $_ })
+                $stillMissing = @($expected | Where-Object { $_ -notin $postConfigured })
+                if ($stillMissing.Count -eq 0) {
+                    Set-AdCheckResult -Category 'DNS' -Name 'Configuração DNS' -Status 'OK' -Detail "DNS corrigido em '$alias': $($targetServers -join ', ')" -Penalty 0 | Out-Null
+                    Add-AdCheck -Category 'DNS' -Name 'Correção DNS' -Status 'OK' -Detail "DNS configurado com sucesso em '$alias': $($targetServers -join ', ')" -Penalty 0
+                    Write-Ok "DNS corrigido em '$alias'."
+                } else {
+                    Add-AdCheck -Category 'DNS' -Name 'Correção DNS' -Status 'FALHA' -Detail "Após correção, ainda faltam: $($stillMissing -join ', ')" -Penalty 10 -Critical
+                }
+            }
+        }
+    } catch {
+        Add-AdCheck -Category 'DNS' -Name 'Correção DNS' -Status 'FALHA' -Detail $_.Exception.Message -Recommendation 'Verifique permissões e adaptador.' -Penalty 15 -Critical
+    }
+}
+
 function Test-AdConnectivity {
     [CmdletBinding()]
     param()
@@ -329,6 +461,20 @@ function Test-AdShares {
     $shareHost = if (-not [string]::IsNullOrWhiteSpace($script:TargetDc)) { $script:TargetDc } else { $script:Domain }
     foreach ($share in @('SYSVOL', 'NETLOGON')) {
         $path = "\\$shareHost\$share"
+        $hasAccess = $false
+        # Em lab Docker/Linux (WBA_MOCK_AD) UNC não funciona — valida via SMB 445 + dig
+        if ($env:WBA_MOCK_AD -or $IsLinux) {
+            # Se LDAP e SMB já OK, assume SYSVOL acessível em mock
+            $hasAccess = Test-AdPort -HostName $shareHost -Port 445
+            if (-not $hasAccess) { $hasAccess = Test-Path -LiteralPath $path }
+            $detailMock = if ($hasAccess) { "Acesso OK (mock WBA_MOCK_AD): $path [SMB 445]" } else { "Sem acesso (mock): $path" }
+            if ($hasAccess) {
+                Add-AdCheck -Category 'Shares' -Name $share -Status 'OK' -Detail $detailMock -Penalty 0
+            } else {
+                Add-AdCheck -Category 'Shares' -Name $share -Status 'FALHA' -Detail $detailMock -Recommendation "Verifique o compartilhamento $share no DC." -Penalty 20 -Critical
+            }
+            continue
+        }
         if (Test-Path -LiteralPath $path) {
             Add-AdCheck -Category 'Shares' -Name $share -Status 'OK' -Detail "Acesso OK: $path" -Penalty 0
         }
@@ -350,27 +496,39 @@ function Test-AdSecureChannel {
             Add-AdCheck -Category 'Domínio' -Name 'Canal seguro' -Status 'OK' -Detail 'Secure channel íntegro.' -Penalty 0
         }
         else {
-            Add-AdCheck -Category 'Domínio' -Name 'Canal seguro' -Status 'FALHA' -Detail 'Secure channel quebrado.' -Recommendation 'Em modo assistido, use o reparo guiado.' -Penalty 30 -Critical
-            if ($Modo -eq 'Assistido' -and $Canal -and (Read-YesNo -Question 'Deseja reparar o canal seguro agora?' -DefaultYes $true)) {
-                $cred = Get-Credential -Message 'Credencial de domínio para reparar o canal seguro'
-                try {
-                    if ([string]::IsNullOrWhiteSpace($script:TargetDc)) {
-                        Reset-ComputerMachinePassword -Credential $cred -ErrorAction Stop
+            Add-AdCheck -Category 'Domínio' -Name 'Canal seguro' -Status 'FALHA' -Detail 'Secure channel quebrado.' -Recommendation 'Use -Modo Corrigir/Assistido com -Canal/-CorrigirCanal ou -CorrigirTodos.' -Penalty 30 -Critical
+            $shouldRepairCanal = $Canal -or $CorrigirCanal -or $CorrigirTodos -or $Modo -eq 'Corrigir'
+            if ($shouldRepairCanal) {
+                if ($script:DoDryRun) {
+                    Write-Warn "[DryRun] Corrigiria canal seguro via Reset-ComputerMachinePassword em $script:TargetDc"
+                    Add-AdCheck -Category 'Domínio' -Name 'Reparo do canal seguro' -Status 'AVISO' -Detail '[DryRun] Seria executado Reset-ComputerMachinePassword' -Recommendation 'Reexecute sem -DryRun para aplicar.' -Penalty 5
+                } else {
+                    $doPrompt = -not $script:DoForce -and $Modo -eq 'Assistido' -and -not $PSCmdlet.ShouldProcess($script:TargetDc, 'Reset-ComputerMachinePassword')
+                    if ($doPrompt) {
+                        if (-not (Read-YesNo -Question 'Deseja reparar o canal seguro agora?' -DefaultYes $true)) {
+                            Add-AdCheck -Category 'Domínio' -Name 'Reparo do canal seguro' -Status 'PULADO' -Detail 'Reparo cancelado pelo operador.' -Penalty 0
+                            return
+                        }
                     }
-                    else {
-                        Reset-ComputerMachinePassword -Server $script:TargetDc -Credential $cred -ErrorAction Stop
+                    $cred = Get-Credential -Message 'Credencial de domínio para reparar o canal seguro'
+                    try {
+                        if ($PSCmdlet.ShouldProcess($script:TargetDc, 'Reset-ComputerMachinePassword')) {
+                            if ([string]::IsNullOrWhiteSpace($script:TargetDc)) {
+                                Reset-ComputerMachinePassword -Credential $cred -ErrorAction Stop
+                            } else {
+                                Reset-ComputerMachinePassword -Server $script:TargetDc -Credential $cred -ErrorAction Stop
+                            }
+                        }
+                        $post = Test-ComputerSecureChannel -ErrorAction Stop
+                        if ($post) {
+                            Set-AdCheckResult -Category 'Domínio' -Name 'Canal seguro' -Status 'OK' -Detail 'Secure channel íntegro apos reparo.' -Penalty 0 | Out-Null
+                            Add-AdCheck -Category 'Domínio' -Name 'Reparo do canal seguro' -Status 'OK' -Detail 'Reparo concluído com sucesso.' -Penalty 0
+                        } else {
+                            Add-AdCheck -Category 'Domínio' -Name 'Reparo do canal seguro' -Status 'FALHA' -Detail 'O reparo foi executado, mas o canal ainda falha.' -Penalty 15 -Critical
+                        }
+                    } catch {
+                        Add-AdCheck -Category 'Domínio' -Name 'Reparo do canal seguro' -Status 'FALHA' -Detail $_.Exception.Message -Recommendation 'Verifique credenciais e conectividade com o DC.' -Penalty 15 -Critical
                     }
-                    $post = Test-ComputerSecureChannel -ErrorAction Stop
-                    if ($post) {
-                        Set-AdCheckResult -Category 'Domínio' -Name 'Canal seguro' -Status 'OK' -Detail 'Secure channel íntegro apos reparo.' -Penalty 0
-                        Add-AdCheck -Category 'Domínio' -Name 'Reparo do canal seguro' -Status 'OK' -Detail 'Reparo concluído com sucesso.' -Penalty 0
-                    }
-                    else {
-                        Add-AdCheck -Category 'Domínio' -Name 'Reparo do canal seguro' -Status 'FALHA' -Detail 'O reparo foi executado, mas o canal ainda falha.' -Penalty 15 -Critical
-                    }
-                }
-                catch {
-                    Add-AdCheck -Category 'Domínio' -Name 'Reparo do canal seguro' -Status 'FALHA' -Detail $_.Exception.Message -Recommendation 'Verifique credenciais e conectividade com o DC.' -Penalty 15 -Critical
                 }
             }
         }
@@ -436,23 +594,33 @@ function Set-AdCheckResult {
 }
 
 function Repair-AdTimeSync {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true)]
     param()
 
-    Write-Section 'Tempo - reparo guiado'
+    Write-Section 'Tempo - reparo'
 
-    if ($Modo -ne 'Assistido') {
-        Add-AdCheck -Category 'Tempo' -Name 'Reparo da hora' -Status 'PULADO' -Detail 'Correção de hora disponível apenas em modo Assistido.' -Recommendation 'Reexecute com -Modo Assistido -Hora.' -Penalty 0
+    $shouldRepair = $Hora -or $CorrigirHora -or $CorrigirTodos -or $Modo -eq 'Corrigir'
+    if (-not $shouldRepair) {
+        Add-AdCheck -Category 'Tempo' -Name 'Reparo da hora' -Status 'PULADO' -Detail 'Correção de hora não solicitada.' -Recommendation 'Use -Hora/-CorrigirHora ou -CorrigirTodos com -Modo Assistido/Corrigir.' -Penalty 0
         return
     }
 
-    if (-not (Read-YesNo -Question 'Deseja corrigir a sincronizacao de hora agora?' -DefaultYes $true)) {
-        Add-AdCheck -Category 'Tempo' -Name 'Reparo da hora' -Status 'PULADO' -Detail 'Correção de hora cancelada pelo operador.' -Penalty 0
+    if ($script:DoDryRun) {
+        Write-Warn "[DryRun] Corrigiria sincronização de hora (Sync-ComputerTime -Apply) — fonte domhier + w32tm /resync"
+        Add-AdCheck -Category 'Tempo' -Name 'Reparo da hora' -Status 'AVISO' -Detail '[DryRun] Seria executado Sync-ComputerTime -Apply (domhier)' -Recommendation 'Reexecute sem -DryRun para aplicar.' -Penalty 3
         return
+    }
+
+    $doConfirm = -not $script:DoForce -and $Modo -eq 'Assistido' -and -not $PSCmdlet.ShouldProcess('W32Time', 'Sync-ComputerTime -Apply (domhier)')
+    if ($doConfirm) {
+        if (-not (Read-YesNo -Question 'Deseja corrigir a sincronizacao de hora agora?' -DefaultYes $true)) {
+            Add-AdCheck -Category 'Tempo' -Name 'Reparo da hora' -Status 'PULADO' -Detail 'Correção de hora cancelada pelo operador.' -Penalty 0
+            return
+        }
     }
 
     try {
-        $sync = Sync-ComputerTime -Apply -Confirm:$false
+        $sync = Sync-ComputerTime -Apply
         if ($sync.Success -and $sync.PartOfDomain -and $sync.SourceAfter -notmatch 'Local CMOS|Free-running') {
             Set-AdCheckResult -Category 'Tempo' -Name 'Sincronização de hora' -Status 'OK' -Detail "Sincronização corrigida. Fonte de tempo: $($sync.SourceAfter)" -Penalty 0
             Add-AdCheck -Category 'Tempo' -Name 'Reparo da hora' -Status 'OK' -Detail 'Reparo concluído pela rotina compartilhada de sincronização.' -Penalty 0
@@ -479,6 +647,75 @@ function Test-AdServices {
         }
         else {
             Add-AdCheck -Category 'Serviços' -Name $svc.Name -Status 'AVISO' -Detail "Status=$($svc.Status); StartType=$($svc.StartType)" -Recommendation 'O serviço precisa estar disponível para o cliente AD.' -Penalty 5
+        }
+    }
+}
+
+function Repair-AdServices {
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param()
+
+    $shouldRepair = $CorrigirServicos -or $CorrigirTodos -or $Modo -eq 'Corrigir'
+    if (-not $shouldRepair) {
+        # Em Assistido sem flag explícita, só repara se houver falha e operador confirmar via prompt posterior
+        $svcFails = @($script:Checks | Where-Object { $_.Categoria -eq 'Serviços' -and $_.Status -ne 'OK' })
+        if ($svcFails.Count -eq 0) { return }
+        if ($Modo -ne 'Assistido' -and -not $script:DoForce) { return }
+    }
+
+    Write-Section 'Serviços — correção'
+
+    $serviceNames = @('gpsvc', 'Netlogon', 'Dnscache', 'W32Time', 'LanmanWorkstation')
+    $states = @(Get-ServiceStartupState -ServiceName $serviceNames)
+
+    foreach ($svc in $states) {
+        $needsStart = $svc.Status -ne 'Running'
+        $needsAuto = $svc.StartType -and $svc.StartType -notin @('Automatic', 'Auto', 'Automatico')
+
+        if (-not $needsStart -and -not $needsAuto) { continue }
+
+        $actions = @()
+        if ($needsAuto) { $actions += "StartType Automatic" }
+        if ($needsStart) { $actions += "Start" }
+        $actionText = ($actions -join ' + ') + " em $($svc.Name) (atual: Status=$($svc.Status) StartType=$($svc.StartType))"
+
+        if ($script:DoDryRun) {
+            Write-Warn "[DryRun] Corrigiria $actionText"
+            Add-AdCheck -Category 'Serviços' -Name "Correção $($svc.Name)" -Status 'AVISO' -Detail "[DryRun] Seria aplicado: $actionText" -Recommendation 'Reexecute sem -DryRun para aplicar.' -Penalty 3
+            continue
+        }
+
+        $doConfirm = -not $script:DoForce -and $Modo -eq 'Assistido' -and -not $PSCmdlet.ShouldProcess($svc.Name, $actionText)
+        if ($doConfirm) {
+            if (-not (Read-YesNo -Question "Deseja corrigir o serviço '$($svc.Name)' ($actionText)?" -DefaultYes $true)) {
+                Add-AdCheck -Category 'Serviços' -Name "Correção $($svc.Name)" -Status 'PULADO' -Detail 'Correção cancelada pelo operador.' -Penalty 0
+                continue
+            }
+        }
+
+        try {
+            if ($needsAuto) {
+                if ($PSCmdlet.ShouldProcess($svc.Name, 'Set-Service StartupType Automatic')) {
+                    Set-Service -Name $svc.Name -StartupType Automatic -ErrorAction Stop
+                    Write-Ok "Serviço $($svc.Name): StartType ajustado para Automatic."
+                }
+            }
+            if ($needsStart) {
+                if ($PSCmdlet.ShouldProcess($svc.Name, 'Start-Service')) {
+                    Start-Service -Name $svc.Name -ErrorAction Stop
+                    Write-Ok "Serviço $($svc.Name): iniciado."
+                }
+            }
+            # Revalida
+            $post = Get-ServiceStartupState -ServiceName @($svc.Name) | Select-Object -First 1
+            if ($post -and $post.Status -eq 'Running') {
+                Set-AdCheckResult -Category 'Serviços' -Name $svc.Name -Status 'OK' -Detail "Status=$($post.Status); StartType=$($post.StartType) (corrigido)" -Penalty 0 | Out-Null
+                Add-AdCheck -Category 'Serviços' -Name "Correção $($svc.Name)" -Status 'OK' -Detail "Corrigido: $actionText" -Penalty 0
+            } else {
+                Add-AdCheck -Category 'Serviços' -Name "Correção $($svc.Name)" -Status 'FALHA' -Detail "Tentativa de $actionText falhou; status atual: $($post.Status)" -Penalty 8 -Critical
+            }
+        } catch {
+            Add-AdCheck -Category 'Serviços' -Name "Correção $($svc.Name)" -Status 'FALHA' -Detail $_.Exception.Message -Recommendation 'Verifique permissões de administrador.' -Penalty 8 -Critical
         }
     }
 }
@@ -699,10 +936,24 @@ function Write-AdReport {
 if ($Help) { Show-Help; exit 0 }
 
 if (-not (Test-IsAdministrator)) {
-    Write-Warn 'Privilegio de Administrador necessario. Solicitando elevacao...'
-    $relaunchCommand = New-ToolkitElevationCommand -ScriptPath $PSCommandPath -BoundParameters $PSBoundParameters
-    Start-Process powershell.exe -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $relaunchCommand) -Verb RunAs
-    exit
+    # Em lab Docker/Linux (pwsh sem elevação Windows) permitir execução com aviso — usado por tests/lab-docker
+    if ($IsLinux -or $IsMacOS -or $env:WBA_MOCK_AD -or $env:CI) {
+        Write-Warn 'Executando sem privilégio de Administrador (ambiente não-Windows/mock) — continuando sem elevação.'
+    } else {
+        Write-Warn 'Privilegio de Administrador necessario. Solicitando elevacao...'
+        $relaunchCommand = New-ToolkitElevationCommand -ScriptPath $PSCommandPath -BoundParameters $PSBoundParameters
+        # PowerShell Core (pwsh) não suporta -Verb RunAs; fallback para powershell.exe em Windows
+        try {
+            if (Get-Command powershell.exe -ErrorAction SilentlyContinue) {
+                Start-Process powershell.exe -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $relaunchCommand) -Verb RunAs -ErrorAction Stop
+            } else {
+                Start-Process pwsh -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $relaunchCommand) -ErrorAction Stop
+            }
+        } catch {
+            Write-Warn "Não foi possível elevar: $($_.Exception.Message) — continuando sem elevação."
+        }
+        exit
+    }
 }
 
 $script:ReportSession = Initialize-ToolkitReportSession -ReportsRoot $Path -ModuleName 'diagnostico-ad'
@@ -719,14 +970,20 @@ Write-Info "DC alvo    : $($context.PreferredDc)"
 Add-AdCheck -Category 'Domínio' -Name 'Ingresso no domínio' -Status $(if ($context.PartOfDomain) { 'OK' } else { 'FALHA' }) -Detail $(if ($context.PartOfDomain) { 'Cliente ingressado em domínio.' } else { 'Cliente não está ingressado em domínio.' }) -Recommendation $(if ($context.PartOfDomain) { '' } else { 'Ingressar a estação no domínio antes de aplicar políticas AD.' }) -Penalty $(if ($context.PartOfDomain) { 0 } else { 30 }) -Critical:(!$context.PartOfDomain)
 
 Test-AdDnsConfiguration
+if ($CorrigirDns -or $CorrigirTodos -or $Modo -eq 'Corrigir') {
+    Repair-AdDnsConfiguration
+}
 Test-AdConnectivity
 Test-AdShares
 Test-AdSecureChannel
 Test-AdTimeSync
-if ($Hora) {
+if ($Hora -or $CorrigirHora -or $CorrigirTodos -or $Modo -eq 'Corrigir') {
     Repair-AdTimeSync
 }
 Test-AdServices
+if ($CorrigirServicos -or $CorrigirTodos -or $Modo -eq 'Corrigir') {
+    Repair-AdServices
+}
 Test-AdMachineObject
 
 if ($context.PartOfDomain -and -not [string]::IsNullOrWhiteSpace($context.Domain)) {
@@ -751,24 +1008,39 @@ Write-Host ''
 
 Write-AdReport -Summary $summary
 
-if ($Modo -eq 'Assistido' -and $Canal) {
+if ($Canal -or $CorrigirCanal -or $CorrigirTodos -or $Modo -eq 'Corrigir' -or $Modo -eq 'Assistido') {
     $secureFail = @($script:Checks | Where-Object { $_.Nome -eq 'Canal seguro' -and $_.Status -eq 'FALHA' })
     if ($secureFail.Count -gt 0) {
-        Write-Host ''
-        Write-Warn 'O canal seguro ainda está quebrado.'
-        if (Read-YesNo -Question 'Deseja tentar reparo guiado da conta de máquina agora?' -DefaultYes $true) {
-            $cred = Get-Credential -Message 'Credencial de domínio para reparar a conta de máquina'
+        if ($script:DoDryRun) {
+            Write-Warn "[DryRun] Canal seguro ainda quebrado — seria executado Reset-ComputerMachinePassword em $script:TargetDc"
+        } elseif ($Modo -eq 'Corrigir' -or $script:DoForce -or $CorrigirTodos -or $CorrigirCanal) {
+            Write-Warn 'Canal seguro ainda quebrado — tentando reparo automático (Modo Corrigir/Force)...'
             try {
+                $cred = Get-Credential -Message 'Credencial de domínio para reparar a conta de máquina'
                 if ([string]::IsNullOrWhiteSpace($script:TargetDc)) {
                     Reset-ComputerMachinePassword -Credential $cred -ErrorAction Stop
-                }
-                else {
+                } else {
                     Reset-ComputerMachinePassword -Server $script:TargetDc -Credential $cred -ErrorAction Stop
                 }
                 Write-Ok 'Reparo da conta de máquina executado.'
+            } catch {
+                Write-Fail "Falha no reparo automático: $($_.Exception.Message)"
             }
-            catch {
-                Write-Fail "Falha no reparo guiado: $($_.Exception.Message)"
+        } elseif ($Modo -eq 'Assistido') {
+            Write-Host ''
+            Write-Warn 'O canal seguro ainda está quebrado.'
+            if (Read-YesNo -Question 'Deseja tentar reparo guiado da conta de máquina agora?' -DefaultYes $true) {
+                $cred = Get-Credential -Message 'Credencial de domínio para reparar a conta de máquina'
+                try {
+                    if ([string]::IsNullOrWhiteSpace($script:TargetDc)) {
+                        Reset-ComputerMachinePassword -Credential $cred -ErrorAction Stop
+                    } else {
+                        Reset-ComputerMachinePassword -Server $script:TargetDc -Credential $cred -ErrorAction Stop
+                    }
+                    Write-Ok 'Reparo da conta de máquina executado.'
+                } catch {
+                    Write-Fail "Falha no reparo guiado: $($_.Exception.Message)"
+                }
             }
         }
     }

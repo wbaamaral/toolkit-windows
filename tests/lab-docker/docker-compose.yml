@@ -1,0 +1,76 @@
+# Lab AD via Docker (sem VMs) — Samba AD DC + cliente pwsh
+# Uso: docker compose up -d && docker compose logs -f samba-dc
+# Depois: ./run-ad-test.sh
+name: wba-lab-docker
+services:
+  samba-dc:
+    image: instantlinux/samba-dc:latest
+    hostname: dc01
+    container_name: wba-dc01
+    environment:
+      REALM: wba.test
+      WORKGROUP: WBA
+      NETBIOS_NAME: DC01
+      DNS_FORWARDER: 8.8.8.8
+      ALLOW_DNS_UPDATES: "nonsecure and secure"
+      LOG_LEVEL: 1
+      # O entrypoint lê a senha de /run/secrets/samba-admin-password
+      ADMIN_PASSWORD_SECRET: samba-admin-password
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    networks:
+      wba-lab:
+        ipv4_address: 172.20.0.10
+    ports:
+      - "88:88"
+      - "88:88/udp"
+      - "464:464"
+      - "464:464/udp"
+    volumes:
+      - samba-data:/var/lib/samba
+      - samba-etc:/etc/samba
+      - ./secrets/samba-admin-password:/run/secrets/samba-admin-password:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "samba-tool", "domain", "info", "127.0.0.1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+
+  pwsh-client:
+    image: mcr.microsoft.com/powershell:latest
+    container_name: wba-pwsh-client
+    hostname: cliente01
+    depends_on:
+      samba-dc:
+        condition: service_healthy
+    networks:
+      wba-lab:
+        ipv4_address: 172.20.0.20
+    dns:
+      - 172.20.0.10
+      - 8.8.8.8
+    dns_search:
+      - wba.test
+    volumes:
+      - ../..:/workspace/toolkit:ro
+      - ./pwsh-profile:/root/.config/powershell:ro
+    # Mantém container ativo para exec interativo
+    command: ["pwsh", "-NoExit", "-NoLogo"]
+    stdin_open: true
+    tty: true
+
+networks:
+  wba-lab:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+          gateway: 172.20.0.1
+
+volumes:
+  samba-data:
+  samba-etc:
