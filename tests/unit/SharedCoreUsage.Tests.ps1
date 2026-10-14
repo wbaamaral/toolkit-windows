@@ -1,4 +1,4 @@
-﻿#requires -version 5.1
+#requires -version 5.1
 
 BeforeAll {
     . (Join-Path $PSScriptRoot 'Xtudo.TestSupport.ps1')
@@ -8,8 +8,8 @@ BeforeAll {
 }
 
 Describe 'Xtudo estrutura do toolkit' {
-    It 'Mantem vinte e nove scripts oficiais em scripts/' {
-        $script:scriptPaths.Count | Should -Be 29
+    It 'Mantem trinta e um scripts oficiais em scripts/' {
+        $script:scriptPaths.Count | Should -Be 31
         foreach ($path in $script:scriptPaths) {
             Split-Path -Parent $path | Should -Be (Get-XtudoScriptsRoot)
         }
@@ -87,7 +87,8 @@ Describe 'Xtudo estrutura do toolkit' {
             'Write-Host\s+"\s*\.\\\$ScriptName -EventLogCleanup',
             'Write-Host\s+"Verificacao concluida\. Reiniciando',
             'Write-Host\s+"Limpeza concluída\. Reiniciando',
-            'Write-Host\s+" Erro"\s+-ForegroundColor\s+Red'
+            'Write-Host\s+" Erro"\s+-ForegroundColor\s+Red',
+            'Write-Host.*erros\.json'
         )
         $violations = foreach ($path in $sourcePaths) {
             Select-String -LiteralPath $path -Pattern $semanticPattern | ForEach-Object {

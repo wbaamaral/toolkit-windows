@@ -75,7 +75,7 @@ function New-DropboxDoctorHtmlReport {
 
     # Processar arquivos problemáticos em uma tabela especial
     $problemFilesContent = ''
-    $fileChecks = $Checks | Where-Object { $_.Nome -eq 'Nomes/caminhos problematicos' }
+    $fileChecks = @($Checks | Where-Object { $_.Nome -eq 'Nomes/caminhos problematicos' })
     if ($fileChecks.Count -gt 0) {
         $fileReport = $null
         # Tentar encontrar o FileReport no contexto - isso pode ser necessário em uma chamada real ao script

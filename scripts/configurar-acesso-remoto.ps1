@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Configura acesso remoto (RDP) no Windows.
 
@@ -227,7 +227,9 @@ function Get-RdpStatus {
 
     $fwRule = Invoke-RdpOptionalQuery -Description 'regras de firewall RDP' -DefaultValue @() -Operation { Get-NetFirewallRule -ErrorAction Stop } |
         Where-Object { $_.Direction -eq 'Inbound' -and $_.Enabled -eq 'True' -and
-            ($_.DisplayGroup -eq 'Remote Desktop' -or $_.DisplayName -match 'WBA RDP Custom') } |
+            ($_.DisplayGroup -in @('Remote Desktop', 'Área de Trabalho Remota') -or
+             $_.Group -eq '@FirewallAPI.dll,-28752' -or
+             $_.DisplayName -match 'WBA RDP Custom') } |
         Select-Object -First 1
 
     $fwCustomPort = Invoke-RdpOptionalQuery -Description 'regra de firewall RDP personalizada' -DefaultValue @() -Operation { Get-NetFirewallRule -ErrorAction Stop } |
@@ -403,6 +405,9 @@ try {
                     Set-RdpNlaInternal -Required $true
                     Write-Ok "NLA (autenticacao de rede) ativada."
                 }
+
+                Add-RdpFirewallRule -RulePort $status.Porta
+                Write-Ok "Regra de firewall liberada para porta $($status.Porta)."
 
                 Write-Ok "RDP habilitado e operacional."
             }

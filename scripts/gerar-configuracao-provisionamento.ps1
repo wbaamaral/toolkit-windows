@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
     Assistente interativo que gera um provisioning.json para o WbaToolkit.Provisioning.
@@ -351,15 +351,16 @@ Write-Ok "Arquivo gravado: $resolvedOutputPath"
 
 # ─── validacao best-effort (nao altera o sistema) ──────────────────────────────
 
-$corePsd1         = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core/WbaToolkit.Core.psd1'
-$provisioningPsd1 = Join-Path $ToolkitRoot 'modules/WbaToolkit.Provisioning/WbaToolkit.Provisioning.psd1'
-if (Test-Path -LiteralPath $provisioningPsd1) {
+$provisioningRoot = Join-Path $ToolkitRoot 'modules/WbaToolkit.Provisioning'
+if (Test-Path -LiteralPath $provisioningRoot) {
     try {
-        # Import-Module (nao apenas dot-source) porque WbaToolkit.Provisioning declara
-        # RequiredModules = @('WbaToolkit.Core') no psd1 — o sistema de modulos precisa
-        # do WbaToolkit.Core registrado como modulo carregado, nao so das funcoes disponiveis.
-        Import-Module $corePsd1 -Force -ErrorAction Stop
-        Import-Module $provisioningPsd1 -Force -ErrorAction Stop
+        foreach ($sub in @('Private', 'Steps', 'Public')) {
+            $subDir = Join-Path $provisioningRoot $sub
+            if (Test-Path -LiteralPath $subDir) {
+                Get-ChildItem -LiteralPath $subDir -Filter '*.ps1' -File -Recurse |
+                    ForEach-Object { . $_.FullName }
+            }
+        }
         $validation = Test-ToolkitProvisioningConfig -Path $resolvedOutputPath
         if ($validation.IsValid) {
             Write-Ok 'Configuracao valida (Test-ToolkitProvisioningConfig).'

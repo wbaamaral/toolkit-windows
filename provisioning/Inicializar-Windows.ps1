@@ -1,4 +1,4 @@
-﻿#requires -version 5.1
+#requires -version 5.1
 <#
 .SYNOPSIS
     Ponto de entrada da tarefa agendada de provisionamento inicial do Windows.
@@ -118,5 +118,5 @@ catch {
     exit 1
 }
 finally {
-    Stop-Transcript | Out-Null
+    Stop-Transcript -ErrorAction SilentlyContinue | Out-Null
 }

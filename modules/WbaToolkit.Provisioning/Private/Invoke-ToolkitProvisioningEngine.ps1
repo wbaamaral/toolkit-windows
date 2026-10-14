@@ -1,4 +1,4 @@
-﻿function Invoke-ToolkitProvisioningEngine {
+function Invoke-ToolkitProvisioningEngine {
     <#
     .SYNOPSIS
         Motor compartilhado por Invoke-ToolkitProvisioning e Resume-ToolkitProvisioning.
@@ -24,7 +24,7 @@
         System.Management.Automation.PSCustomObject
         Propriedades: GlobalState, RebootAction, Report (presente somente quando Completed).
     #>
-    [CmdletBinding(SupportsShouldProcess)]
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
         [string]$DeploymentId,

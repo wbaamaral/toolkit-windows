@@ -1,4 +1,4 @@
-﻿function Add-SshAuthorizedKey {
+function Add-SshAuthorizedKey {
     <#
     .SYNOPSIS
         Adiciona chave publica ao authorized_keys com ACL correto.
@@ -49,9 +49,12 @@
             }
             return
         }
-        $PublicKey = (Get-Content -LiteralPath $PublicKeyPath -ErrorAction Stop | Where-Object {
+        $matched = Get-Content -LiteralPath $PublicKeyPath -ErrorAction Stop | Where-Object {
             $_ -match '^\s*(ssh-rsa|ssh-ed25519|ecdsa-sha2|ssh-dss)'
-        } | Select-Object -First 1).Trim()
+        } | Select-Object -First 1
+        if ($matched) {
+            $PublicKey = $matched.Trim()
+        }
     }
 
     if ([string]::IsNullOrWhiteSpace($PublicKey)) {
@@ -71,10 +74,14 @@
     }
 
     $paths = Get-SshConfigPath
-    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    $isAdmin = Test-SshUserIsAdmin -UserName $UserName
 
-    if ($isAdmin -and $UserName -ne $env:USERNAME) {
+    if ($isAdmin) {
         $keyFile = $paths.AdminAuthorizedKeys
+        $adminDir = Split-Path -Parent $keyFile
+        if (-not (Test-Path -LiteralPath $adminDir)) {
+            New-Item -ItemType Directory -Path $adminDir -Force | Out-Null
+        }
     }
     else {
         $userDir = Join-Path "C:\Users\$UserName" '.ssh'

@@ -1,4 +1,4 @@
-﻿function Remove-SshAuthorizedKey {
+function Remove-SshAuthorizedKey {
     <#
     .SYNOPSIS
         Remove uma chave publica do authorized_keys.
@@ -37,13 +37,14 @@
     }
 
     $paths = Get-SshConfigPath
-    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    $isAdmin = Test-SshUserIsAdmin -UserName $UserName
 
-    if ($isAdmin -and $UserName -ne $env:USERNAME) {
+    if ($isAdmin) {
         $keyFile = $paths.AdminAuthorizedKeys
     }
     else {
-        $keyFile = Join-Path "C:\Users\$UserName\.ssh" 'authorized_keys'
+        $userDir = Join-Path "C:\Users\$UserName" '.ssh'
+        $keyFile = Join-Path $userDir 'authorized_keys'
     }
 
     if (-not (Test-Path -LiteralPath $keyFile -PathType Leaf)) {

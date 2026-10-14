@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
     Lista perfis de usuario locais com espaco em disco e permite remocao interativa
@@ -519,7 +519,7 @@ function Invoke-InteractiveMenu {
                 $list = New-Object 'System.Collections.Generic.List[PSCustomObject]'
                 foreach ($p in $selected) { $list.Add($p) }
 
-                $result = Remove-Profiles -ToDelete $list
+                $result = Remove-Profiles -ToDelete $list -Confirm:$false
                 $ok     = @($result.Results | Where-Object { $_.Success }).Count
                 $fail   = @($result.Results | Where-Object { -not $_.Success }).Count
 

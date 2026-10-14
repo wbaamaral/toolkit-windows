@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Diagnóstico e gerenciamento do ciclo de licenciamento do Windows.
 
@@ -257,7 +257,7 @@ if ($null -ne $cycleStatus.ExpirationDate) {
 }
 
 Write-Host "  Canal:         $($cycleStatus.Channel)"
-Write-Host "  Rearm:         $($cycleStatus.ReadCount) vez(es) restante(s)"
+Write-Host "  Rearm:         $($cycleStatus.RearmCount) vez(es) restante(s)"
 Write-Host ""
 
 $details = $cycleStatus.Details
@@ -419,7 +419,7 @@ $lines.Add(('Estado          : {0}' -f $cycleStatus.State))
 $lines.Add(('Canal           : {0}' -f $cycleStatus.Channel))
 $lines.Add(('Dias restantes  : {0}' -f $(if ($null -ne $cycleStatus.DaysRemaining) { $cycleStatus.DaysRemaining } else { 'N/A' })))
 $lines.Add(('Expira em       : {0}' -f $(if ($null -ne $cycleStatus.ExpirationDate) { $cycleStatus.ExpirationDate.ToString('dd/MM/yyyy HH:mm') } else { 'N/A' })))
-$lines.Add(('Rearm restantes : {0}' -f $cycleStatus.ReadCount))
+$lines.Add(('Rearm restantes : {0}' -f $cycleStatus.RearmCount))
 $lines.Add('')
 $lines.Add('--- Recomendacoes ---')
 foreach ($rec in $cycleStatus.Recommendations) { $lines.Add("- $rec") }

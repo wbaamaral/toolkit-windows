@@ -1,4 +1,4 @@
-﻿#requires -version 5.1
+#requires -version 5.1
 <#
 .SYNOPSIS
     Script de limpeza segura, manutenção e otimização conservadora para Windows 10 Pro.
@@ -422,13 +422,21 @@ Write-Step "Limpando cache de miniaturas e ícones dos usuários" 55
 Invoke-Safe "thumbcache_*.db e iconcache_*.db" {
     # Os arquivos ficam bloqueados pelo explorer.exe em execucao; best-effort por arquivo
     # para nao marcar o passo inteiro como falha por handle aberto esperado.
-    Get-ChildItem "C:\Users" -Directory -Force -ErrorAction Stop |
+    Get-ChildItem "C:\Users" -Directory -Force -ErrorAction SilentlyContinue |
         ForEach-Object {
             $explorerDir = "$($_.FullName)\AppData\Local\Microsoft\Windows\Explorer"
-            Get-ChildItem $explorerDir -Filter 'thumbcache_*.db' -Force -ErrorAction Stop |
-                ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction Stop }
-            Get-ChildItem $explorerDir -Filter 'iconcache_*.db' -Force -ErrorAction Stop |
-                ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction Stop }
+            if (Test-Path -LiteralPath $explorerDir) {
+                Get-ChildItem $explorerDir -Filter 'thumbcache_*.db' -Force -ErrorAction SilentlyContinue |
+                    ForEach-Object {
+                        try { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction Stop }
+                        catch { Write-Verbose "Nao foi possivel remover $($_.FullName): $($_.Exception.Message)" }
+                    }
+                Get-ChildItem $explorerDir -Filter 'iconcache_*.db' -Force -ErrorAction SilentlyContinue |
+                    ForEach-Object {
+                        try { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction Stop }
+                        catch { Write-Verbose "Nao foi possivel remover $($_.FullName): $($_.Exception.Message)" }
+                    }
+            }
         }
 }
 

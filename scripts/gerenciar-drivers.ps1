@@ -1,4 +1,4 @@
-﻿#requires -version 5.1
+#requires -version 5.1
 <#
 .SYNOPSIS
     Backup e restauracao de drivers de terceiros instalados no Windows.
@@ -81,6 +81,7 @@ $OutputEncoding           = [System.Text.Encoding]::UTF8
 $PSDefaultParameterValues['Out-File:Encoding']    = 'utf8'
 $PSDefaultParameterValues['Set-Content:Encoding'] = 'utf8'
 $PSDefaultParameterValues['Add-Content:Encoding'] = 'utf8'
+$PSDefaultParameterValues['Get-Content:Encoding'] = 'utf8'
 
 try { chcp 65001 | Out-Null }
 catch { Write-Verbose "Nao foi possivel ajustar a pagina de codigo do console para UTF-8: $($_.Exception.Message)" }
@@ -333,7 +334,7 @@ function Test-DriverBackupHash {
         }
     }
 
-    $rawLine = @(Get-Content -LiteralPath $hashFile -Encoding UTF8 | Where-Object {
+    $rawLine = @(Get-Content -LiteralPath $hashFile | Where-Object {
             -not [string]::IsNullOrWhiteSpace($_)
         }) | Select-Object -First 1
 
@@ -494,8 +495,8 @@ function Resolve-DriverBackupSource {
 
     $sessionPath = $ExtractRoot
     $metaAtRoot = Join-Path $ExtractRoot 'metadados.json'
-    $nestedSessions = @(Get-ChildItem -LiteralPath $ExtractRoot -Directory -ErrorAction Stop |
-        Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'metadados.json') })
+    $nestedSessions = @(Get-ChildItem -LiteralPath $ExtractRoot -ErrorAction Stop |
+        Where-Object { $_.PSIsContainer -and (Test-Path -LiteralPath (Join-Path $_.FullName 'metadados.json')) })
 
     if (-not (Test-Path -LiteralPath $metaAtRoot) -and $nestedSessions.Count -eq 1) {
         $sessionPath = $nestedSessions[0].FullName

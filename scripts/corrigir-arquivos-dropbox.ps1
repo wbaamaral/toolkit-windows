@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
     Corrige em massa arquivos problematicos do Dropbox identificados pelo toolkit.
@@ -124,14 +124,14 @@ function Show-Help {
     Write-Host ""
     Write-Host "  -InputFile '<arquivo>'      Arquivo JSON com a lista de arquivos problematicos."
     Write-Host "  -Correcao '<tipo>'           Renomeacao (padrao) ou MudancaLocalizacao."
-    Write-Host "  -Simular                     Executa dry-run para preview das alteracoes."
+    Write-Host "  -Simular                     Executa simulacao para preview das alteracoes."
     Write-Host "  -DiretorioSaida '<dir>'      Diretorio de saida para logs e backups."
-    Write-Host "  -GerarHtml                   Gera relatorio HTML (gerado automaticamente se houver erros)."
+    Write-Host "  -GerarHtml                   Gera relatorio HTML adicional."
     Write-Host "  -Help                        Esta ajuda."
     Write-Host ""
     Write-Host "Saida:"
     Write-Host "  alteracoes.json   : mudancas reais aplicadas"
-    Write-Host "  erros.json        : falhas encontradas"
+    Write-Host "  erros.json        : problemas encontrados"
     Write-Host "  rollback.json     : mudancas reversiveis"
     Write-Host "  simulacao.json    : preview do modo -Simular"
     Write-Host ""

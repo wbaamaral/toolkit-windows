@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
     Normaliza arquivos problemáticos do Dropbox com fluxo iterativo controlado.
@@ -458,7 +458,7 @@ function Show-TUI {
                 }
             }
             '^Q$' {
-                Write-Host "Operacao cancelada pelo usuario." -ForegroundColor Yellow
+                Write-Warn "Operacao cancelada pelo usuario."
                 return $null
             }
         }
@@ -533,7 +533,7 @@ if ($Modo -in @('TUI', 'Proposta')) {
     if ($Modo -eq 'TUI' -and -not $NonInteractive) {
         $diretorios = Show-TUI -Diretorios $diretorios -DropboxPath $dropboxPath
         if ($null -eq $diretorios) {
-            Write-Host "Operacao cancelada." -ForegroundColor Yellow
+            Write-Warn "Operacao cancelada."
             exit 0
         }
         $dirsComProblema = @($diretorios | Where-Object { -not $_.ja_valido -and $_.selecionado }).Count
@@ -611,7 +611,7 @@ if ($Modo -in @('TUI', 'Proposta')) {
     if ($Modo -eq 'TUI' -and -not $NonInteractive) {
         $confirm = Read-YesNo -Question "Confirma a proposta de correcao de $totalPropostas arquivos?" -DefaultYes $true
         if (-not $confirm) {
-            Write-Host "Operacao cancelada." -ForegroundColor Yellow
+            Write-Warn "Operacao cancelada."
             exit 0
         }
     }
@@ -745,7 +745,7 @@ elseif ($Modo -eq 'Aplicar') {
     if (-not $NonInteractive) {
         $confirm = Read-YesNo -Question "Confirma a aplicacao das correcoes acima?" -DefaultYes $false
         if (-not $confirm) {
-            Write-Host "Operacao cancelada." -ForegroundColor Yellow
+            Write-Warn "Operacao cancelada."
             exit 0
         }
     }

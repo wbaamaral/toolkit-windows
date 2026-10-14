@@ -1,4 +1,4 @@
-﻿function Get-WindowsLicenseInfo {
+function Get-WindowsLicenseInfo {
     <#
     .SYNOPSIS
         Diagnóstico da licença Windows consolidando CIM + slmgr + HWID (RF-01).
@@ -32,6 +32,22 @@
     }
 
     $hardware = Get-LicenseHardwareContext -BaselinePath $BaselinePath
+
+    if (-not $product) {
+        return [pscustomobject]@{
+            ColetadoEm = (Get-Date).ToString('o')
+            Windows = [pscustomobject]@{ Edicao = 'N/A'; Versao = $null; Build = $null; Arquitetura = $env:PROCESSOR_ARCHITECTURE }
+            Licenca = [pscustomobject]@{
+                Canal = 'Desconhecido'; CanalDetalhe = 'Produto nao encontrado'; Status = 'Unknown'
+                StatusCodigo = -1; PartialProductKey = ''; ProductId = ''; InstallationId = ''
+                ActivationId = ''; ApplicationId = ''; DigitalLicense = $false
+            }
+            Kms = [pscustomobject]@{ Servidor = $null; Porta = $null; ClienteKms = $false }
+            Rearm = [pscustomobject]@{ Restante = $(if ($service) { $service.RemainingWindowsReArmCount } else { -1 }) }
+            Hardware = $hardware
+            Slmgr = [pscustomobject]@{ Dli = $dli; Dlv = $dlv; Xpr = $xpr }
+        }
+    }
 
     return ConvertTo-LicenseInfoObject -Product $product -Service $service `
         -SlmgrDli $dli -SlmgrDlv $dlv -SlmgrXpr $xpr -Hardware $hardware

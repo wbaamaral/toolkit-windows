@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Launcher principal do WBA Windows Toolkit.
 
@@ -281,6 +281,30 @@ function New-XtudoCatalog {
             Keywords = @('servico', 'services', 'start', 'stop', 'restart', 'iniciar', 'parar', 'reiniciar', 'w32time', 'spooler', 'bits')
             Quick    = $true
             Args     = @('-Acao', 'Diagnostico')
+        }
+        [pscustomobject]@{
+            Id       = 'normalizar-dropbox'
+            Label    = 'Normalizar arquivos do Dropbox'
+            Category = 'Manutencao'
+            Path     = 'scripts/normalizar-dropbox.ps1'
+            Keywords = @('dropbox', 'normalizar', 'renomear', 'caminho longo', 'caracteres invalidos', 'tui')
+            Quick    = $false
+        }
+        [pscustomobject]@{
+            Id       = 'corrigir-arquivos-dropbox'
+            Label    = 'Corrigir arquivos do Dropbox em lote'
+            Category = 'Manutencao'
+            Path     = 'scripts/corrigir-arquivos-dropbox.ps1'
+            Keywords = @('dropbox', 'corrigir', 'renomeacao', 'mudanca localizacao', 'batch')
+            Quick    = $false
+        }
+        [pscustomobject]@{
+            Id       = 'gerar-configuracao-provisionamento'
+            Label    = 'Gerar configuracao de provisionamento'
+            Category = 'Provisioning'
+            Path     = 'scripts/gerar-configuracao-provisionamento.ps1'
+            Keywords = @('provisioning', 'configuracao', 'json', 'implantacao', 'setup', 'assistente')
+            Quick    = $false
         }
     )
 }

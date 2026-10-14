@@ -1,4 +1,4 @@
-﻿# =============================================================================
+# =============================================================================
 # [NAO VALIDADO] Script sem execucao real documentada em Windows.
 # Nao recomendado para uso em producao ate validacao operacional.
 # Registro: nao-validado/README.md
@@ -71,9 +71,9 @@ param(
     [Alias('DiretorioSaida')]
     [string]$Path,
 
-    [switch]$Help
-)
+    [switch]$Help,
     [switch]$Version
+)
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::InputEncoding  = [System.Text.Encoding]::UTF8

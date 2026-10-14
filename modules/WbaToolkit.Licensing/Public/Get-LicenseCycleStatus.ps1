@@ -1,4 +1,4 @@
-﻿function Get-LicenseCycleStatus {
+function Get-LicenseCycleStatus {
     <#
     .SYNOPSIS
         Analisa o ciclo de licenciamento do Windows e retorna estado, dias
@@ -86,6 +86,8 @@
             $expirationDate = (Get-Date).AddDays($daysRemaining)
         }
     }
+
+    $channel = $licenseInfo.Licenca.Canal
 
     switch ($state) {
         'Licensed' {

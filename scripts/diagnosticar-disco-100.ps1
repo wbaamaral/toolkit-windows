@@ -1,4 +1,4 @@
-﻿#requires -version 5.1
+#requires -version 5.1
 <#
 .SYNOPSIS
     Diagnostico assistido para uso de disco em 100% no Windows.
@@ -87,9 +87,9 @@ param(
     [Alias('DiretorioSaida')]
     [string]$Path,
 
-    [switch]$Help
-)
+    [switch]$Help,
     [switch]$Version
+)
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::InputEncoding  = [System.Text.Encoding]::UTF8

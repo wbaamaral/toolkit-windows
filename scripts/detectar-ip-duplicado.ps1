@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
     Detecta IPs associados a multiplos enderecos MAC em uma faixa de rede.
@@ -130,9 +130,15 @@ function Show-Help {
 if ($Help) { Show-Help; exit 0 }
 
 if ([string]::IsNullOrWhiteSpace($Range)) {
-    Write-Host "[FALHA] Parametro -Range e obrigatorio." -ForegroundColor Red
-    Write-Host "        Use -Help para ver exemplos." -ForegroundColor Yellow
-    exit 1
+    if ([Environment]::UserInteractive -and -not [Console]::IsInputRedirected) {
+        Write-Host "Parametro -Range nao informado." -ForegroundColor Yellow
+        $Range = Read-Host "Informe a faixa de rede (ex.: 192.168.1.0/24 ou 192.168.1.10-50)"
+    }
+    if ([string]::IsNullOrWhiteSpace($Range)) {
+        Write-Host "[FALHA] Parametro -Range e obrigatorio." -ForegroundColor Red
+        Write-Host "        Use -Help para ver exemplos." -ForegroundColor Yellow
+        exit 1
+    }
 }
 
 # === Dependencias: adicionar modules/ ao PSModulePath (padrao-dependencias-modulos.md) ===

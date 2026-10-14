@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
     Diagnostica a saude do cliente Windows em relacao ao Active Directory.
@@ -352,7 +352,8 @@ function Repair-AdDnsConfiguration {
         } catch { Write-Verbose "Repair-AdDnsConfiguration: Get-NetAdapter falhou: $($_.Exception.Message)" }
 
         if (-not $primaryAdapter) {
-            try { $primaryAdapter = Get-NetIPConfiguration -ErrorAction SilentlyContinue | Where-Object { $_.IPv4Address } | Select-Object -First 1 } catch {}
+            try { $primaryAdapter = Get-NetIPConfiguration -ErrorAction SilentlyContinue | Where-Object { $_.IPv4Address } | Select-Object -First 1 }
+            catch { Write-Verbose "Repair-AdDnsConfiguration: Get-NetIPConfiguration indisponivel: $($_.Exception.Message)" }
             if ($primaryAdapter -and $primaryAdapter.InterfaceAlias) {
                 $primaryAdapter = [pscustomobject]@{ InterfaceAlias = $primaryAdapter.InterfaceAlias; InterfaceIndex = $primaryAdapter.InterfaceIndex }
             }
@@ -374,17 +375,12 @@ function Repair-AdDnsConfiguration {
         return
     }
 
-    $shouldContinue = $script:DoForce -or $Modo -eq 'Corrigir' -or $PSCmdlet.ShouldProcess("Interface '$alias'", "Configurar DNS para $($targetServers -join ', ')")
-    if (-not $shouldContinue) {
-        if (-not $script:DoForce -and $Modo -eq 'Assistido') {
-            if (-not (Read-YesNo -Question "Deseja corrigir o DNS em '$alias' para $($targetServers -join ', ')?" -DefaultYes $true)) {
-                Add-AdCheck -Category 'DNS' -Name 'Correção DNS' -Status 'PULADO' -Detail 'Correção de DNS cancelada pelo operador.' -Penalty 0
-                return
-            }
-            $shouldContinue = $true
+    if (-not $script:DoForce -and $Modo -eq 'Assistido') {
+        if (-not (Read-YesNo -Question "Deseja corrigir o DNS em '$alias' para $($targetServers -join ', ')?" -DefaultYes $true)) {
+            Add-AdCheck -Category 'DNS' -Name 'Correção DNS' -Status 'PULADO' -Detail 'Correção de DNS cancelada pelo operador.' -Penalty 0
+            return
         }
     }
-    if (-not $shouldContinue) { return }
 
     try {
         if ($PSCmdlet.ShouldProcess("Interface '$alias'", "Set-DnsClientServerAddress $($targetServers -join ', ')")) {
@@ -611,12 +607,16 @@ function Repair-AdTimeSync {
         return
     }
 
-    $doConfirm = -not $script:DoForce -and $Modo -eq 'Assistido' -and -not $PSCmdlet.ShouldProcess('W32Time', 'Sync-ComputerTime -Apply (domhier)')
-    if ($doConfirm) {
+    if (-not $script:DoForce -and $Modo -eq 'Assistido') {
         if (-not (Read-YesNo -Question 'Deseja corrigir a sincronizacao de hora agora?' -DefaultYes $true)) {
             Add-AdCheck -Category 'Tempo' -Name 'Reparo da hora' -Status 'PULADO' -Detail 'Correção de hora cancelada pelo operador.' -Penalty 0
             return
         }
+    }
+
+    if (-not $PSCmdlet.ShouldProcess('W32Time', 'Sync-ComputerTime -Apply (domhier)')) {
+        Add-AdCheck -Category 'Tempo' -Name 'Reparo da hora' -Status 'INFO' -Detail '[WhatIf] Seria executado Sync-ComputerTime -Apply (domhier)' -Penalty 0
+        return
     }
 
     try {
@@ -685,26 +685,32 @@ function Repair-AdServices {
             continue
         }
 
-        $doConfirm = -not $script:DoForce -and $Modo -eq 'Assistido' -and -not $PSCmdlet.ShouldProcess($svc.Name, $actionText)
-        if ($doConfirm) {
+        if (-not $script:DoForce -and $Modo -eq 'Assistido') {
             if (-not (Read-YesNo -Question "Deseja corrigir o serviço '$($svc.Name)' ($actionText)?" -DefaultYes $true)) {
                 Add-AdCheck -Category 'Serviços' -Name "Correção $($svc.Name)" -Status 'PULADO' -Detail 'Correção cancelada pelo operador.' -Penalty 0
                 continue
             }
         }
 
+        $appliedAny = $false
         try {
             if ($needsAuto) {
                 if ($PSCmdlet.ShouldProcess($svc.Name, 'Set-Service StartupType Automatic')) {
                     Set-Service -Name $svc.Name -StartupType Automatic -ErrorAction Stop
                     Write-Ok "Serviço $($svc.Name): StartType ajustado para Automatic."
+                    $appliedAny = $true
                 }
             }
             if ($needsStart) {
                 if ($PSCmdlet.ShouldProcess($svc.Name, 'Start-Service')) {
                     Start-Service -Name $svc.Name -ErrorAction Stop
                     Write-Ok "Serviço $($svc.Name): iniciado."
+                    $appliedAny = $true
                 }
+            }
+            if (-not $appliedAny) {
+                Add-AdCheck -Category 'Serviços' -Name "Correção $($svc.Name)" -Status 'INFO' -Detail "[WhatIf] Seria aplicado: $actionText" -Penalty 0
+                continue
             }
             # Revalida
             $post = Get-ServiceStartupState -ServiceName @($svc.Name) | Select-Object -First 1
