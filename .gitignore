@@ -1,4 +1,5 @@
 .env
+spec/
 
 # Artefatos gerados pelo pipeline LaTeX (docs/latex/build/)
 docs/latex/build/*
