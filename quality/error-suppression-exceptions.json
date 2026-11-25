@@ -4,7 +4,6 @@
   "Policy": "SilentlyContinue is permitted only for an expected absence or a best-effort cleanup. All operational failures must use ErrorAction Stop and an observable catch.",
   "Exceptions": [
     { "Path": "modules/WbaToolkit.Backup/Public/Get-BackupHistory.ps1", "Count": 1, "Reason": "Optional backup directory may not exist yet." },
-    { "Path": "modules/WbaToolkit.Backup/Public/Remove-BackupAntigo.ps1", "Count": 2, "Reason": "Idempotent discovery and cleanup of already absent backups." },
     { "Path": "modules/WbaToolkit.Backup/Public/Remove-RestorePoint.ps1", "Count": 1, "Reason": "Restore point may already be absent." },
     { "Path": "modules/WbaToolkit.Backup/Public/Restore-SystemToPoint.ps1", "Count": 1, "Reason": "Optional restore-point enumeration before selection." },
     { "Path": "modules/WbaToolkit.Backup/Public/Restore-UserData.ps1", "Count": 1, "Reason": "Optional source files may be absent." },
