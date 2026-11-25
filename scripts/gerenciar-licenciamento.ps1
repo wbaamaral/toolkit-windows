@@ -15,7 +15,10 @@
     Ação a executar: Diagnostico (padrão), Ativar, InstalarChave, Rearm, DefinirKMS.
 
 .PARAMETER ProductKey
-    Product key no formato XXXXX-XXXXX-XXXXX-XXXXX-XXXXX (exigido com -Acao InstalarChave).
+    Product key no formato XXXXX-XXXXX-XXXXX-XXXXX-XXXXX (com -Acao InstalarChave).
+    Opcional: se omitido, a chave e solicitada por prompt sem eco, o que evita deixa-la no historico
+    do console e na linha de comando. A chave nunca e repassada ao relancamento elevado e so a
+    Partial Product Key (5 ultimos caracteres) aparece na tela e nos logs (ADR 0028).
 
 .PARAMETER KmsServer
     Endereço do servidor KMS (exigido com -Acao DefinirKMS). Formato: host:porta ou apenas host (porta padrão 1688).
@@ -116,7 +119,7 @@ function Show-Help {
     Write-Host ""
     Write-Host "  -Acao <valor>              Diagnostico (padrao), Ativar, InstalarChave, Rearm,"
     Write-Host "                             DefinirKMS, Restaurar."
-    Write-Host "  -ProductKey '<chave>'      Product key XXXXX-XXXXX-XXXXX-XXXXX-XXXXX (com -Acao InstalarChave)."
+    Write-Host "  -ProductKey '<chave>'      Product key XXXXX-XXXXX-XXXXX-XXXXX-XXXXX (com -Acao InstalarChave; omitido = prompt sem eco)."
     Write-Host "  -KmsServer '<host:porta>'  Servidor KMS (com -Acao DefinirKMS). Porta padrao: 1688."
     Write-Host "  -BackupPath '<arq>'        Arquivo de backup para -Acao Restaurar."
     Write-Host "  -GerarHtml                 Gera relatorio HTML adicional."
@@ -172,7 +175,16 @@ catch {
 # portanto so pode ocorrer depois do dot-source acima (ADR 0025/0032).
 if ($Acao -in @('Ativar', 'InstalarChave', 'Rearm', 'DefinirKMS', 'Restaurar') -and -not (Test-IsAdministrator)) {
     Write-Warning "A acao '$Acao' exige privilegios administrativos. Solicitando elevacao..."
-    $command = New-ToolkitElevationCommand -ScriptPath $PSCommandPath -BoundParameters $PSBoundParameters
+    # A Product Key nunca e repassada na linha de comando do processo elevado (ADR 0028):
+    # a janela elevada a solicita por prompt seguro.
+    $elevationParameters = @{}
+    foreach ($kv in $PSBoundParameters.GetEnumerator()) {
+        if ($kv.Key -ne 'ProductKey') { $elevationParameters[$kv.Key] = $kv.Value }
+    }
+    if ($PSBoundParameters.ContainsKey('ProductKey')) {
+        Write-Warning "A Product Key nao e repassada ao processo elevado; ela sera solicitada na nova janela."
+    }
+    $command = New-ToolkitElevationCommand -ScriptPath $PSCommandPath -BoundParameters $elevationParameters
     Start-Process powershell.exe -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $command) -Verb RunAs
     exit 0
 }
@@ -200,7 +212,18 @@ if ($DryRun) {
 
 if ($Acao -eq 'InstalarChave') {
     if ([string]::IsNullOrWhiteSpace($ProductKey)) {
-        Write-Fail "Acao InstalarChave requer o parametro -ProductKey."
+        # Prompt sem eco: a chave nao aparece na tela, no transcript nem na linha de comando.
+        $secureKey = $null
+        try { $secureKey = Read-Host -Prompt 'Product Key (XXXXX-XXXXX-XXXXX-XXXXX-XXXXX)' -AsSecureString }
+        catch { Write-Verbose "Prompt da Product Key indisponivel: $($_.Exception.Message)" }
+        if ($secureKey -and $secureKey.Length -gt 0) {
+            $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureKey)
+            try { $ProductKey = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr).Trim() }
+            finally { [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
+        }
+    }
+    if ([string]::IsNullOrWhiteSpace($ProductKey)) {
+        Write-Fail "Acao InstalarChave requer a Product Key (parametro -ProductKey ou prompt)."
         if ($transcriptActive) { Stop-Transcript }
         exit 1
     }
@@ -335,12 +358,31 @@ if ($Acao -ne 'Diagnostico') {
 
         $slmgrArgs = switch ($Acao) {
             'Ativar'       { @('/ato') }
-            'InstalarChave' { @('/ipk', $ProductKey) }
             'Rearm'        { @('/rearm') }
             'DefinirKMS'   { @('/skms', $KmsServer) }
         }
 
-        if ($DryRun) {
+        if ($Acao -eq 'InstalarChave') {
+            # Via CIM e nao 'slmgr /ipk': a chave nao entra na linha de comando do cscript
+            # e so a Partial Product Key aparece na saida (ADR 0028).
+            $partialKey = ConvertTo-LicensePartialKey -ProductKey $ProductKey
+            if ($DryRun) {
+                Write-Warn "DRY-RUN: SoftwareLicensingService::InstallProductKey ($partialKey)"
+                Write-Warn "Nenhuma alteracao aplicada."
+            }
+            else {
+                Write-Info "Instalando Product Key $partialKey via SoftwareLicensingService..."
+                $installResult = Install-LicenseProductKey -ProductKey $ProductKey -Confirm:$false
+                if ($installResult.Success) {
+                    Write-Ok "  Operacao concluida com sucesso."
+                }
+                else {
+                    Write-Fail $installResult.Message
+                }
+            }
+            $ProductKey = $null
+        }
+        elseif ($DryRun) {
         Write-Warn "DRY-RUN: slmgr.vbs $($slmgrArgs -join ' ')"
         Write-Warn "Nenhuma alteracao aplicada."
         }

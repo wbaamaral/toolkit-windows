@@ -456,3 +456,62 @@ Describe 'Test-LicenseAdminContext' {
         { Test-LicenseAdminContext } | Should -Throw -ExpectedMessage '*exige um processo elevado*'
     }
 }
+
+Describe 'Product Key nunca exposta (BCK-064/C8, ADR 0028)' {
+    BeforeAll {
+        if (-not (Get-Command Invoke-CimMethod -ErrorAction SilentlyContinue)) {
+            function global:Invoke-CimMethod { throw 'Invoke-CimMethod indisponível neste ambiente de testes.' }
+        }
+        $script:fakeKey = 'AAAAA-BBBBB-CCCCC-DDDDD-EEEEE'
+        # Invoke-CimMethod -InputObject exige CimInstance real (o mock preserva o tipo do parametro).
+        $script:fakeService = [Microsoft.Management.Infrastructure.CimInstance]::new('SoftwareLicensingService', 'root/cimv2')
+        $script:scriptContent = Get-Content (Join-Path $repoRoot 'scripts/gerenciar-licenciamento.ps1') -Raw
+    }
+
+    It 'ConvertTo-LicensePartialKey mantém só os 5 últimos caracteres' {
+        ConvertTo-LicensePartialKey -ProductKey $script:fakeKey | Should -Be '*****-*****-*****-*****-EEEEE'
+        ConvertTo-LicensePartialKey -ProductKey 'abc' | Should -Be '*****'
+    }
+
+    It 'Instala via InstallProductKey (CIM) e não expõe a chave no resultado' {
+        Mock Get-CimInstance { $script:fakeService }
+        Mock Invoke-CimMethod { [pscustomobject]@{ ReturnValue = 0 } }
+
+        $r = Install-LicenseProductKey -ProductKey $script:fakeKey -Confirm:$false
+
+        $r.Success | Should -BeTrue
+        $r.PartialKey | Should -Be '*****-*****-*****-*****-EEEEE'
+        ($r | ConvertTo-Json -Compress) | Should -Not -Match 'AAAAA'
+        Should -Invoke Invoke-CimMethod -Times 1 -Exactly -ParameterFilter {
+            $MethodName -eq 'InstallProductKey' -and $Arguments.ProductKey -eq $script:fakeKey
+        }
+        Should -Invoke Invoke-CimMethod -Times 1 -Exactly -ParameterFilter { $MethodName -eq 'RefreshLicenseStatus' }
+    }
+
+    It 'Falha do CIM vira resultado sem a chave' {
+        Mock Get-CimInstance { $script:fakeService }
+        Mock Invoke-CimMethod { throw 'Chave invalida' }
+
+        $r = Install-LicenseProductKey -ProductKey $script:fakeKey -Confirm:$false
+
+        $r.Success | Should -BeFalse
+        $r.Message | Should -Not -Match 'AAAAA'
+    }
+
+    It '-WhatIf não chama o CIM' {
+        Mock Get-CimInstance { $script:fakeService }
+        Mock Invoke-CimMethod { [pscustomobject]@{ ReturnValue = 0 } }
+
+        $r = Install-LicenseProductKey -ProductKey $script:fakeKey -WhatIf
+
+        $r.Success | Should -BeFalse
+        Should -Invoke Invoke-CimMethod -Times 0 -Exactly
+    }
+
+    It 'O script não usa slmgr /ipk nem repassa -ProductKey ao relançamento elevado' {
+        $script:scriptContent | Should -Not -Match "'/ipk'"
+        $script:scriptContent | Should -Not -Match 'New-ToolkitElevationCommand[^\r\n]*-BoundParameters \$PSBoundParameters'
+        $script:scriptContent | Should -Match "\`$kv\.Key -ne 'ProductKey'"
+        $script:scriptContent | Should -Match 'Read-Host[^\r\n]*-AsSecureString'
+    }
+}
