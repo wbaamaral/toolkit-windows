@@ -997,7 +997,7 @@ function Invoke-UpgradeMain {
                 $summary.ExitCode = 9
             }
             else {
-                $anyFail = ($selectResult.Results | Where-Object {
+                $anyFail = @($selectResult.Results | Where-Object {
                     -not [bool](Get-ResultPropertyValue -Object $_ -Name 'Success')
                 }).Count -gt 0
                 $summary.ExitCode = if ($anyFail) { 4 } else { 0 }

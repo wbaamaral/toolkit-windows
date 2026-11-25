@@ -68,6 +68,6 @@
         ComputerName = $env:COMPUTERNAME
         CheckedAt    = Get-Date
         Checks       = $checks
-        Healthy      = ($checks | Where-Object { $_.Status -eq 'FALHA' }).Count -eq 0
+        Healthy      = @($checks | Where-Object { $_.Status -eq 'FALHA' }).Count -eq 0
     }
 }

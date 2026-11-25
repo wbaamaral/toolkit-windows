@@ -41,6 +41,9 @@
 
     if ($PSCmdlet.ShouldProcess($BackupPath, 'Backup de dados do usuario')) {
         New-Item -ItemType Directory -Path $BackupPath -Force | Out-Null
+        # A pasta de logs precisa existir antes do laco: Start-Process redireciona
+        # stdout/stderr do rsync para ela e lanca excecao se o caminho nao existir.
+        if (-not (Test-Path -LiteralPath $store.Logs)) { New-Item -ItemType Directory -Path $store.Logs -Force | Out-Null }
 
         $results = foreach ($source in $SourcePaths) {
             if (-not (Test-Path $source)) { continue }
@@ -83,7 +86,7 @@
             }
         }
 
-        $allSuccess = ($results | Where-Object { -not $_.Success }).Count -eq 0
+        $allSuccess = @($results | Where-Object { -not $_.Success }).Count -eq 0
 
         $meta = [pscustomobject]@{
             BackupPath   = $BackupPath
@@ -97,7 +100,6 @@
         $metaPath = Join-Path $BackupPath 'metadados.json'
         $meta | ConvertTo-Json -Depth 8 | Set-Content -Path $metaPath -Encoding UTF8
 
-        if (-not (Test-Path $store.Logs)) { New-Item -ItemType Directory -Path $store.Logs -Force | Out-Null }
         $meta | ConvertTo-Json -Depth 8 | Set-Content -Path $store.Metadata -Encoding UTF8
 
         if ($allSuccess) {

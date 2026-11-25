@@ -70,7 +70,7 @@
             }
         }
 
-        $allSuccess = ($results | Where-Object { -not $_.Success }).Count -eq 0
+        $allSuccess = @($results | Where-Object { -not $_.Success }).Count -eq 0
 
         if ($allSuccess) {
             Write-BackupLog -Message "Restauracao concluida com sucesso." -Level OK

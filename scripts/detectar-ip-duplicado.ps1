@@ -220,9 +220,9 @@ if ($totalDup -gt 0) {
     Write-Ok "Nenhuma duplicacao detectada."
 }
 
-if ($results.Count -gt 0 -and $null -ne $results[0].PSObject.Properties['ReportFiles']) {
+if (@($results).Count -gt 0 -and $null -ne @($results)[0].PSObject.Properties['ReportFiles']) {
     Write-Info "Relatorios gerados:"
-    foreach ($p in $results[0].ReportFiles) {
+    foreach ($p in @($results)[0].ReportFiles) {
         Write-Host "  $p" -ForegroundColor Cyan
     }
 }

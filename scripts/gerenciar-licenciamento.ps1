@@ -142,13 +142,6 @@ if ($Help) {
     exit 0
 }
 
-if ($Acao -in @('Ativar', 'InstalarChave', 'Rearm', 'DefinirKMS', 'Restaurar') -and -not (Test-IsAdministrator)) {
-    Write-Warning "A acao '$Acao' exige privilegios administrativos. Solicitando elevacao..."
-    $command = New-ToolkitElevationCommand -ScriptPath $PSCommandPath -BoundParameters $PSBoundParameters
-    Start-Process powershell.exe -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $command) -Verb RunAs
-    exit 0
-}
-
 $coreModuleRoot = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core'
 $licModuleRoot  = Join-Path $ToolkitRoot 'modules/WbaToolkit.Licensing'
 
@@ -173,6 +166,15 @@ catch {
     Write-Host "[FALHA] Nao foi possivel carregar os modulos do toolkit." -ForegroundColor Red
     Write-Host "        Erro: $($_.Exception.Message)" -ForegroundColor Yellow
     exit 1
+}
+
+# A elevacao depende de Test-IsAdministrator/New-ToolkitElevationCommand (Core),
+# portanto so pode ocorrer depois do dot-source acima (ADR 0025/0032).
+if ($Acao -in @('Ativar', 'InstalarChave', 'Rearm', 'DefinirKMS', 'Restaurar') -and -not (Test-IsAdministrator)) {
+    Write-Warning "A acao '$Acao' exige privilegios administrativos. Solicitando elevacao..."
+    $command = New-ToolkitElevationCommand -ScriptPath $PSCommandPath -BoundParameters $PSBoundParameters
+    Start-Process powershell.exe -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $command) -Verb RunAs
+    exit 0
 }
 
 # WBA-DOCS: Category=Licensing; Manual=Diagnostico e gerenciamento de licenciamento Windows

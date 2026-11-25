@@ -155,14 +155,6 @@ if ($Help) {
     exit 0
 }
 
-$actionRequiresAdmin = @('Instalar', 'Habilitar', 'Desabilitar', 'Parar', 'Iniciar', 'Configurar', 'GerarChaveHost')
-if ($Acao -in $actionRequiresAdmin -and -not (Test-IsAdministrator)) {
-    Write-Warning "A acao '$Acao' exige privilegios administrativos. Solicitando elevacao..."
-    $command = New-ToolkitElevationCommand -ScriptPath $PSCommandPath -BoundParameters $PSBoundParameters
-    Start-Process powershell.exe -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $command) -Verb RunAs
-    exit 0
-}
-
 $coreModuleRoot = Join-Path $ToolkitRoot 'modules/WbaToolkit.Core'
 $sshModuleRoot  = Join-Path $ToolkitRoot 'modules/WbaToolkit.SSH'
 
@@ -187,6 +179,16 @@ catch {
     Write-Host "[FALHA] Nao foi possivel carregar os modulos do toolkit." -ForegroundColor Red
     Write-Host "        Erro: $($_.Exception.Message)" -ForegroundColor Yellow
     exit 1
+}
+
+# A elevacao depende de Test-IsAdministrator/New-ToolkitElevationCommand (Core),
+# portanto so pode ocorrer depois do dot-source acima (ADR 0025/0032).
+$actionRequiresAdmin = @('Instalar', 'Habilitar', 'Desabilitar', 'Parar', 'Iniciar', 'Configurar', 'GerarChaveHost')
+if ($Acao -in $actionRequiresAdmin -and -not (Test-IsAdministrator)) {
+    Write-Warning "A acao '$Acao' exige privilegios administrativos. Solicitando elevacao..."
+    $command = New-ToolkitElevationCommand -ScriptPath $PSCommandPath -BoundParameters $PSBoundParameters
+    Start-Process powershell.exe -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $command) -Verb RunAs
+    exit 0
 }
 
 # WBA-DOCS: Category=Networking; Manual=Gerenciamento de OpenSSH Server no Windows

@@ -476,15 +476,15 @@ function Select-XtudoEntry {
             }
         }
 
-        $matches = @(Get-XtudoEntry -Tokens $Tokens)
-        if ($matches.Count -eq 1) {
-            return $matches[0]
+        $foundEntries = @(Get-XtudoEntry -Tokens $Tokens)
+        if ($foundEntries.Count -eq 1) {
+            return $foundEntries[0]
         }
-        elseif ($matches.Count -gt 1) {
+        elseif ($foundEntries.Count -gt 1) {
             Write-Host ''
             Write-Host 'Resultados encontrados:' -ForegroundColor Cyan
-            for ($i = 0; $i -lt $matches.Count; $i++) {
-                Write-Host ("  {0}. {1} [{2}] -> {3}" -f ($i + 1), $matches[$i].Label, $matches[$i].Category, $matches[$i].Path)
+            for ($i = 0; $i -lt $foundEntries.Count; $i++) {
+                Write-Host ("  {0}. {1} [{2}] -> {3}" -f ($i + 1), $foundEntries[$i].Label, $foundEntries[$i].Category, $foundEntries[$i].Path)
             }
             Write-Host ''
             $choice = Read-Host 'Escolha um numero, 0 para cancelar ou q/sair'
@@ -493,8 +493,8 @@ function Select-XtudoEntry {
             }
             if ($choice -match '^[1-9][0-9]*$') {
                 $picked = [int]$choice - 1
-                if ($picked -ge 0 -and $picked -lt $matches.Count) {
-                    return $matches[$picked]
+                if ($picked -ge 0 -and $picked -lt $foundEntries.Count) {
+                    return $foundEntries[$picked]
                 }
             }
             return $null

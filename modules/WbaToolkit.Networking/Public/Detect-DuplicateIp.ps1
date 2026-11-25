@@ -95,11 +95,11 @@
     # le o cache ARP via Get-NetNeighbor (ou arp -a como fallback). Retorna
     # apenas os pares cujo IP esta dentro da faixa passada.
     Write-Verbose "Iniciando varredura ARP (timeout ${TimeoutMs}ms, throttle ${Throttle})..."
-    $arpPairs = Invoke-ArpSweep `
+    $arpPairs = @(Invoke-ArpSweep `
         -IpList $ipList `
         -TimeoutMs $TimeoutMs `
         -Throttle $Throttle `
-        -Interface $Interface
+        -Interface $Interface)
 
     Write-Verbose ("Pares IP x MAC coletados: {0}" -f $arpPairs.Count)
 

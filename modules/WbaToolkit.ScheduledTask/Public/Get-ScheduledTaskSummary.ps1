@@ -14,10 +14,10 @@
 
     $summary = [pscustomobject]@{
         Total          = ($allTasks | Measure-Object).Count
-        Enabled        = ($allTasks | Where-Object { $_.Settings.Enabled }).Count
-        Disabled       = ($allTasks | Where-Object { -not $_.Settings.Enabled }).Count
-        Ready          = ($allTasks | Where-Object { $_.State -eq 'Ready' }).Count
-        Running        = ($allTasks | Where-Object { $_.State -eq 'Running' }).Count
+        Enabled        = @($allTasks | Where-Object { $_.Settings.Enabled }).Count
+        Disabled       = @($allTasks | Where-Object { -not $_.Settings.Enabled }).Count
+        Ready          = @($allTasks | Where-Object { $_.State -eq 'Ready' }).Count
+        Running        = @($allTasks | Where-Object { $_.State -eq 'Running' }).Count
         ByState        = $allTasks | Group-Object State | ForEach-Object {
             [pscustomobject]@{ State = $_.Name; Count = $_.Count }
         }

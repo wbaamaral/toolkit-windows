@@ -48,7 +48,9 @@
 
     if (-not $Enabled) {
         return [pscustomobject]@{
-            IsCompliant = ($rule.Enabled -eq $false)
+            # .Enabled e o enum NetSecurity.Enabled (True=1, False=2): '-eq $false' converte
+            # $false para 0 e nunca casa. Comparar pelo nome cobre o enum e mocks [bool].
+            IsCompliant = ([string]$rule.Enabled -eq 'False')
             Exists      = $true
             Details     = [pscustomobject]@{ Name = $Name; CurrentEnabled = $rule.Enabled }
         }
