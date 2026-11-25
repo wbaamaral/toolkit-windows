@@ -373,6 +373,55 @@ Describe 'Restore-LicenseState' {
         $r.Message | Should -Match 'DryRun'
         Assert-MockCalled Invoke-Slmgr -Times 0
     }
+
+    It 'Backup sem KMS restaura com /ckms e nunca envia texto de exibicao (BCK-063)' {
+        $semKms = Join-Path $TestDrive 'sem-kms.json'
+        $snapshot = [pscustomobject]@{
+            BackupTimestamp = '2026-07-30T00:00:00'
+            ComputerName   = 'TEST-PC'
+            Product        = [pscustomobject]@{ PartialProductKey = 'XXXXX'; Name = 'Windows 10 Pro'; Description = 'RETAIL channel'; LicenseStatus = 1; ID = 'id'; ApplicationId = 'app'; InstallationID = 'inst'; Version = '10.0' }
+            Service        = [pscustomobject]@{ KeyManagementServiceMachine = $null; KeyManagementServicePort = $null; RemainingWindowsReArmCount = 3 }
+            LicenseInfo    = [pscustomobject]@{ Licenca = [pscustomobject]@{ Canal = 'Retail'; Status = 'Licensed'; PartialProductKey = 'XXXXX' } }
+            Hardware       = [pscustomobject]@{ HwidAtual = ('a' * 64) }
+        }
+        $snapshot | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $semKms -Encoding UTF8
+
+        Mock Get-SoftwareLicensingProduct { New-CycleProduct -LicenseStatus 1 }
+        Mock Get-SoftwareLicensingService { [pscustomobject]@{ KeyManagementServiceMachine = 'kms.novo'; KeyManagementServicePort = 1688; RemainingWindowsReArmCount = 3 } }
+        Mock Get-LicenseCycleStatus { [pscustomobject]@{ Channel = 'Retail' } }
+        Mock Get-LicenseHardwareContext { [pscustomobject]@{ HwidAtual = ('a' * 64) } }
+        Mock Invoke-Slmgr { [pscustomobject]@{ ExitCode = 0; TimedOut = $false } }
+
+        $r = Restore-LicenseState -BackupPath $semKms -Force
+        $r.Success | Should -BeTrue
+        $r.Restored | Should -Contain 'KmsServer'
+        Assert-MockCalled Invoke-Slmgr -Times 1 -Exactly
+        Assert-MockCalled Invoke-Slmgr -Times 1 -Exactly -ParameterFilter { $ArgumentList[0] -eq '/ckms' }
+        Assert-MockCalled Invoke-Slmgr -Times 0 -ParameterFilter { ($ArgumentList -join ' ') -match 'nenhum|padrao' }
+    }
+
+    It 'Respeita -WhatIf e nao executa slmgr (BCK-063)' {
+        $good = Join-Path $TestDrive 'good3.json'
+        $snapshot = [pscustomobject]@{
+            BackupTimestamp = '2026-07-30T00:00:00'
+            ComputerName   = 'TEST-PC'
+            Product        = [pscustomobject]@{ PartialProductKey = 'XXXXX'; Name = 'Windows 10 Pro'; Description = 'RETAIL channel'; LicenseStatus = 1; ID = 'id'; ApplicationId = 'app'; InstallationID = 'inst'; Version = '10.0' }
+            Service        = [pscustomobject]@{ KeyManagementServiceMachine = 'kms.antigo'; KeyManagementServicePort = 1688; RemainingWindowsReArmCount = 3 }
+            LicenseInfo    = [pscustomobject]@{ Licenca = [pscustomobject]@{ Canal = 'Retail'; Status = 'Licensed'; PartialProductKey = 'XXXXX' } }
+            Hardware       = [pscustomobject]@{ HwidAtual = ('a' * 64) }
+        }
+        $snapshot | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $good -Encoding UTF8
+
+        Mock Get-SoftwareLicensingProduct { New-CycleProduct -LicenseStatus 1 }
+        Mock Get-SoftwareLicensingService { New-CycleService }
+        Mock Get-LicenseCycleStatus { [pscustomobject]@{ Channel = 'Retail' } }
+        Mock Get-LicenseHardwareContext { [pscustomobject]@{ HwidAtual = ('a' * 64) } }
+        Mock Invoke-Slmgr { [pscustomobject]@{ ExitCode = 0; TimedOut = $false } }
+
+        $r = Restore-LicenseState -BackupPath $good -Force -WhatIf
+        $r.Restored | Should -BeNullOrEmpty
+        Assert-MockCalled Invoke-Slmgr -Times 0
+    }
 }
 
 Describe 'ConvertTo-LicenseInfoObject — branches de canal' {

@@ -279,10 +279,17 @@
         foreach ($r in $restorable) {
             switch ($r.Field) {
                 'KmsServer' {
-                    Write-Host "    slmgr.vbs /skms $($r.Backup)" -ForegroundColor Yellow
+                    if ($backupKms) {
+                        $port = if ($backupKmsPort) { $backupKmsPort } else { '1688' }
+                        Write-Host "    slmgr.vbs /skms ${backupKms}:$port" -ForegroundColor Yellow
+                    }
+                    else {
+                        Write-Host "    slmgr.vbs /ckms" -ForegroundColor Yellow
+                    }
                 }
                 'KmsPort' {
-                    Write-Host "    slmgr.vbs /skms :$($r.Backup)" -ForegroundColor Yellow
+                    $port = if ($backupKmsPort) { $backupKmsPort } else { '1688' }
+                    Write-Host "    (porta KMS $port aplicada junto com o servidor)" -ForegroundColor Yellow
                 }
             }
         }
@@ -321,10 +328,21 @@
     foreach ($r in $restorable) {
         switch ($r.Field) {
             'KmsServer' {
-                $port = if ($backupKmsPort) { $backupKmsPort } else { '1688' }
-                $kmsTarget = if ($r.Backup) { "$($r.Backup):$port" } else { ':' }
-                Write-Host "  Restaurando KMS: $kmsTarget" -ForegroundColor Cyan
-                $result = Invoke-Slmgr -ArgumentList '/skms', $kmsTarget -TimeoutSeconds 30
+                # Usa os valores brutos do backup: $r.Backup e texto de exibicao ('(nenhum)').
+                # Backup sem KMS volta ao estado sem KMS via /ckms (limpa servidor e porta).
+                $slmgrArgs = if ($backupKms) {
+                    $port = if ($backupKmsPort) { $backupKmsPort } else { '1688' }
+                    @('/skms', "${backupKms}:$port")
+                }
+                else {
+                    @('/ckms')
+                }
+                if (-not $PSCmdlet.ShouldProcess('Servico de licenciamento', "slmgr.vbs $($slmgrArgs -join ' ')")) {
+                    $skipped.Add($r)
+                    continue
+                }
+                Write-Host "  Restaurando KMS: slmgr.vbs $($slmgrArgs -join ' ')" -ForegroundColor Cyan
+                $result = Invoke-Slmgr -ArgumentList $slmgrArgs -TimeoutSeconds 30
                 if ($result.ExitCode -eq 0 -and -not $result.TimedOut) {
                     Write-Ok "    KMS restaurado."
                     $restored.Add('KmsServer')
@@ -335,10 +353,20 @@
                 }
             }
             'KmsPort' {
-                Write-Host "  Restaurando porta KMS: $($r.Backup)" -ForegroundColor Cyan
+                # A restauracao de KmsServer (/skms servidor:porta ou /ckms) ja aplica a porta.
+                if ($restored -contains 'KmsServer') {
+                    $restored.Add('KmsPort')
+                    continue
+                }
+                $port = if ($backupKmsPort) { $backupKmsPort } else { '1688' }
+                Write-Host "  Restaurando porta KMS: $port" -ForegroundColor Cyan
                 $server = if ($backupKms) { $backupKms } else { $currentKms }
                 if ($server) {
-                    $target = "$server`:$($r.Backup)"
+                    $target = "${server}:$port"
+                    if (-not $PSCmdlet.ShouldProcess('Servico de licenciamento', "slmgr.vbs /skms $target")) {
+                        $skipped.Add($r)
+                        continue
+                    }
                     $result = Invoke-Slmgr -ArgumentList '/skms', $target -TimeoutSeconds 30
                     if ($result.ExitCode -eq 0 -and -not $result.TimedOut) {
                         Write-Ok "    Porta KMS restaurada."
