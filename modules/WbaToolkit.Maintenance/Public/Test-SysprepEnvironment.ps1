@@ -118,19 +118,12 @@
 
     # Diretivas de grupo aplicadas ficam gravadas no registro e podem conflitar com a
     # generalizacao do Sysprep e com a nova implantacao da imagem.
-    $gpoDetectado = $false
-    $gpoCaminhos  = @(
-        'HKLM:\SOFTWARE\Policies\Microsoft',
-        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies'
-    )
-    foreach ($gpoPath in $gpoCaminhos) {
-        if (Test-Path -LiteralPath $gpoPath) {
-            $gpoDetectado = $true
-            break
-        }
-    }
+    # A existencia das chaves de Policies nao basta: elas existem em toda instalacao.
+    # So ha GPO quando existe evidencia concreta (GPO de dominio ou Registry.pol local).
+    $gpoEvidencias = @(Get-SysprepGroupPolicyEvidence)
+    $gpoDetectado  = $gpoEvidencias.Count -gt 0
     if ($gpoDetectado) {
-        $avisos.Add('Diretivas de grupo encontradas no registro. Serao removidas antes do Sysprep para evitar conflitos na nova implantacao.')
+        $avisos.Add("Diretivas de grupo aplicadas ($($gpoEvidencias -join '; ')). HKLM:\SOFTWARE\Policies\Microsoft sera exportada e removida antes do Sysprep para evitar conflitos na nova implantacao.")
     }
 
     if ($AppxPolicy -ne 'Skip') {

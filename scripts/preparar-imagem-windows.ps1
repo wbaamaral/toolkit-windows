@@ -274,7 +274,7 @@ if ($autoLogonEncontrado) {
     Write-Warn 'AutoLogon detectado (AutoAdminLogon=1). Sera desativado antes da execucao do Sysprep.'
 }
 if ($gpoEncontrado) {
-    Write-Warn 'Diretivas de grupo encontradas no registro. Serao removidas antes do Sysprep.'
+    Write-Warn 'Diretivas de grupo aplicadas. HKLM:\SOFTWARE\Policies\Microsoft sera exportada e removida antes do Sysprep.'
 }
 
 if ($ambiente.SysprepBlockers -and $ambiente.SysprepBlockers.Count -gt 0) {
@@ -335,7 +335,7 @@ if ($autoLogonEncontrado) {
     Write-Info '  [AUTOLOGON] AutoAdminLogon=0 e DefaultPassword removido do registro Winlogon'
 }
 if ($gpoEncontrado) {
-    Write-Info '  [GPO] Chaves de diretiva de grupo removidas (HKLM:\SOFTWARE\Policies e CurrentVersion\Policies)'
+    Write-Info '  [GPO] HKLM:\SOFTWARE\Policies\Microsoft exportada para a pasta de backups e removida (CurrentVersion\Policies preservada)'
 }
 Write-Info '  [SECEDIT] Politica de seguranca local resetada para padrao Windows (sem complexidade de senha)'
 if (-not $SemSysprep) {
@@ -394,15 +394,34 @@ if ($autoLogonEncontrado) {
 
 if ($gpoEncontrado) {
     Write-Section 'Removendo diretivas de grupo do registro'
-    $gpoCaminhos = @(
-        'HKLM:\SOFTWARE\Policies\Microsoft',
-        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies'
-    )
-    foreach ($gpoPath in $gpoCaminhos) {
-        if (Test-Path -LiteralPath $gpoPath) {
+    # Somente a arvore de politicas gravada por GPO. HKLM:\...\CurrentVersion\Policies
+    # e preservada: contem valores padrao do Windows (UAC: EnableLUA,
+    # ConsentPromptBehaviorAdmin, PromptOnSecureDesktop) que o reset do secedit
+    # com defltbase.inf NAO recria.
+    $gpoPath   = 'HKLM:\SOFTWARE\Policies\Microsoft'
+    $gpoRegKey = 'HKLM\SOFTWARE\Policies\Microsoft'
+    if (Test-Path -LiteralPath $gpoPath) {
+        # Backup reversivel antes de remover: sem exportacao confirmada, nao remove.
+        # A pasta de backups da sessao so existe sob demanda (CreateBackups).
+        if (-not (Test-Path -LiteralPath $script:Session.BackupsPath -PathType Container)) {
+            New-Item -ItemType Directory -Path $script:Session.BackupsPath -Force | Out-Null
+        }
+        $gpoBackup = Join-Path $script:Session.BackupsPath 'politicas-microsoft.reg'
+        $prevEAP = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        $null = & reg.exe export $gpoRegKey $gpoBackup /y 2>&1
+        $exportExit = $LASTEXITCODE
+        $ErrorActionPreference = $prevEAP
+
+        if ($exportExit -eq 0 -and (Test-Path -LiteralPath $gpoBackup -PathType Leaf)) {
+            Write-SysprepLog -Message "Chave de diretiva exportada: $gpoPath -> $gpoBackup"
             Remove-Item -LiteralPath $gpoPath -Recurse -Force -ErrorAction Stop
-            Write-Ok "Removido: $gpoPath"
+            Write-Ok "Removido: $gpoPath (backup: $gpoBackup)"
             Write-SysprepLog -Message "Chave de diretiva removida: $gpoPath"
+        }
+        else {
+            Write-Warn "Falha ao exportar $gpoPath (reg.exe codigo $exportExit); chave mantida para nao remover sem backup."
+            Write-SysprepLog -Message "Exportacao de $gpoPath falhou (codigo $exportExit); remocao ignorada."
         }
     }
 }

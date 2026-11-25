@@ -839,8 +839,7 @@ Describe 'WbaToolkit.Maintenance' {
             Mock -CommandName 'Get-ItemProperty' -ModuleName 'WbaToolkit.Maintenance' -MockWith {
                 [pscustomobject]@{ AutoAdminLogon = '1' }
             } -ParameterFilter { $Name -eq 'AutoAdminLogon' }
-            Mock -CommandName 'Test-Path' -ModuleName 'WbaToolkit.Maintenance' -MockWith { $false } `
-                -ParameterFilter { $LiteralPath -like '*Policies*' }
+            Mock -CommandName 'Get-SysprepGroupPolicyEvidence' -ModuleName 'WbaToolkit.Maintenance' -MockWith { }
             $r = Test-SysprepEnvironment
             $r.AutoLogonDetectado   | Should -BeTrue
             ($r.Warnings -join ' ') | Should -Match 'AutoLogon'
@@ -849,8 +848,7 @@ Describe 'WbaToolkit.Maintenance' {
             Mock -CommandName 'Get-ItemProperty' -ModuleName 'WbaToolkit.Maintenance' -MockWith {
                 $null
             } -ParameterFilter { $Name -eq 'AutoAdminLogon' }
-            Mock -CommandName 'Test-Path' -ModuleName 'WbaToolkit.Maintenance' -MockWith { $false } `
-                -ParameterFilter { $LiteralPath -like '*Policies*' }
+            Mock -CommandName 'Get-SysprepGroupPolicyEvidence' -ModuleName 'WbaToolkit.Maintenance' -MockWith { }
             $r = Test-SysprepEnvironment
             $r.AutoLogonDetectado   | Should -BeFalse
             ($r.Warnings -join ' ') | Should -Not -Match 'AutoLogon'
@@ -859,22 +857,72 @@ Describe 'WbaToolkit.Maintenance' {
             Mock -CommandName 'Get-ItemProperty' -ModuleName 'WbaToolkit.Maintenance' -MockWith {
                 $null
             } -ParameterFilter { $Name -eq 'AutoAdminLogon' }
-            Mock -CommandName 'Test-Path' -ModuleName 'WbaToolkit.Maintenance' -MockWith { $true } `
-                -ParameterFilter { $LiteralPath -like '*Policies*' }
+            Mock -CommandName 'Get-SysprepGroupPolicyEvidence' -ModuleName 'WbaToolkit.Maintenance' -MockWith {
+                'GPO de dominio aplicada: Default Domain Policy (\\corp.local\SysVol\corp.local\Policies\{31B2F340})'
+            }
             $r = Test-SysprepEnvironment
             $r.GpoDetectado         | Should -BeTrue
-            ($r.Warnings -join ' ') | Should -Match 'diretiva'
+            ($r.Warnings -join ' ') | Should -Match 'Diretivas de grupo aplicadas'
         }
         It 'GPO ausente: GpoDetectado false e sem aviso de diretiva' {
             Mock -CommandName 'Get-ItemProperty' -ModuleName 'WbaToolkit.Maintenance' -MockWith {
                 $null
             } -ParameterFilter { $Name -eq 'AutoAdminLogon' }
-            Mock -CommandName 'Test-Path' -ModuleName 'WbaToolkit.Maintenance' -MockWith { $false } `
-                -ParameterFilter { $LiteralPath -like '*Policies*' }
+            Mock -CommandName 'Get-SysprepGroupPolicyEvidence' -ModuleName 'WbaToolkit.Maintenance' -MockWith { }
             $r = Test-SysprepEnvironment
             $r.GpoDetectado         | Should -BeFalse
             ($r.Warnings -join ' ') | Should -Not -Match 'diretiva'
         }
+        It 'Chaves de Policies existentes sem evidencia de GPO nao contam como GPO (BCK-063/C6)' {
+            Mock -CommandName 'Get-ItemProperty' -ModuleName 'WbaToolkit.Maintenance' -MockWith {
+                $null
+            } -ParameterFilter { $Name -eq 'AutoAdminLogon' }
+            # Toda instalacao do Windows tem estas chaves; isso nao pode disparar a remocao.
+            Mock -CommandName 'Test-Path' -ModuleName 'WbaToolkit.Maintenance' -MockWith { $true } `
+                -ParameterFilter { $LiteralPath -like '*Policies*' }
+            Mock -CommandName 'Get-SysprepGroupPolicyEvidence' -ModuleName 'WbaToolkit.Maintenance' -MockWith { }
+            $r = Test-SysprepEnvironment
+            $r.GpoDetectado | Should -BeFalse
+        }
+    }
+
+    Context 'Get-SysprepGroupPolicyEvidence - evidencias reais de GPO (BCK-063/C6)' {
+        It 'Ignora a entrada de politica local da GPO-List (existe fora de dominio)' {
+            InModuleScope WbaToolkit.Maintenance {
+                Mock -CommandName 'Test-Path' -MockWith { $true } -ParameterFilter { $LiteralPath -like '*GPO-List' }
+                Mock -CommandName 'Test-Path' -MockWith { $false } -ParameterFilter { $LiteralPath -like '*Registry.pol' }
+                Mock -CommandName 'Get-ChildItem' -MockWith { [pscustomobject]@{ PSPath = 'fake:\0' } }
+                Mock -CommandName 'Get-ItemProperty' -MockWith {
+                    [pscustomobject]@{ DisplayName = 'Politicas de grupo locais'; FileSysPath = 'C:\Windows\System32\GroupPolicy\Machine' }
+                }
+                @(Get-SysprepGroupPolicyEvidence).Count | Should -Be 0
+            }
+        }
+        It 'Reporta GPO de dominio (FileSysPath em SYSVOL)' {
+            InModuleScope WbaToolkit.Maintenance {
+                Mock -CommandName 'Test-Path' -MockWith { $true } -ParameterFilter { $LiteralPath -like '*GPO-List' }
+                Mock -CommandName 'Test-Path' -MockWith { $false } -ParameterFilter { $LiteralPath -like '*Registry.pol' }
+                Mock -CommandName 'Get-ChildItem' -MockWith { [pscustomobject]@{ PSPath = 'fake:\0' } }
+                Mock -CommandName 'Get-ItemProperty' -MockWith {
+                    [pscustomobject]@{ DisplayName = 'Default Domain Policy'; FileSysPath = '\\corp.local\SysVol\corp.local\Policies\{31B2F340}\Machine' }
+                }
+                $e = @(Get-SysprepGroupPolicyEvidence)
+                $e.Count | Should -Be 1
+                $e[0] | Should -Match 'Default Domain Policy'
+            }
+        }
+        It 'Reporta politica local com Registry.pol' {
+            InModuleScope WbaToolkit.Maintenance {
+                Mock -CommandName 'Test-Path' -MockWith { $false } -ParameterFilter { $LiteralPath -like '*GPO-List' }
+                Mock -CommandName 'Test-Path' -MockWith { $true } -ParameterFilter { $LiteralPath -like '*Registry.pol' }
+                $e = @(Get-SysprepGroupPolicyEvidence)
+                $e.Count | Should -Be 1
+                $e[0] | Should -Match 'Registry.pol'
+            }
+        }
+    }
+
+    Context 'Test-SysprepEnvironment - propriedades de retorno' {
         It 'Retorno contem propriedades AutoLogonDetectado e GpoDetectado' {
             $r = Test-SysprepEnvironment
             $r.PSObject.Properties.Name | Should -Contain 'AutoLogonDetectado'
