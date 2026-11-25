@@ -351,11 +351,28 @@ function Corrigir-MudancaLocalizacao {
                 New-Item -ItemType Directory -Path $NewLocationDir -Force | Out-Null
             }
 
-            # Copiar o arquivo para o novo local
-            Copy-Item -LiteralPath $Item.Caminho -Destination $destPath -Force
+            # Arquivos homonimos de pastas diferentes caem no mesmo destino plano:
+            # nunca sobrescrever. Usa '<nome> (n).<ext>' a partir da segunda ocorrencia.
+            $baseName  = [System.IO.Path]::GetFileNameWithoutExtension($Item.Nome)
+            $extension = [System.IO.Path]::GetExtension($Item.Nome)
+            $counter = 1
+            while (Test-Path -LiteralPath $destPath) {
+                $counter++
+                $destPath = Join-Path $NewLocationDir ("{0} ({1}){2}" -f $baseName, $counter, $extension)
+            }
+
+            # Copiar o arquivo para o novo local (sem -Force: nunca sobrescreve)
+            Copy-Item -LiteralPath $Item.Caminho -Destination $destPath -ErrorAction Stop
+
+            # So remove o original depois de confirmar a copia integra
+            $sourceLength = (Get-Item -LiteralPath $Item.Caminho).Length
+            $destItem = Get-Item -LiteralPath $destPath -ErrorAction Stop
+            if ($destItem.Length -ne $sourceLength) {
+                throw "Copia incompleta em '$destPath' ($($destItem.Length) de $sourceLength bytes); original preservado."
+            }
 
             # Remover o arquivo original
-            Remove-Item -LiteralPath $Item.Caminho -Force
+            Remove-Item -LiteralPath $Item.Caminho -Force -ErrorAction Stop
 
             $resultado.Status   = 'Corrigido'
             $resultado.NovoPath = $destPath

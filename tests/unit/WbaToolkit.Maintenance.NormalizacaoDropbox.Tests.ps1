@@ -50,6 +50,24 @@ Describe 'Backup-DropboxItem' {
         }
     }
 
+    Context 'Arquivos homonimos (BCK-063/C4)' {
+        It 'Nunca sobrescreve backup existente de arquivo com o mesmo nome' {
+            $testDir = Join-Path $TestDrive 'backup-homonimos'
+            $dirA = Join-Path $testDir 'A'
+            $dirB = Join-Path $testDir 'B'
+            $backupDir = Join-Path $testDir 'backups'
+            New-Item -ItemType Directory -Path $dirA, $dirB, $backupDir -Force | Out-Null
+            Set-Content -LiteralPath (Join-Path $dirA 'relatorio.xlsx') -Value 'conteudo A'
+            Set-Content -LiteralPath (Join-Path $dirB 'relatorio.xlsx') -Value 'conteudo B'
+
+            Backup-DropboxItem -Path (Join-Path $dirA 'relatorio.xlsx') -BackupDir $backupDir | Should -BeTrue
+            Backup-DropboxItem -Path (Join-Path $dirB 'relatorio.xlsx') -BackupDir $backupDir | Should -BeTrue
+
+            Get-Content -LiteralPath (Join-Path $backupDir 'relatorio.xlsx.backup') | Should -Be 'conteudo A'
+            Get-Content -LiteralPath (Join-Path $backupDir 'relatorio.xlsx.2.backup') | Should -Be 'conteudo B'
+        }
+    }
+
     Context 'Arquivo inexistente' {
         It 'Deve retornar false quando arquivo não existe' {
             # Arrange
@@ -858,5 +876,40 @@ Describe 'Invoke-DropboxCadeiaRename' {
             $resultado.caminho_final | Should -Be (Join-Path $raiz 'PastaNova')
             Test-Path -LiteralPath $resultado.caminho_final -PathType Container | Should -BeTrue
         }
+    }
+}
+
+Describe 'corrigir-arquivos-dropbox.ps1 -Correcao MudancaLocalizacao (BCK-063/C4)' {
+    It 'Preserva o conteudo de arquivos homonimos de pastas diferentes' {
+        $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+        $scriptPath = Join-Path $repoRoot 'scripts\corrigir-arquivos-dropbox.ps1'
+        $root = Join-Path $TestDrive 'mudanca-homonimos'
+        $dirA = Join-Path $root 'Dropbox\A'
+        $dirB = Join-Path $root 'Dropbox\B'
+        New-Item -ItemType Directory -Path $dirA, $dirB -Force | Out-Null
+        $fileA = Join-Path $dirA 'relatorio.xlsx'
+        $fileB = Join-Path $dirB 'relatorio.xlsx'
+        Set-Content -LiteralPath $fileA -Value 'conteudo A'
+        Set-Content -LiteralPath $fileB -Value 'conteudo B'
+
+        $inputFile = Join-Path $root 'problemas.json'
+        [pscustomobject]@{
+            metadata               = [pscustomobject]@{ caminho_analisado = (Join-Path $root 'Dropbox') }
+            arquivos_problematicos = @(
+                [pscustomobject]@{ Caminho = $fileA; Nome = 'relatorio.xlsx' }
+                [pscustomobject]@{ Caminho = $fileB; Nome = 'relatorio.xlsx' }
+            )
+        } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $inputFile -Encoding UTF8
+
+        $saida = Join-Path $root 'saida'
+        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $scriptPath `
+            -InputFile $inputFile -Correcao MudancaLocalizacao -DiretorioSaida $saida *> $null
+
+        $destDir = Join-Path $saida 'arquivos_corrigidos'
+        $conteudos = @(Get-ChildItem -LiteralPath $destDir -File | ForEach-Object { Get-Content -LiteralPath $_.FullName }) | Sort-Object
+        $conteudos | Should -Be @('conteudo A', 'conteudo B')
+
+        $backups = @(Get-ChildItem -LiteralPath (Join-Path $saida 'backups') -File | ForEach-Object { Get-Content -LiteralPath $_.FullName }) | Sort-Object
+        $backups | Should -Be @('conteudo A', 'conteudo B')
     }
 }
