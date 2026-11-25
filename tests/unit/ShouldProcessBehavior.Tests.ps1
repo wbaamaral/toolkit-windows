@@ -1,4 +1,4 @@
-#requires -version 5.1
+﻿#requires -version 5.1
 
 Describe 'Operacoes mutaveis respeitam WhatIf' {
     BeforeAll {

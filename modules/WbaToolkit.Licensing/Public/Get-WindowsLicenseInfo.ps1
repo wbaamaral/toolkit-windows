@@ -1,4 +1,4 @@
-function Get-WindowsLicenseInfo {
+﻿function Get-WindowsLicenseInfo {
     <#
     .SYNOPSIS
         Diagnóstico da licença Windows consolidando CIM + slmgr + HWID (RF-01).

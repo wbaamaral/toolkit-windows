@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Assistente interativo que gera um provisioning.json para o WbaToolkit.Provisioning.

@@ -1,4 +1,4 @@
-#requires -version 5.1
+﻿#requires -version 5.1
 <#
 .SYNOPSIS
     Script de limpeza segura, manutenção e otimização conservadora para Windows 10 Pro.

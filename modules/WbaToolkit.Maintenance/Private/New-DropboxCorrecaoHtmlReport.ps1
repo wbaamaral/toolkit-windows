@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Gera relatório HTML com o resultado da correção em massa de arquivos Dropbox.

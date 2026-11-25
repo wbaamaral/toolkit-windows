@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Launcher principal do WBA Windows Toolkit.
 

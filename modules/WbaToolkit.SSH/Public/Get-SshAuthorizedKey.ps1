@@ -1,4 +1,4 @@
-function Get-SshAuthorizedKey {
+﻿function Get-SshAuthorizedKey {
     <#
     .SYNOPSIS
         Lista chaves publicas no authorized_keys.

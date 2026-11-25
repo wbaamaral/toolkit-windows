@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Audita arquivos do Dropbox no Windows e classifica seu estado local.

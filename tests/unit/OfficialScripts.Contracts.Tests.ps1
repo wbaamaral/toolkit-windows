@@ -1,4 +1,4 @@
-#requires -version 5.1
+﻿#requires -version 5.1
 
 BeforeAll {
     . (Join-Path $PSScriptRoot 'Xtudo.TestSupport.ps1')

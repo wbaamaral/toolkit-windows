@@ -1,4 +1,4 @@
-function Unregister-ScheduledTaskByName {
+﻿function Unregister-ScheduledTaskByName {
     <#
     .SYNOPSIS
         Remove uma tarefa agendada por nome.

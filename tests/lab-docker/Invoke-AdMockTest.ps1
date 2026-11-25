@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Harness para rodar diagnosticar-ad-cliente.ps1 em Linux/Docker com mocks.

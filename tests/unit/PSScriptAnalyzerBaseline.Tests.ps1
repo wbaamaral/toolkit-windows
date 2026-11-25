@@ -1,4 +1,4 @@
-#requires -version 5.1
+﻿#requires -version 5.1
 
 Describe 'Baseline do PSScriptAnalyzer' {
     It 'documenta as excecoes de UI associadas ao BCK-058' {

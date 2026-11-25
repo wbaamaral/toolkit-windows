@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Configura acesso remoto (RDP) no Windows.
 

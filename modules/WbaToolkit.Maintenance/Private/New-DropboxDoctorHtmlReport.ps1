@@ -1,4 +1,4 @@
-# Projeto: wba-toolkit
+﻿# Projeto: wba-toolkit
 # Autor: wbaamaral
 
 function New-DropboxDoctorHtmlReport {

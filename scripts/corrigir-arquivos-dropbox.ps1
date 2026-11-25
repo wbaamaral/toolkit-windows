@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Corrige em massa arquivos problematicos do Dropbox identificados pelo toolkit.

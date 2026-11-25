@@ -1,4 +1,4 @@
-function Test-SshUserIsAdmin {
+﻿function Test-SshUserIsAdmin {
     <#
     .SYNOPSIS
         Verifica se o usuario informado pertence ao grupo local de Administradores.

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Diagnóstico e gerenciamento do ciclo de licenciamento do Windows.
 

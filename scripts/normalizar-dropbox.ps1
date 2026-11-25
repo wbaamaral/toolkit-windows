@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Normaliza arquivos problemáticos do Dropbox com fluxo iterativo controlado.

@@ -1,4 +1,4 @@
-function Invoke-ToolkitProvisioningEngine {
+﻿function Invoke-ToolkitProvisioningEngine {
     <#
     .SYNOPSIS
         Motor compartilhado por Invoke-ToolkitProvisioning e Resume-ToolkitProvisioning.

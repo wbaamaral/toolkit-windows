@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Detecta IPs associados a multiplos enderecos MAC em uma faixa de rede.
