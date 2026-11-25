@@ -7,7 +7,10 @@
 BeforeDiscovery {
     $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
     $script:sourceFiles = @(
-        Get-ChildItem -LiteralPath $repoRoot -Recurse -File -Include '*.ps1', '*.psm1', '*.psd1' |
+        # Filtra por extensao via Where-Object: no PS 5.1, -Include e ignorado
+        # quando combinado com -LiteralPath.
+        Get-ChildItem -LiteralPath $repoRoot -Recurse -File |
+            Where-Object { $_.Extension -in @('.ps1', '.psm1', '.psd1') } |
             Where-Object { $_.FullName -notmatch '[\\/](\.git|spec|validation)[\\/]' } |
             ForEach-Object {
                 @{
