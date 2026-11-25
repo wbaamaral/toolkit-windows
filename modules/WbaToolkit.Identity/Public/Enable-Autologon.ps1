@@ -112,34 +112,61 @@
         return [pscustomobject]@{ Name = $UserName; Action = 'Enable'; Success = $true; Message = 'WhatIf.' }
     }
 
+    $winlogon = $null
+    $previousAutoAdminLogon = $null
+    $autoAdminLogonWritten = $false
     try {
         Backup-AutologonState | Out-Null
 
         $winlogon = Get-WinlogonRegPath
-        Set-ItemProperty -LiteralPath $winlogon -Name 'AutoAdminLogon'    -Value '1'       -ErrorAction Stop
-        Set-ItemProperty -LiteralPath $winlogon -Name 'DefaultUserName'   -Value $UserName -ErrorAction Stop
-        Set-ItemProperty -LiteralPath $winlogon -Name 'DefaultDomainName' -Value $Domain   -ErrorAction Stop
+        $previousAutoAdminLogon = (Get-ItemProperty -LiteralPath $winlogon -ErrorAction Stop).PSObject.Properties['AutoAdminLogon']
 
-        # Senha via segredo LSA; texto claro removido do registro se existir.
+        # Ordem segura: senha (segredo LSA) primeiro e AutoAdminLogon=1 por ultimo.
+        # Se qualquer etapa falhar, o autologon nunca fica ligado sem senha.
+        # A confirmacao ja ocorreu no ShouldProcess acima; -Confirm:$false evita o
+        # prompt aninhado de Set-LsaSecret (ConfirmImpact High), cuja recusa deixava
+        # o autologon habilitado sem senha e reportado como sucesso.
         $plain = $null
+        $stored = $false
         try {
             $plain = ConvertFrom-SecureStringPlain -Secure $Password
-            Set-LsaSecret -Name 'DefaultPassword' -Value $plain
+            $stored = Set-LsaSecret -Name 'DefaultPassword' -Value $plain -Confirm:$false
         }
         finally {
             if ($null -ne $plain) { $plain = $null }
         }
+        if ($stored -ne $true) {
+            throw 'O segredo LSA da senha nao foi gravado.'
+        }
+        # Texto claro removido do registro se existir.
         Remove-ItemProperty -LiteralPath $winlogon -Name 'DefaultPassword' -ErrorAction SilentlyContinue
 
+        Set-ItemProperty -LiteralPath $winlogon -Name 'DefaultUserName'   -Value $UserName -ErrorAction Stop
+        Set-ItemProperty -LiteralPath $winlogon -Name 'DefaultDomainName' -Value $Domain   -ErrorAction Stop
         if ($PSBoundParameters.ContainsKey('AutoLogonCount')) {
             Set-ItemProperty -LiteralPath $winlogon -Name 'AutoLogonCount' -Value $AutoLogonCount -Type DWord -ErrorAction Stop
         }
+
+        $autoAdminLogonWritten = $true
+        Set-ItemProperty -LiteralPath $winlogon -Name 'AutoAdminLogon' -Value '1' -ErrorAction Stop
 
         Write-Ok "Autologon habilitado para '$Domain\$UserName'."
         return [pscustomobject]@{ Name = $UserName; Action = 'Enable'; Success = $true; Message = 'OK.' }
     }
     catch {
-        Write-Fail "Falha ao habilitar autologon: $($_.Exception.Message)"
-        return [pscustomobject]@{ Name = $UserName; Action = 'Enable'; Success = $false; Message = $_.Exception.Message }
+        $failure = $_.Exception.Message
+        # Rollback: se a escrita final de AutoAdminLogon foi tentada e falhou,
+        # devolve o valor anterior; as etapas anteriores nao ligam o autologon.
+        if ($autoAdminLogonWritten -and $winlogon) {
+            try {
+                $restoreValue = if ($previousAutoAdminLogon) { [string]$previousAutoAdminLogon.Value } else { '0' }
+                Set-ItemProperty -LiteralPath $winlogon -Name 'AutoAdminLogon' -Value $restoreValue -ErrorAction Stop
+            }
+            catch {
+                Write-Warn "Nao foi possivel restaurar AutoAdminLogon: $($_.Exception.Message)"
+            }
+        }
+        Write-Fail "Falha ao habilitar autologon: $failure"
+        return [pscustomobject]@{ Name = $UserName; Action = 'Enable'; Success = $false; Message = $failure }
     }
 }

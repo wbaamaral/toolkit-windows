@@ -146,6 +146,51 @@ Describe 'WbaToolkit.Identity - salvaguardas de confirmacao (DEV-035)' {
     }
 }
 
+Describe 'WbaToolkit.Identity - ordem segura de gravacao do autologon (BCK-063)' {
+    BeforeEach {
+        # Winlogon falso no TestRegistry: nenhum valor real da maquina e tocado.
+        $script:fakeWinlogon = 'TestRegistry:\Winlogon'
+        New-Item -Path $script:fakeWinlogon -Force | Out-Null
+        Set-ItemProperty -LiteralPath $script:fakeWinlogon -Name 'AutoAdminLogon' -Value '0'
+        $fake = $script:fakeWinlogon
+        Mock -CommandName 'Get-WinlogonRegPath' -ModuleName 'WbaToolkit.Identity' -MockWith { $fake }.GetNewClosure()
+        Mock -CommandName 'Backup-AutologonState' -ModuleName 'WbaToolkit.Identity' -MockWith { }
+        Mock -CommandName 'Test-PrivilegedAccount' -ModuleName 'WbaToolkit.Identity' -MockWith { $false }
+    }
+
+    It 'Enable-Autologon nao liga AutoAdminLogon quando o segredo LSA nao e gravado' {
+        Mock -CommandName 'Set-LsaSecret' -ModuleName 'WbaToolkit.Identity' -MockWith { $false }
+        $result = Enable-Autologon -UserName 'usuario' -Domain $env:COMPUTERNAME -Password $script:fakePassword -Confirm:$false
+        $result.Success | Should -BeFalse
+        (Get-ItemProperty -LiteralPath $script:fakeWinlogon).AutoAdminLogon | Should -Be '0'
+    }
+
+    It 'Enable-Autologon nao liga AutoAdminLogon quando o segredo LSA falha' {
+        Mock -CommandName 'Set-LsaSecret' -ModuleName 'WbaToolkit.Identity' -MockWith { throw 'LsaStorePrivateData falhou (simulado)' }
+        $result = Enable-Autologon -UserName 'usuario' -Domain $env:COMPUTERNAME -Password $script:fakePassword -Confirm:$false
+        $result.Success | Should -BeFalse
+        (Get-ItemProperty -LiteralPath $script:fakeWinlogon).AutoAdminLogon | Should -Be '0'
+    }
+
+    It 'Enable-Autologon grava o segredo sem prompt aninhado e liga AutoAdminLogon por ultimo' {
+        Mock -CommandName 'Set-LsaSecret' -ModuleName 'WbaToolkit.Identity' -MockWith { $true }
+        $result = Enable-Autologon -UserName 'usuario' -Domain $env:COMPUTERNAME -Password $script:fakePassword -Confirm:$false
+        $result.Success | Should -BeTrue
+        $props = Get-ItemProperty -LiteralPath $script:fakeWinlogon
+        $props.AutoAdminLogon  | Should -Be '1'
+        $props.DefaultUserName | Should -Be 'usuario'
+        Should -Invoke -CommandName 'Set-LsaSecret' -ModuleName 'WbaToolkit.Identity' -Times 1 -Exactly -ParameterFilter { $Confirm -eq $false }
+    }
+
+    It 'Set-Autologon reporta falha e nao altera usuario quando o segredo LSA nao e gravado' {
+        Set-ItemProperty -LiteralPath $script:fakeWinlogon -Name 'DefaultUserName' -Value 'original'
+        Mock -CommandName 'Set-LsaSecret' -ModuleName 'WbaToolkit.Identity' -MockWith { $false }
+        $result = Set-Autologon -UserName 'novo' -Domain $env:COMPUTERNAME -Password $script:fakePassword -Confirm:$false
+        $result.Success | Should -BeFalse
+        (Get-ItemProperty -LiteralPath $script:fakeWinlogon).DefaultUserName | Should -Be 'original'
+    }
+}
+
 Describe 'WbaToolkit.Identity - integracao com o launcher' {
     It 'O script operador esta registrado no xtudo' {
         $script:launcher | Should -Match "Path\s+=\s+'scripts/gerenciar-login-automatico\.ps1'"

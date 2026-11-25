@@ -13,17 +13,23 @@
 
     .PARAMETER Value
         Valor em texto a armazenar. Mantido apenas em memoria durante a chamada.
+
+    .OUTPUTS
+        System.Boolean. $true quando o segredo foi gravado; $false quando a gravacao
+        foi recusada via ShouldProcess. Chamadores devem tratar $false como falha.
     #>
     [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
+    [OutputType([bool])]
     param(
         [Parameter(Mandatory = $true)][string]$Name,
         [Parameter(Mandatory = $true)][string]$Value
     )
 
     if (-not $PSCmdlet.ShouldProcess($Name, 'Armazenar segredo privado LSA')) {
-        return
+        return $false
     }
 
     Initialize-LsaInterop
     [Wba.Interop.LsaSecretManager]::Store($Name, $Value)
+    return $true
 }

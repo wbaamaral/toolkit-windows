@@ -96,6 +96,25 @@
         Backup-AutologonState | Out-Null
         $winlogon = Get-WinlogonRegPath
 
+        # Senha primeiro: se o segredo LSA falhar, nenhum outro parametro e alterado.
+        if ($PSBoundParameters.ContainsKey('Password')) {
+            $plain = $null
+            $stored = $false
+            try {
+                $plain = ConvertFrom-SecureStringPlain -Secure $Password
+                # Confirmado no ShouldProcess acima; evita prompt aninhado cuja recusa
+                # reportava sucesso sem trocar a senha.
+                $stored = Set-LsaSecret -Name 'DefaultPassword' -Value $plain -Confirm:$false
+            }
+            finally {
+                if ($null -ne $plain) { $plain = $null }
+            }
+            if ($stored -ne $true) {
+                throw 'O segredo LSA da senha nao foi gravado.'
+            }
+            Remove-ItemProperty -LiteralPath $winlogon -Name 'DefaultPassword' -ErrorAction SilentlyContinue
+        }
+
         if ($PSBoundParameters.ContainsKey('UserName')) {
             Set-ItemProperty -LiteralPath $winlogon -Name 'DefaultUserName' -Value $UserName -ErrorAction Stop
         }
@@ -104,17 +123,6 @@
         }
         if ($PSBoundParameters.ContainsKey('AutoLogonCount')) {
             Set-ItemProperty -LiteralPath $winlogon -Name 'AutoLogonCount' -Value $AutoLogonCount -Type DWord -ErrorAction Stop
-        }
-        if ($PSBoundParameters.ContainsKey('Password')) {
-            $plain = $null
-            try {
-                $plain = ConvertFrom-SecureStringPlain -Secure $Password
-                Set-LsaSecret -Name 'DefaultPassword' -Value $plain
-            }
-            finally {
-                if ($null -ne $plain) { $plain = $null }
-            }
-            Remove-ItemProperty -LiteralPath $winlogon -Name 'DefaultPassword' -ErrorAction SilentlyContinue
         }
 
         Write-Ok 'Parametros do autologon atualizados.'
