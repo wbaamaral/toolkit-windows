@@ -43,7 +43,7 @@
     { "Path": "modules/WbaToolkit.Provisioning/Steps/Security/Set-ToolkitWinRmDesiredState.ps1", "Count": 1, "Reason": "Listener enumeration; no listener is a valid state before creation." },
     { "Path": "modules/WbaToolkit.Provisioning/Steps/Security/Test-ToolkitRdpDesiredState.ps1", "Count": 2, "Reason": "Read-only probe: missing registry value or rule means non-compliant." },
     { "Path": "modules/WbaToolkit.Provisioning/Steps/Security/Test-ToolkitWinRmDesiredState.ps1", "Count": 1, "Reason": "Read-only probe: no listener means non-compliant." },
-    { "Path": "modules/WbaToolkit.Provisioning/Steps/Storage/Set-ToolkitStorageDesiredState.ps1", "Count": 2, "Reason": "Existence checks of partition and volume before creation." },
+    { "Path": "modules/WbaToolkit.Provisioning/Steps/Storage/Set-ToolkitStorageDesiredState.ps1", "Count": 4, "Reason": "Existence checks of partition and volume in pre-validation and before creation." },
     { "Path": "modules/WbaToolkit.Provisioning/Steps/Storage/Test-ToolkitStorageDesiredState.ps1", "Count": 2, "Reason": "Read-only probe: missing partition or volume means non-compliant." },
     { "Path": "modules/WbaToolkit.SSH/Private/Test-SshUserIsAdmin.ps1", "Count": 3, "Reason": "Optional LocalAccounts cmdlets and group membership probe; falls back to token check." },
     { "Path": "modules/WbaToolkit.SSH/Public/Disable-SshServer.ps1", "Count": 2, "Reason": "SSH service and firewall rule can be absent during idempotent disable." },

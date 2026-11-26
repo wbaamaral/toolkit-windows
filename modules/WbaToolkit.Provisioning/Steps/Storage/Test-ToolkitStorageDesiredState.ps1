@@ -55,7 +55,9 @@
         # genuino e impede testar com mocks).
         $volume = if ($partition -and $partition.DriveLetter) { Get-Volume -DriveLetter $partition.DriveLetter -ErrorAction SilentlyContinue } else { $null }
 
-        $isCompliant = ($disk.PartitionStyle -eq 'GPT') -and $partition -and $volume -and
+        # Disco ja inicializado (GPT ou MBR) e aceito: Set so inicializa discos RAW e nao
+        # converte o estilo de particao; exigir GPT fazia um disco MBR nunca convergir.
+        $isCompliant = ($disk.PartitionStyle -ne 'RAW') -and $partition -and $volume -and
             ($volume.FileSystem -eq $desiredFileSystem) -and
             (-not (Test-ToolkitPropertyPresent -InputObject $entry -Name 'driveLetter') -or $partition.DriveLetter -eq [string]$entry.driveLetter)
 

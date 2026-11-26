@@ -51,6 +51,18 @@
             throw "Disco '$($entry.name)' resolveu para o disco de sistema/boot; operacao recusada (defesa em profundidade)."
         }
 
+        # Volume existente com outro sistema de arquivos tem dados: recusa antes de alterar
+        # qualquer disco do conjunto. allowDestructiveStorage autoriza preparar disco vazio,
+        # nao destruir volume em uso.
+        $preDesiredFs = if (Test-ToolkitPropertyPresent -InputObject $entry -Name 'fileSystem') { [string]$entry.fileSystem } else { 'NTFS' }
+        $prePartition = Get-Partition -DiskNumber $disk.Number -ErrorAction SilentlyContinue |
+            Where-Object { $_.Type -eq 'Basic' } | Select-Object -First 1
+        $preVolume = if ($prePartition -and $prePartition.DriveLetter) { Get-Volume -DriveLetter $prePartition.DriveLetter -ErrorAction SilentlyContinue } else { $null }
+        $preFs = if ($preVolume) { [string]$preVolume.FileSystem } else { '' }
+        if (-not [string]::IsNullOrWhiteSpace($preFs) -and $preFs -notin @('RAW', 'Unknown') -and $preFs -ne $preDesiredFs) {
+            throw "Disco '$($entry.name)' (disco $($disk.Number)) ja tem volume $preFs; formatacao para $preDesiredFs recusada para nao apagar dados."
+        }
+
         $resolvedEntries += [pscustomobject]@{ Entry = $entry; Disk = $disk }
     }
 
@@ -79,7 +91,9 @@
         # deve ser confundida com a particao de dados que esta etapa gerencia.
         $existingPartition = Get-Partition -DiskNumber $disk.Number -ErrorAction SilentlyContinue |
             Where-Object { $_.Type -eq 'Basic' } | Select-Object -First 1
+        $partitionCreated = $false
         if (-not $existingPartition) {
+            $partitionCreated = $true
             $partitionParams = @{ DiskNumber = $disk.Number; UseMaximumSize = $true }
             if (Test-ToolkitPropertyPresent -InputObject $entry -Name 'driveLetter') {
                 $partitionParams['DriveLetter'] = [string]$entry.driveLetter
@@ -94,7 +108,14 @@
         # (exige CimInstance genuino e impede testar com mocks).
         $driveLetter = $existingPartition.DriveLetter
         $existingVolume = if ($driveLetter) { Get-Volume -DriveLetter $driveLetter -ErrorAction SilentlyContinue } else { $null }
-        if (-not $existingVolume -or $existingVolume.FileSystem -ne $desiredFileSystem) {
+        $currentFileSystem = if ($existingVolume) { [string]$existingVolume.FileSystem } else { '' }
+        $volumeIsEmpty = [string]::IsNullOrWhiteSpace($currentFileSystem) -or $currentFileSystem -in @('RAW', 'Unknown')
+        if (-not $partitionCreated -and -not $volumeIsEmpty -and $currentFileSystem -ne $desiredFileSystem) {
+            # Particao existente com outro sistema de arquivos tem dados: formatar apagaria tudo.
+            # allowDestructiveStorage autoriza preparar disco vazio, nao destruir volume em uso.
+            throw "Disco '$($entry.name)' (disco $($disk.Number)) ja tem volume $currentFileSystem na letra '$driveLetter'; formatacao para $desiredFileSystem recusada para nao apagar dados."
+        }
+        if ($partitionCreated -or $volumeIsEmpty) {
             Format-Volume -DriveLetter $driveLetter -FileSystem $desiredFileSystem -NewFileSystemLabel $desiredLabel -Confirm:$false | Out-Null
         }
 

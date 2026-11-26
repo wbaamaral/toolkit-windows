@@ -223,6 +223,57 @@ Describe 'Etapa storage.configure' {
     }
 }
 
+Describe 'Etapa storage.configure - discos com dados e MBR (BCK-065/A-PRV-4)' {
+    It 'Set recusa formatar volume existente com outro sistema de arquivos' {
+        InModuleScope WbaToolkit.Provisioning {
+            Mock Get-Disk { @([pscustomobject]@{ Number = 1; SerialNumber = 'SN1'; IsSystem = $false; IsBoot = $false; BusType = 'SCSI'; Location = 'L1'; Size = 28GB; UniqueId = 'B'; PartitionStyle = 'GPT' }) }
+            Mock Get-Partition { [pscustomobject]@{ DriveLetter = 'D'; Type = 'Basic'; Size = 28GB } }
+            Mock Get-Volume { [pscustomobject]@{ FileSystem = 'exFAT'; FileSystemLabel = 'DADOS' } }
+            Mock Initialize-Disk { }
+            Mock New-Partition { }
+            Mock Format-Volume { }
+
+            $config = @{
+                schemaVersion = 1; deploymentId = 'x'
+                storage       = @{ disks = @(@{ name = 'd1'; match = @{ serialNumber = 'SN1' }; driveLetter = 'D'; fileSystem = 'NTFS' }) }
+                policy        = @{ allowDestructiveStorage = $true }
+            } | ConvertTo-Json -Depth 10 | ConvertFrom-Json
+
+            { Set-ToolkitStorageDesiredState -Context ([pscustomobject]@{ Config = $config }) -Confirm:$false } | Should -Throw '*exFAT*apagar dados*'
+            Should -Invoke Format-Volume -Times 0 -Exactly
+        }
+    }
+
+    It 'Set formata particao existente sem sistema de arquivos (RAW)' {
+        InModuleScope WbaToolkit.Provisioning {
+            Mock Get-Disk { @([pscustomobject]@{ Number = 1; SerialNumber = 'SN1'; IsSystem = $false; IsBoot = $false; BusType = 'SCSI'; Location = 'L1'; Size = 28GB; UniqueId = 'B'; PartitionStyle = 'GPT' }) }
+            Mock Get-Partition { [pscustomobject]@{ DriveLetter = 'D'; Type = 'Basic'; Size = 28GB } }
+            Mock Get-Volume { [pscustomobject]@{ FileSystem = 'RAW'; FileSystemLabel = '' } }
+            Mock Format-Volume { }
+
+            $config = @{
+                schemaVersion = 1; deploymentId = 'x'
+                storage       = @{ disks = @(@{ name = 'd1'; match = @{ serialNumber = 'SN1' }; driveLetter = 'D'; fileSystem = 'NTFS' }) }
+                policy        = @{ allowDestructiveStorage = $true }
+            } | ConvertTo-Json -Depth 10 | ConvertFrom-Json
+
+            Set-ToolkitStorageDesiredState -Context ([pscustomobject]@{ Config = $config }) -Confirm:$false | Out-Null
+            Should -Invoke Format-Volume -Times 1 -Exactly
+        }
+    }
+
+    It 'Compliant com disco MBR ja particionado e formatado' {
+        InModuleScope WbaToolkit.Provisioning {
+            Mock Get-Disk { @([pscustomobject]@{ Number = 1; SerialNumber = 'SN1'; IsSystem = $false; IsBoot = $false; BusType = 'SCSI'; Location = 'L1'; Size = 28GB; UniqueId = 'B'; PartitionStyle = 'MBR' }) }
+            Mock Get-Partition { [pscustomobject]@{ DriveLetter = 'D'; Type = 'Basic' } }
+            Mock Get-Volume { [pscustomobject]@{ FileSystem = 'NTFS' } }
+            $config = @{ schemaVersion = 1; deploymentId = 'x'; storage = @{ disks = @(@{ name = 'd1'; match = @{ serialNumber = 'SN1' }; driveLetter = 'D'; fileSystem = 'NTFS' }) } } |
+                ConvertTo-Json -Depth 10 | ConvertFrom-Json
+            (Test-ToolkitStorageDesiredState -Context ([pscustomobject]@{ Config = $config })).Status | Should -Be 'Compliant'
+        }
+    }
+}
+
 Describe 'Resolve-ToolkitLocalGroup' {
     It 'Resolve grupo bem-conhecido por SID' {
         InModuleScope WbaToolkit.Provisioning {
