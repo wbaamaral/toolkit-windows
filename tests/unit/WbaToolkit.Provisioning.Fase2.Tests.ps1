@@ -162,6 +162,38 @@ Describe 'Etapa network.configure' {
         }
     }
 
+    It 'Set falha quando nao consegue remover o IP anterior (BCK-065)' {
+        InModuleScope WbaToolkit.Provisioning {
+            Mock Get-NetAdapter { @([pscustomobject]@{ Name = 'E0'; MacAddress = 'AA-AA-AA-AA-AA-AA'; PnPDeviceID = 'A'; ifIndex = 1 }) }
+            Mock Get-NetIPInterface { [pscustomobject]@{ Dhcp = 'Enabled' } }
+            # CimInstance real: Remove-NetIPAddress recebe pelo pipeline um parametro tipado como CimInstance.
+            Mock Get-NetIPAddress {
+                $ip = [Microsoft.Management.Infrastructure.CimInstance]::new('MSFT_NetIPAddress', 'root/StandardCimv2')
+                foreach ($p in @(@('IPAddress', '10.0.0.5'), @('PrefixLength', [byte]24), @('SuffixOrigin', 'Manual'))) {
+                    $ip.CimInstanceProperties.Add([Microsoft.Management.Infrastructure.CimProperty]::Create($p[0], $p[1], [Microsoft.Management.Infrastructure.CimFlags]::None))
+                }
+                $ip
+            }
+            Mock Get-NetRoute { $null }
+            Mock Get-DnsClientServerAddress { [pscustomobject]@{ ServerAddresses = @() } }
+            Mock Remove-NetIPAddress { Write-Error 'Acesso negado' }
+            Mock Set-NetIPInterface { }
+            Mock New-NetIPAddress { }
+            Mock Set-DnsClientServerAddress { }
+
+            $config = @{
+                schemaVersion = 1; deploymentId = 'x'
+                network       = @{ adapters = @(@{
+                    name = 'Rede'; match = @{ alias = 'E0' }; dhcp = $false
+                    addresses = @('192.168.4.118/24'); gateway = '192.168.4.1'; dnsServers = @('192.168.4.10')
+                }) }
+            } | ConvertTo-Json -Depth 10 | ConvertFrom-Json
+
+            { Set-ToolkitNetworkDesiredState -Context ([pscustomobject]@{ Config = $config }) -Confirm:$false } | Should -Throw '*Acesso negado*'
+            Should -Invoke New-NetIPAddress -Times 0 -Exactly
+        }
+    }
+
     It 'Set nao toca em adaptador ja conforme' {
         InModuleScope WbaToolkit.Provisioning {
             Mock Get-NetAdapter { @([pscustomobject]@{ Name = 'E0'; MacAddress = 'AA-AA-AA-AA-AA-AA'; PnPDeviceID = 'A'; ifIndex = 1 }) }

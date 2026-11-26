@@ -41,14 +41,14 @@
         if ([bool]$entry.dhcp) {
             Get-NetIPAddress -InterfaceIndex $ifIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue |
                 Where-Object { $_.SuffixOrigin -ne 'WellKnown' } |
-                Remove-NetIPAddress -Confirm:$false -ErrorAction SilentlyContinue
+                Remove-NetIPAddress -Confirm:$false -ErrorAction Stop
             Set-NetIPInterface -InterfaceIndex $ifIndex -Dhcp Enabled
             Set-DnsClientServerAddress -InterfaceIndex $ifIndex -ResetServerAddresses
         }
         else {
             Get-NetIPAddress -InterfaceIndex $ifIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue |
                 Where-Object { $_.SuffixOrigin -ne 'WellKnown' } |
-                Remove-NetIPAddress -Confirm:$false -ErrorAction SilentlyContinue
+                Remove-NetIPAddress -Confirm:$false -ErrorAction Stop
             Set-NetIPInterface -InterfaceIndex $ifIndex -Dhcp Disabled
 
             $first = $true
