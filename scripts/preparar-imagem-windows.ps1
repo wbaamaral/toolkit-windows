@@ -501,6 +501,8 @@ if ($falhos.Count -gt 0) {
 $sysprepEstado    = 'NaoSolicitado'
 $sysprepExecutado = $false
 $sysprepExitCode  = $null
+# So e preenchida quando o sysprep e tentado; o relatorio a consulta mesmo com -SemSysprep (StrictMode).
+$validacaoSysprep = $null
 
 if ($SemSysprep) {
     $sysprepEstado = 'IgnoradoPorParametro'

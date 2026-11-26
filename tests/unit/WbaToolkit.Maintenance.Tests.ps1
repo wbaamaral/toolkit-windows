@@ -965,3 +965,26 @@ Describe 'WbaToolkit.Maintenance' {
         }
     }
 }
+
+Describe 'preparar-imagem-windows.ps1 com -SemSysprep (BCK-065/A-MNT-1)' {
+    It 'Inicializa $validacaoSysprep no nivel do script antes do relatorio (StrictMode 2.0)' {
+        $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+        $path = Join-Path $repoRoot 'scripts/preparar-imagem-windows.ps1'
+        $tokens = $null; $errors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$tokens, [ref]$errors)
+
+        $topLevel = @($ast.EndBlock.Statements)
+        $assignment = $topLevel | Where-Object {
+            $_ -is [System.Management.Automation.Language.AssignmentStatementAst] -and
+            $_.Left.Extent.Text -eq '$validacaoSysprep'
+        } | Select-Object -First 1
+        $report = $topLevel | Where-Object {
+            $_ -is [System.Management.Automation.Language.AssignmentStatementAst] -and
+            $_.Left.Extent.Text -eq '$ambienteFinal'
+        } | Select-Object -First 1
+
+        $assignment | Should -Not -BeNullOrEmpty -Because 'com -SemSysprep o ramo que a define nao executa'
+        $report | Should -Not -BeNullOrEmpty
+        $assignment.Extent.StartOffset | Should -BeLessThan $report.Extent.StartOffset
+    }
+}
