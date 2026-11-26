@@ -194,6 +194,47 @@ Describe 'Etapa network.configure' {
         }
     }
 
+    It 'Compliant com IP estatico sem gateway ja aplicado (BCK-065)' {
+        InModuleScope WbaToolkit.Provisioning {
+            Mock Get-NetAdapter { @([pscustomobject]@{ Name = 'E0'; MacAddress = 'AA-AA-AA-AA-AA-AA'; PnPDeviceID = 'A'; ifIndex = 1 }) }
+            Mock Get-NetIPInterface { [pscustomobject]@{ Dhcp = 'Disabled' } }
+            Mock Get-NetIPAddress { [pscustomobject]@{ IPAddress = '10.10.0.5'; PrefixLength = 24; SuffixOrigin = 'Manual' } }
+            Mock Get-NetRoute { $null }
+            Mock Get-DnsClientServerAddress { [pscustomobject]@{ ServerAddresses = @() } }
+            $config = @{
+                schemaVersion = 1; deploymentId = 'x'
+                network       = @{ adapters = @(@{ name = 'Rede'; match = @{ alias = 'E0' }; dhcp = $false; addresses = @('10.10.0.5/24') }) }
+            } | ConvertTo-Json -Depth 10 | ConvertFrom-Json
+
+            (Test-ToolkitNetworkDesiredState -Context ([pscustomobject]@{ Config = $config })).Status | Should -Be 'Compliant'
+        }
+    }
+
+    It 'Set remove a rota padrao anterior ao aplicar IP estatico (BCK-065)' {
+        InModuleScope WbaToolkit.Provisioning {
+            Mock Get-NetAdapter { @([pscustomobject]@{ Name = 'E0'; MacAddress = 'AA-AA-AA-AA-AA-AA'; PnPDeviceID = 'A'; ifIndex = 1 }) }
+            Mock Get-NetIPInterface { [pscustomobject]@{ Dhcp = 'Enabled' } }
+            Mock Get-NetIPAddress { @() }
+            Mock Get-NetRoute {
+                $r = [Microsoft.Management.Infrastructure.CimInstance]::new('MSFT_NetRoute', 'root/StandardCimv2')
+                $r.CimInstanceProperties.Add([Microsoft.Management.Infrastructure.CimProperty]::Create('NextHop', '192.168.0.1', [Microsoft.Management.Infrastructure.CimFlags]::None))
+                $r
+            }
+            Mock Get-DnsClientServerAddress { [pscustomobject]@{ ServerAddresses = @() } }
+            Mock Remove-NetRoute { } -Verifiable
+            Mock Set-NetIPInterface { }
+            Mock New-NetIPAddress { }
+            Mock Set-DnsClientServerAddress { }
+            $config = @{
+                schemaVersion = 1; deploymentId = 'x'
+                network       = @{ adapters = @(@{ name = 'Rede'; match = @{ alias = 'E0' }; dhcp = $false; addresses = @('10.10.0.5/24') }) }
+            } | ConvertTo-Json -Depth 10 | ConvertFrom-Json
+
+            Set-ToolkitNetworkDesiredState -Context ([pscustomobject]@{ Config = $config }) -Confirm:$false | Out-Null
+            Should -Invoke Remove-NetRoute -Times 1 -Exactly
+        }
+    }
+
     It 'Set nao toca em adaptador ja conforme' {
         InModuleScope WbaToolkit.Provisioning {
             Mock Get-NetAdapter { @([pscustomobject]@{ Name = 'E0'; MacAddress = 'AA-AA-AA-AA-AA-AA'; PnPDeviceID = 'A'; ifIndex = 1 }) }

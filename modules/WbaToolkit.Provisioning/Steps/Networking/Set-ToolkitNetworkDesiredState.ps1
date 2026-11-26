@@ -49,6 +49,13 @@
             Get-NetIPAddress -InterfaceIndex $ifIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue |
                 Where-Object { $_.SuffixOrigin -ne 'WellKnown' } |
                 Remove-NetIPAddress -Confirm:$false -ErrorAction Stop
+            # Rota padrao anterior (DHCP ou configuracao antiga) precisa sair: sem gateway
+            # desejado ela impedia convergir, e com gateway New-NetIPAddress falha se ja existir.
+            $oldDefaultRoutes = @(Get-NetRoute -InterfaceIndex $ifIndex -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue |
+                Where-Object { $null -ne $_ })
+            if ($oldDefaultRoutes.Count -gt 0) {
+                $oldDefaultRoutes | Remove-NetRoute -Confirm:$false -ErrorAction Stop
+            }
             Set-NetIPInterface -InterfaceIndex $ifIndex -Dhcp Disabled
 
             $first = $true
@@ -60,14 +67,14 @@
                     PrefixLength   = [int]$parts[1]
                     ErrorAction    = 'Stop'
                 }
-                if ($first -and -not [string]::IsNullOrWhiteSpace([string]$entry.gateway)) {
+                if ($first -and (Test-ToolkitPropertyPresent -InputObject $entry -Name 'gateway') -and -not [string]::IsNullOrWhiteSpace([string]$entry.gateway)) {
                     $ipParams['DefaultGateway'] = [string]$entry.gateway
                 }
                 New-NetIPAddress @ipParams | Out-Null
                 $first = $false
             }
 
-            if (@($entry.dnsServers).Count -gt 0) {
+            if ((Test-ToolkitPropertyPresent -InputObject $entry -Name 'dnsServers') -and @($entry.dnsServers).Count -gt 0) {
                 Set-DnsClientServerAddress -InterfaceIndex $ifIndex -ServerAddresses @($entry.dnsServers)
             }
         }

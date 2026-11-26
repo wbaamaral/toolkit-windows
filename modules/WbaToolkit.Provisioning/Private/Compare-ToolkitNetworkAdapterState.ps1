@@ -30,8 +30,10 @@
     $currentAddresses = @(Get-NetIPAddress -InterfaceIndex $ifIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue |
             Where-Object { $_.SuffixOrigin -ne 'WellKnown' } |
             ForEach-Object { "$($_.IPAddress)/$($_.PrefixLength)" } | Sort-Object)
-    $currentGateway = (Get-NetRoute -InterfaceIndex $ifIndex -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue |
-            Select-Object -First 1 -ExpandProperty NextHop)
+    # [string]: sem rota padrao o valor e '' (e nao $null), comparavel com o gateway desejado
+    # ausente; '$null -eq ""' e falso e um IP estatico sem gateway nunca convergia.
+    $currentGateway = "$(Get-NetRoute -InterfaceIndex $ifIndex -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue |
+            Select-Object -First 1 -ExpandProperty NextHop)"
     $dnsResult = Get-DnsClientServerAddress -InterfaceIndex $ifIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue
     $currentDns = @($(if ($dnsResult) { $dnsResult.ServerAddresses } else { @() }) | Sort-Object)
 
@@ -46,13 +48,17 @@
     }
 
     $desiredAddresses = @(@($Desired.addresses) | Sort-Object)
-    $desiredGateway = [string]$Desired.gateway
-    $desiredDns = @(@($Desired.dnsServers) | Sort-Object)
+    $desiredGateway = if ((Test-ToolkitPropertyPresent -InputObject $Desired -Name 'gateway') -and $Desired.gateway) { [string]$Desired.gateway } else { '' }
+    # dnsServers ausente vira lista vazia (e nao @($null), que nunca bate com a lista atual).
+    $desiredDns = @(if (Test-ToolkitPropertyPresent -InputObject $Desired -Name 'dnsServers') {
+        @($Desired.dnsServers) | Where-Object { $_ } | Sort-Object
+    })
 
+    # Listas ja ordenadas: comparacao por texto, que tambem vale para listas vazias.
     $isCompliant = ($currentInterface -and $currentInterface.Dhcp -eq 'Disabled') -and
-        (@(Compare-Object $currentAddresses $desiredAddresses).Count -eq 0) -and
+        (($currentAddresses -join ',') -eq ($desiredAddresses -join ',')) -and
         ($currentGateway -eq $desiredGateway) -and
-        (@(Compare-Object $currentDns $desiredDns).Count -eq 0)
+        (($currentDns -join ',') -eq ($desiredDns -join ','))
 
     [pscustomobject]@{
         IsCompliant = [bool]$isCompliant

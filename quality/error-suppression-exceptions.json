@@ -37,7 +37,7 @@
     { "Path": "modules/WbaToolkit.Provisioning/Steps/Finalization/Test-ToolkitCleanupFinalizeDesiredState.ps1", "Count": 1, "Reason": "Read-only probe of the deployment secrets folder after the existence check." },
     { "Path": "modules/WbaToolkit.Provisioning/Steps/Identity/Set-ToolkitAccountsDesiredState.ps1", "Count": 2, "Reason": "Existence checks for the local user and group membership before create/add." },
     { "Path": "modules/WbaToolkit.Provisioning/Steps/Identity/Test-ToolkitAccountsDesiredState.ps1", "Count": 2, "Reason": "Read-only probe: missing user or membership means non-compliant." },
-    { "Path": "modules/WbaToolkit.Provisioning/Steps/Networking/Set-ToolkitNetworkDesiredState.ps1", "Count": 2, "Reason": "Enumerating current IPv4 addresses; none is a valid state. Removal itself uses Stop." },
+    { "Path": "modules/WbaToolkit.Provisioning/Steps/Networking/Set-ToolkitNetworkDesiredState.ps1", "Count": 3, "Reason": "Enumerating current IPv4 addresses and default routes; none is a valid state. Removal itself uses Stop." },
     { "Path": "modules/WbaToolkit.Provisioning/Steps/Security/Set-ToolkitCertificateDesiredState.ps1", "Count": 1, "Reason": "Best-effort cleanup of the temporary PFX file." },
     { "Path": "modules/WbaToolkit.Provisioning/Steps/Security/Set-ToolkitRdpDesiredState.ps1", "Count": 2, "Reason": "Existence check of the firewall rule before enabling or disabling it." },
     { "Path": "modules/WbaToolkit.Provisioning/Steps/Security/Set-ToolkitWinRmDesiredState.ps1", "Count": 1, "Reason": "Listener enumeration; no listener is a valid state before creation." },
