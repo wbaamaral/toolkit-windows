@@ -51,6 +51,9 @@
     }
 
     if (-not $blocked) {
+        # RF-003: o gateway padrao e testado antes dos destinos externos.
+        $null = $results.Add((Test-GatewayConnectivity -GatewayAddress ([string]$context.Gateway)))
+
         foreach ($target in $IpTargets) {
             $null = $results.Add((Test-IcmpConnectivity -TargetAddress $target))
         }
@@ -89,6 +92,16 @@
                 -Recommendation $speedResult.Message `
                 -StartedAt $startedAt -FinishedAt (Get-Date) `
                 -Details $speedResult))
+        }
+    }
+
+    # ICMP bloqueado nao e falha de conectividade: se algum teste TCP de saida para a WAN
+    # funcionou, as falhas de ICMP viram 'Inconclusive' em vez de derrubar o resultado geral.
+    $wanTcpOk = @($results | Where-Object { $_.Protocol -eq 'TCP' -and $_.Scope -eq 'WAN' -and $_.Success }).Count -gt 0
+    if ($wanTcpOk) {
+        foreach ($item in @($results | Where-Object { $_.Protocol -eq 'ICMP' -and -not $_.Success -and $_.Classification -in @('Failed', 'Error') })) {
+            $item.Classification = 'Inconclusive'
+            $item.Status = "$($item.Status) (ICMP possivelmente bloqueado; TCP de saida OK)"
         }
     }
 

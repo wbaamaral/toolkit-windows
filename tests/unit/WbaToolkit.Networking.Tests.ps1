@@ -320,6 +320,36 @@ Describe 'Get-NetworkContext - adaptador da rota padrao (BCK-065)' {
     }
 }
 
+Describe 'Invoke-ConnectivityTest - gateway e ICMP bloqueado (BCK-065)' {
+    It 'Testa o gateway (RF-003) e nao conta ICMP bloqueado como falha quando o TCP funciona' {
+        InModuleScope WbaToolkit.Networking {
+            Mock Get-NetworkContext { [pscustomobject]@{ InterfaceAlias = 'Ethernet'; Gateway = '10.0.0.1'; DnsServers = @('10.0.0.1') } }
+            Mock Test-GatewayConnectivity {
+                New-ConnectivityResult -TestName 'Gateway padrão' -Category 'Gateway' -Protocol 'ICMP' -Scope 'LAN' -Target $GatewayAddress `
+                    -Success $true -Status 'Respondendo' -Classification 'Success' -StartedAt (Get-Date) -FinishedAt (Get-Date)
+            }
+            Mock Test-IcmpConnectivity {
+                New-ConnectivityResult -TestName 'Teste ICMP' -Category 'ICMP' -Protocol 'ICMP' -Scope 'WAN' -Target $TargetAddress `
+                    -Success $false -Status 'Sem resposta' -Classification 'Failed' -StartedAt (Get-Date) -FinishedAt (Get-Date)
+            }
+            Mock Test-TcpPortConnectivity {
+                New-ConnectivityResult -TestName 'Teste TCP' -Category 'Porta' -Protocol 'TCP' -Scope 'WAN' -Target $TargetAddress `
+                    -Success $true -Status 'Aberta' -Classification 'Success' -StartedAt (Get-Date) -FinishedAt (Get-Date)
+            }
+            Mock Test-DnsResolution {
+                New-ConnectivityResult -TestName 'DNS' -Category 'DNS' -Protocol 'DNS' -Scope 'WAN' -Target $Name `
+                    -Success $true -Status 'Resolvido' -Classification 'Success' -StartedAt (Get-Date) -FinishedAt (Get-Date)
+            }
+
+            $report = Invoke-ConnectivityTest
+
+            Should -Invoke Test-GatewayConnectivity -Times 1 -Exactly -ParameterFilter { $GatewayAddress -eq '10.0.0.1' }
+            $report.Summary.Failed | Should -Be 0
+            @($report.Results | Where-Object { $_.Protocol -eq 'ICMP' -and $_.Category -eq 'ICMP' -and $_.Classification -ne 'Inconclusive' }).Count | Should -Be 0
+        }
+    }
+}
+
 Describe 'detectar-ip-duplicado.ps1 (wrapper operacional)' {
     It 'Existe em scripts/ (kebab-case ADR 0024)' {
         Test-Path -LiteralPath (Join-Path (Get-XtudoScriptsRoot) 'detectar-ip-duplicado.ps1') | Should -BeTrue
