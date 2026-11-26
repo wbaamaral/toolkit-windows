@@ -77,42 +77,46 @@
     $partOfDomain = if ($computer) { [bool]$computer.PartOfDomain } else { $false }
     $domain = if ($computer) { [string]$computer.Domain } else { '' }
 
-    $sourceResult = & w32tm.exe /query /source 2>&1
-    $sourceExit = $LASTEXITCODE
-    $sourceBefore = (($sourceResult | ForEach-Object { [string]$_ }) -join ' ').Trim()
-    if ($sourceExit -ne 0) { $errors.Add("w32tm /query /source retornou ${sourceExit}: $sourceBefore") }
+    $sourceQuery = Invoke-W32tm -ArgumentList @('/query', '/source')
+    $sourceBefore = $sourceQuery.Output -replace '\s+', ' '
+    if ($sourceQuery.ExitCode -ne 0) { $errors.Add("w32tm /query /source retornou $($sourceQuery.ExitCode): $sourceBefore") }
 
-    $statusResult = & w32tm.exe /query /status 2>&1
-    $statusExit = $LASTEXITCODE
-    $statusBefore = (($statusResult | ForEach-Object { [string]$_ }) -join "`n").Trim()
-    if ($statusExit -ne 0) { $errors.Add("w32tm /query /status retornou $statusExit") }
+    $statusQuery = Invoke-W32tm -ArgumentList @('/query', '/status')
+    if ($statusQuery.ExitCode -ne 0) { $errors.Add("w32tm /query /status retornou $($statusQuery.ExitCode)") }
 
     $sourceMode = if ($partOfDomain) { 'domhier' } else { 'manual' }
-    if ($Apply) {
+    $applyAuthorized = $Apply -and $PSCmdlet.ShouldProcess($env:COMPUTERNAME, 'Configurar fonte de tempo e fuso horario')
+    if ($applyAuthorized) {
+        # Fonte de tempo: o servico precisa estar em execucao antes do 'w32tm /config /update',
+        # senao o comando falha (0x80070426) e nada e aplicado.
         try {
-            if ($partOfDomain) {
-                & w32tm.exe /config /syncfromflags:domhier /update 2>&1 | Out-Null
-                if ($LASTEXITCODE -ne 0) { throw "w32tm domhier retornou $LASTEXITCODE" }
-                $actions.Add('Fonte configurada como hierarquia do domínio (domhier)')
-            }
-            else {
-                $peerList = "$NtpServer,0x8"
-                & w32tm.exe /config "/manualpeerlist:$peerList" /syncfromflags:manual /update 2>&1 | Out-Null
-                if ($LASTEXITCODE -ne 0) { throw "w32tm NTP externo retornou $LASTEXITCODE" }
-                $actions.Add("Fonte configurada como $NtpServer")
-            }
-
             if ($service -and $service.Status -ne 'Running') {
                 Set-Service -Name W32Time -StartupType Automatic -ErrorAction Stop
                 Start-Service -Name W32Time -ErrorAction Stop
                 $actions.Add('Serviço W32Time iniciado')
             }
 
-            & w32tm.exe /resync /force 2>&1 | Out-Null
-            if ($LASTEXITCODE -ne 0) { throw "w32tm /resync retornou $LASTEXITCODE" }
-            $actions.Add('Sincronização solicitada')
+            if ($partOfDomain) {
+                $config = Invoke-W32tm -ArgumentList @('/config', '/syncfromflags:domhier', '/update')
+                if ($config.ExitCode -ne 0) { throw "w32tm domhier retornou $($config.ExitCode): $($config.Output)" }
+                $actions.Add('Fonte configurada como hierarquia do domínio (domhier)')
+            }
+            else {
+                $config = Invoke-W32tm -ArgumentList @('/config', "/manualpeerlist:$NtpServer,0x8", '/syncfromflags:manual', '/update')
+                if ($config.ExitCode -ne 0) { throw "w32tm NTP externo retornou $($config.ExitCode): $($config.Output)" }
+                $actions.Add("Fonte configurada como $NtpServer")
+            }
 
-            if (-not [string]::IsNullOrWhiteSpace($TimeZoneId)) {
+            $resync = Invoke-W32tm -ArgumentList @('/resync', '/force')
+            if ($resync.ExitCode -ne 0) { throw "w32tm /resync retornou $($resync.ExitCode): $($resync.Output)" }
+            $actions.Add('Sincronização solicitada')
+        }
+        catch { $errors.Add($_.Exception.Message) }
+
+        # Fuso horario: independente da fonte de tempo (ADR 0031); falha na sincronizacao
+        # nao impede aplicar o fuso pedido, e vice-versa.
+        if (-not [string]::IsNullOrWhiteSpace($TimeZoneId)) {
+            try {
                 $validZone = Get-TimeZone -ListAvailable -ErrorAction Stop |
                     Where-Object { $_.Id -eq $TimeZoneId } | Select-Object -First 1
                 if (-not $validZone) { throw "Fuso horário não reconhecido: $TimeZoneId" }
@@ -122,8 +126,8 @@
                 }
                 else { $actions.Add("Fuso horário já estava correto: $TimeZoneId") }
             }
+            catch { $errors.Add($_.Exception.Message) }
         }
-        catch { $errors.Add($_.Exception.Message) }
     }
     elseif (-not [string]::IsNullOrWhiteSpace($TimeZoneId)) {
         $actions.Add('Fuso informado apenas para referência; use -Apply para alterar')
@@ -132,10 +136,20 @@
     $timezoneAfter = $timezoneBefore
     try { $timezoneAfter = Get-TimeZone -ErrorAction Stop }
     catch { Write-Verbose "Nao foi possivel confirmar o fuso horario final: $($_.Exception.Message)" }
-    $postSource = & w32tm.exe /query /source 2>&1
-    $postSourceExit = $LASTEXITCODE
-    $sourceAfter = (($postSource | ForEach-Object { [string]$_ }) -join ' ').Trim()
-    if ($postSourceExit -ne 0 -and $Apply) { $errors.Add("Não foi possível confirmar a fonte final: código $postSourceExit") }
+    $postSourceQuery = Invoke-W32tm -ArgumentList @('/query', '/source')
+    $sourceAfter = $postSourceQuery.Output -replace '\s+', ' '
+    if ($applyAuthorized) {
+        # ADR 0031: a fonte aplicada e confirmada por 'w32tm /query /source'.
+        if ($postSourceQuery.ExitCode -ne 0) {
+            $errors.Add("Não foi possível confirmar a fonte final: código $($postSourceQuery.ExitCode)")
+        }
+        elseif ($sourceAfter -match 'Local CMOS Clock|Free-running System Clock') {
+            $errors.Add("Fonte final ainda é o relógio local: $sourceAfter")
+        }
+        elseif (-not $partOfDomain -and $sourceAfter -notlike "*$NtpServer*") {
+            $errors.Add("Fonte final '$sourceAfter' difere da configurada ($NtpServer).")
+        }
+    }
 
     [pscustomobject]@{
         ComputerName    = if ($computer) { [string]$computer.Name } else { $env:COMPUTERNAME }

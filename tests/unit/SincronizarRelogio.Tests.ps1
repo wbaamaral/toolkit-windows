@@ -52,3 +52,72 @@ Describe 'Sincronização de relógio' {
         $script:scriptContent | Should -Match 'sincronizar-relogio\.html'
     }
 }
+
+Describe 'Sync-ComputerTime -Apply (BCK-065/A-NET-2)' {
+    BeforeAll {
+        . (Join-Path $script:repoRoot 'modules/WbaToolkit.Maintenance/Private/Invoke-W32tm.ps1')
+        . $script:functionPath
+        $script:savedMockAd = $env:WBA_MOCK_AD
+        $env:WBA_MOCK_AD = $null
+    }
+
+    AfterAll {
+        $env:WBA_MOCK_AD = $script:savedMockAd
+    }
+
+    BeforeEach {
+        $script:calls = New-Object System.Collections.Generic.List[string]
+        $script:sourceAfter = 'pool.ntp.br,0x8'
+        $script:resyncExit = 0
+        Mock Get-CimInstance { [pscustomobject]@{ Name = 'PC01'; PartOfDomain = $false; Domain = 'WORKGROUP' } }
+        Mock Get-Service { [pscustomobject]@{ Name = 'W32Time'; Status = 'Stopped' } }
+        Mock Get-TimeZone -ParameterFilter { -not $ListAvailable } { [pscustomobject]@{ Id = 'UTC' } }
+        Mock Get-TimeZone -ParameterFilter { $ListAvailable } { [pscustomobject]@{ Id = 'E. South America Standard Time' } }
+        Mock Set-Service { $script:calls.Add('Set-Service') }
+        Mock Start-Service { $script:calls.Add('Start-Service') }
+        Mock Set-TimeZone { $script:calls.Add('Set-TimeZone') }
+        Mock Invoke-W32tm {
+            $script:calls.Add('w32tm ' + ($ArgumentList -join ' '))
+            switch ($ArgumentList[0]) {
+                '/resync' { [pscustomobject]@{ ExitCode = $script:resyncExit; Output = '' } }
+                '/query'  { [pscustomobject]@{ ExitCode = 0; Output = $(if ($ArgumentList[1] -eq '/source') { $script:sourceAfter } else { '' }) } }
+                default   { [pscustomobject]@{ ExitCode = 0; Output = '' } }
+            }
+        }
+    }
+
+    It 'Inicia o W32Time antes de w32tm /config' {
+        $r = Sync-ComputerTime -Apply
+
+        $r.Success | Should -BeTrue
+        $start = $script:calls.IndexOf('Start-Service')
+        $config = @($script:calls | Where-Object { $_ -like 'w32tm /config*' })[0]
+        $start | Should -BeGreaterOrEqual 0
+        $start | Should -BeLessThan $script:calls.IndexOf($config)
+    }
+
+    It 'Aplica o fuso mesmo quando a sincronizacao falha' {
+        $script:resyncExit = 1
+
+        $r = Sync-ComputerTime -Apply -TimeZoneId 'E. South America Standard Time'
+
+        $script:calls | Should -Contain 'Set-TimeZone'
+        $r.Success | Should -BeFalse
+        ($r.Errors -join ' ') | Should -Match 'resync'
+    }
+
+    It 'Falha quando a fonte final continua sendo o relogio local' {
+        $script:sourceAfter = 'Local CMOS Clock'
+
+        $r = Sync-ComputerTime -Apply
+
+        $r.Success | Should -BeFalse
+        ($r.Errors -join ' ') | Should -Match 'relógio local'
+    }
+
+    It '-WhatIf nao altera fonte, servico nem fuso' {
+        Sync-ComputerTime -Apply -TimeZoneId 'E. South America Standard Time' -WhatIf | Out-Null
+
+        @($script:calls | Where-Object { $_ -like 'w32tm /config*' -or $_ -in @('Start-Service', 'Set-TimeZone') }).Count | Should -Be 0
+    }
+}
