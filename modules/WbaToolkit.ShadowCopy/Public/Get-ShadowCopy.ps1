@@ -14,17 +14,20 @@
         [string]$Volume
     )
 
-    $shadows = Get-CimInstance Win32_ShadowCopy -ErrorAction SilentlyContinue
+    $shadows = @(Get-CimInstance Win32_ShadowCopy -ErrorAction SilentlyContinue)
+    # Win32_ShadowCopy so expoe VolumeName (\\?\Volume{guid}\); a letra vem de Win32_Volume.
+    $volumeMap = Get-ShadowVolumeMap
 
     if ($Volume) {
         $volPath = Resolve-VolumePath -Volume $Volume
-        $shadows = $shadows | Where-Object { $_.Volume -like "$volPath*" }
+        $shadows = @($shadows | Where-Object { $volumeMap[[string]$_.VolumeName] -eq $volPath })
     }
 
     $shadows | ForEach-Object {
+        $volumeName = [string]$_.VolumeName
         [pscustomobject]@{
             ShadowCopyId  = $_.ID
-            Volume        = $_.Volume
+            Volume        = $(if ($volumeMap.ContainsKey($volumeName)) { $volumeMap[$volumeName] } else { $volumeName })
             DeviceObject  = $_.DeviceObject
             CreatedAt     = $_.InstallDate
             State         = $_.State

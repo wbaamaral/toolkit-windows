@@ -39,8 +39,10 @@
                 }
                 'ByVolume' {
                     $volPath = Resolve-VolumePath -Volume $Volume
-                    $targets = Get-CimInstance Win32_ShadowCopy | Where-Object { $_.Volume -like "$volPath*" }
-                    if (-not $targets) { Write-Warning "Nenhum shadow copy encontrado em ${volPath}."; return }
+                    # Win32_ShadowCopy so expoe VolumeName (\\?\Volume{guid}\); a letra vem de Win32_Volume.
+                    $volumeMap = Get-ShadowVolumeMap
+                    $targets = @(Get-CimInstance Win32_ShadowCopy | Where-Object { $volumeMap[[string]$_.VolumeName] -eq $volPath })
+                    if ($targets.Count -eq 0) { Write-Warning "Nenhum shadow copy encontrado em ${volPath}."; return }
                     $targets | Remove-CimInstance -ErrorAction Stop
                     Write-Output "$($targets.Count) shadow copy(s) removido(s) de ${volPath}."
                 }
