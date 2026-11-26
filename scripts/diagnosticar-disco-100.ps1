@@ -1138,6 +1138,8 @@ function Get-HD100BankPlugins {
 }
 
 function Get-HD100Antivirus {
+    # Falso positivo: 'Antivirus' e singular; a regra so olha o 's' final.
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '')]
     [CmdletBinding()]
     param()
 

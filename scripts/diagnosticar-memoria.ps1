@@ -470,7 +470,7 @@ function New-MemoryTextReport {
     return ($lines -join [Environment]::NewLine)
 }
 
-function Build-MemHtmlTableRows {
+function ConvertTo-MemHtmlTableRow {
     [CmdletBinding()]
     param([Parameter(Mandatory = $true)]$Processos)
 
@@ -555,7 +555,7 @@ function New-MemoryHtmlReport {
     $cardNaoConfClass   = if ($naoConfiavel -gt 0) { 'card-warn' }   else { 'card-ok' }
     $cardNaoAssinaClass = if ($naoAssinado  -gt 0) { 'card-danger' } else { 'card-ok' }
 
-    $tableRowsHtml = Build-MemHtmlTableRows -Processos $Data.Processos
+    $tableRowsHtml = ConvertTo-MemHtmlTableRow -Processos $Data.Processos
 
     $compNameSeg   = ConvertTo-HtmlSafe $Data.ComputerName
     $userNameSeg   = ConvertTo-HtmlSafe $Data.UserName
