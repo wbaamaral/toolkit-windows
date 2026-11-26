@@ -23,28 +23,30 @@
     # Reescreve todas as referencias de hive do usuario para o ponto de montagem ativo,
     # cobrindo as tres formas que um .reg pode usar. Sem isso, HKEY_CURRENT_USER seria
     # importado no hive do usuario logado em vez do perfil Default.
+    # A troca e feita so nos cabecalhos de chave ([...] e [-...]); valores que citam
+    # HKEY_CURRENT_USER como texto nao sao alterados.
     $alvo    = "HKEY_USERS\$MountPoint"
-    $padroes = @(
-        'hkey_users\\\.default',   # HKEY_USERS\.DEFAULT
-        'hkey_users\\default',     # HKEY_USERS\DEFAULT (forma usada pelo toolkit)
-        'hkey_current_user'        # HKEY_CURRENT_USER
-    )
-    $substituido = $conteudo
-    $totalSubs   = 0
-    foreach ($padrao in $padroes) {
-        $totalSubs += [System.Text.RegularExpressions.Regex]::Matches(
-            $substituido, $padrao,
-            [System.Text.RegularExpressions.RegexOptions]::IgnoreCase).Count
-        $substituido = [System.Text.RegularExpressions.Regex]::Replace(
-            $substituido, $padrao, $alvo,
-            [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
-    }
+    $opcoes  = [System.Text.RegularExpressions.RegexOptions]'IgnoreCase, Multiline'
+    $padrao  = '^(\s*\[-?)(hkey_users\\\.default|hkey_users\\default|hkey_current_user)(?=\\|\])'
+    $totalSubs   = [System.Text.RegularExpressions.Regex]::Matches($conteudo, $padrao, $opcoes).Count
+    $substituido = [System.Text.RegularExpressions.Regex]::Replace($conteudo, $padrao, ('$1' + $alvo.Replace('$', '$$')), $opcoes)
 
     # Garante que o .reg referenciava o hive do usuario; importar sem substituir
     # escreveria no hive ativo (HKCU do usuario logado) em vez do perfil Default.
     if ($totalSubs -eq 0) {
         throw ("Arquivo .reg lido com sucesso, mas nenhuma referencia de hive de usuario foi encontrada. " +
             "Importacao abortada para evitar escrita fora do perfil Default.")
+    }
+
+    # Toda chave precisa apontar para o hive montado: um .reg misto (ex.: HKCU + HKLM)
+    # gravaria as chaves HKLM na maquina viva sem aviso.
+    $foraDoPerfil = @([System.Text.RegularExpressions.Regex]::Matches($substituido, '^\s*\[-?([^\]\r\n]+)\]', $opcoes) |
+        ForEach-Object { $_.Groups[1].Value } |
+        Where-Object { -not ($_.Equals($alvo, [System.StringComparison]::OrdinalIgnoreCase) -or
+                             $_.StartsWith($alvo + '\', [System.StringComparison]::OrdinalIgnoreCase)) })
+    if ($foraDoPerfil.Count -gt 0) {
+        throw (("Arquivo .reg contem chaves fora do hive de usuario ({0}). Importacao abortada para evitar " +
+            "escrita fora do perfil Default.") -f (($foraDoPerfil | Select-Object -First 5) -join '; '))
     }
 
     $tempPath = [System.IO.Path]::Combine(

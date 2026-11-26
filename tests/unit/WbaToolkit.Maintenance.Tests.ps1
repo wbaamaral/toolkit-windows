@@ -534,6 +534,42 @@ Describe 'WbaToolkit.Maintenance' {
                 finally { Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue }
             }
         }
+        It 'Recusa .reg misto (HKCU + HKLM) sem importar nada (BCK-065)' {
+            InModuleScope WbaToolkit.Maintenance {
+                Mock -CommandName 'reg' -MockWith { $global:LASTEXITCODE = 0 }
+                $f = Join-Path ([System.IO.Path]::GetTempPath()) "wba_rfi_$([System.Guid]::NewGuid().ToString('N')).reg"
+                [System.IO.File]::WriteAllText(
+                    $f,
+                    "Windows Registry Editor Version 5.00`r`n`r`n[HKEY_CURRENT_USER\Software\WBA\T]`r`n`r`n[HKEY_LOCAL_MACHINE\Software\WBA\Maquina]`r`n`"x`"=dword:00000001`r`n",
+                    [System.Text.Encoding]::Unicode)
+                try {
+                    { Invoke-RegFileImport -RegFilePath $f -MountPoint 'WBA_DefaultProfile' } |
+                        Should -Throw '*fora do hive de usuario*HKEY_LOCAL_MACHINE*'
+                    Should -Invoke -CommandName 'reg' -Times 0 -Exactly
+                }
+                finally { Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue }
+            }
+        }
+        It 'Nao altera valor que cita HKEY_CURRENT_USER como texto (BCK-065)' {
+            InModuleScope WbaToolkit.Maintenance {
+                $script:importado = $null
+                Mock -CommandName 'reg' -MockWith {
+                    $script:importado = [System.IO.File]::ReadAllText($args[1], [System.Text.Encoding]::Unicode)
+                    $global:LASTEXITCODE = 0
+                }
+                $f = Join-Path ([System.IO.Path]::GetTempPath()) "wba_rfi_$([System.Guid]::NewGuid().ToString('N')).reg"
+                [System.IO.File]::WriteAllText(
+                    $f,
+                    "Windows Registry Editor Version 5.00`r`n`r`n[HKEY_CURRENT_USER\Software\WBA\T]`r`n`"Doc`"=`"veja HKEY_CURRENT_USER\\Console`"`r`n",
+                    [System.Text.Encoding]::Unicode)
+                try {
+                    Invoke-RegFileImport -RegFilePath $f -MountPoint 'WBA_DefaultProfile' | Out-Null
+                    $script:importado | Should -Match '\[HKEY_USERS\\WBA_DefaultProfile\\Software\\WBA\\T\]'
+                    $script:importado | Should -Match 'veja HKEY_CURRENT_USER'
+                }
+                finally { Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue }
+            }
+        }
     }
 
     Context 'Read-RegFileContent - deteccao de encoding (BCK-022)' {
