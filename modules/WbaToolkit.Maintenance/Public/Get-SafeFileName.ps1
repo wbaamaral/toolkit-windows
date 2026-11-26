@@ -28,7 +28,7 @@
     Nome original do arquivo ou diretório.
 
 .PARAMETER MaxLength
-    Comprimento máximo permitido para o nome. Padrão: 259 (limite do Windows).
+    Comprimento máximo permitido para o nome. Padrão: 255 (limite de um componente de caminho no NTFS).
 
 .EXAMPLE
     Get-SafeFileName -Name 'arquivo<inválido>.txt'
@@ -50,7 +50,7 @@ function Get-SafeFileName {
         [string]$Name,
 
         [Parameter(Mandatory = $false)]
-        [int]$MaxLength = 259
+        [int]$MaxLength = 255
     )
 
     function local:Remove-DiacriticoLocal {
@@ -72,19 +72,33 @@ function Get-SafeFileName {
         return $semAcento.Substring(0, 1).ToUpperInvariant() + $semAcento.Substring(1).ToLowerInvariant()
     }
 
-    # Remove caracteres inválidos
-    $validChars = $Name -replace '[<>:"/\\|?*]', ''
+    # Remove caracteres inválidos, incluindo os de controle (0x00-0x1F).
+    $validChars = $Name -replace '[<>:"/\\|?*\x00-\x1F]', ''
+
+    # Remover espaços e pontos no final: o Windows os descarta ao criar o item, e o nome
+    # gravado deixaria de corresponder ao proposto.
+    $validChars = $validChars.TrimEnd(' ', '.')
 
     # Se o nome for vazio ou apenas espaços, dar um nome padrão
     if ([string]::IsNullOrWhiteSpace($validChars)) {
         $validChars = "arquivo_sem_nome"
     }
 
-    # Remover espaços no final
-    $validChars = $validChars.TrimEnd()
+    # Nomes reservados do Windows (CON, PRN, AUX, NUL, COM1-9, LPT1-9), com ou sem
+    # extensao, nao podem ser criados: recebem '_' no fim da base.
+    $evitarReservado = {
+        param([string]$Nome)
+        $ponto = $Nome.IndexOf('.')
+        $base = if ($ponto -ge 0) { $Nome.Substring(0, $ponto) } else { $Nome }
+        if ($base -match '^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$') {
+            if ($ponto -ge 0) { return $base + '_' + $Nome.Substring($ponto) }
+            return $Nome + '_'
+        }
+        return $Nome
+    }
 
     if ($validChars.Length -le $MaxLength) {
-        return $validChars
+        return (& $evitarReservado $validChars)
     }
 
     # Preservar a extensao (se houver) atraves dos niveis 1 e 2.
@@ -102,7 +116,7 @@ function Get-SafeFileName {
     }
     $candidatoCamel = "$camel$extensao"
     if ($candidatoCamel.Length -le $MaxLength) {
-        return $candidatoCamel
+        return (& $evitarReservado $candidatoCamel)
     }
 
     # Nivel 2: abreviar cada palavra em ate 4 letras -- so faz sentido com
@@ -115,7 +129,7 @@ function Get-SafeFileName {
         }) -join ''
         $candidatoAbreviado = "$abreviado$extensao"
         if ($candidatoAbreviado.Length -le $MaxLength) {
-            return $candidatoAbreviado
+            return (& $evitarReservado $candidatoAbreviado)
         }
     }
 

@@ -256,6 +256,25 @@ Describe 'Get-SafeFileName' {
             $resultado | Should -Be 'arquivo_com_espaco'
         }
     }
+
+    Context 'Nomes que o Windows nao aceita (BCK-065)' {
+        It 'Acrescenta _ a nomes reservados, com ou sem extensao' {
+            Get-SafeFileName -Name 'CON' | Should -Be 'CON_'
+            Get-SafeFileName -Name 'nul.txt' | Should -Be 'nul_.txt'
+            Get-SafeFileName -Name 'COM1.tar.gz' | Should -Be 'COM1_.tar.gz'
+            Get-SafeFileName -Name 'CONTRATO.txt' | Should -Be 'CONTRATO.txt'
+        }
+
+        It 'Remove pontos e espacos no fim e caracteres de controle' {
+            Get-SafeFileName -Name 'Relatorio final. . ' | Should -Be 'Relatorio final'
+            Get-SafeFileName -Name ("ab" + [char]9 + "c" + [char]0 + ".txt") | Should -Be 'abc.txt'
+        }
+
+        It 'Respeita o limite de 255 caracteres por componente por padrao' {
+            $nome = ('a' * 256) + '.txt'
+            (Get-SafeFileName -Name $nome).Length | Should -BeLessOrEqual 255
+        }
+    }
 }
 
 Describe 'New-DropboxPropostaHtmlReport' {
