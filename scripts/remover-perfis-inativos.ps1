@@ -433,7 +433,8 @@ function Remove-Profiles {
         }
 
         if (-not $PSCmdlet.ShouldProcess($p.LocalPath, 'Remover perfil de usuario inativo')) {
-            $results.Add([PSCustomObject]@{ Profile = $p; Success = $true; Error = $null })
+            # Nao removido (WhatIf ou confirmacao recusada): nao pode contar como removido.
+            $results.Add([PSCustomObject]@{ Profile = $p; Success = $false; Error = 'Nao removido (WhatIf ou confirmacao recusada).' })
             continue
         }
 
@@ -641,7 +642,9 @@ if ($Silent) {
         $list = New-Object 'System.Collections.Generic.List[PSCustomObject]'
         foreach ($p in $toDelete) { $list.Add($p) }
 
-        $result = Remove-Profiles -ToDelete $list
+        # -Silent e execucao desassistida: sem -Confirm:$false o ConfirmImpact High pedia
+        # confirmacao a cada perfil e a execucao ficava parada. -WhatIf continua valendo.
+        $result = Remove-Profiles -ToDelete $list -Confirm:$false
         $ok     = @($result.Results | Where-Object { $_.Success }).Count
         $fail   = @($result.Results | Where-Object { -not $_.Success }).Count
         $dryNote = if ($DryRun) { " (simulado)" } else { "" }

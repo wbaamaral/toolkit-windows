@@ -223,7 +223,9 @@ switch ($Modo) {
         }
 
         Write-Info "Executando Invoke-ComponentStoreCleanup -Level $level..."
-        $resultado = Invoke-ComponentStoreCleanup -Level $level -DryRun:$DryRun
+        # A confirmacao ja foi feita acima (Read-YesNo); sem -Confirm:$false o ConfirmImpact High
+        # da funcao pedia uma segunda confirmacao.
+        $resultado = Invoke-ComponentStoreCleanup -Level $level -DryRun:$DryRun -Confirm:$false
 
         if ($resultado.Success) {
             if ($DryRun) {
