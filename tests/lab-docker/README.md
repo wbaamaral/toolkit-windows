@@ -25,6 +25,9 @@ cd wba-windows-toolkit/tests/lab-docker
 
 O script:
 
+0. Gera `secrets/samba-admin-password` com senha aleatória se o arquivo não existir. A pasta `secrets/` é
+   ignorada pelo git e nunca deve ser versionada (ADR 0005). Ao usar `docker compose up` diretamente, gere o
+   arquivo antes: sem ele, o Docker cria um diretório no lugar do bind mount e o Samba não inicializa.
 1. `docker compose up -d` + aguarda `healthcheck` (`samba-tool domain info`)
 2. Testa `Resolve-DnsName wba.test` / `_ldap._tcp.wba.test` contra `172.20.0.10`
 3. Testa TCP `389`/`445`
@@ -65,6 +68,6 @@ O harness já detecta se `diagnosticar-ad-cliente.ps1` tem `-CorrigirDns`/`-Corr
 
 ## Troubleshooting
 
-- `samba-dc` não fica healthy: `docker logs wba-dc01`, verificar `DOMAIN_PASS` atende complexidade, e `cap_add: SYS_ADMIN` + `apparmor:unconfined` no host.
+- `samba-dc` não fica healthy: `docker logs wba-dc01`, verificar se `secrets/samba-admin-password` existe e atende à complexidade, e `cap_add: SYS_ADMIN` + `apparmor:unconfined` no host.
 - DNS não resolve no cliente: `docker exec wba-pwsh-client cat /etc/resolv.conf` deve listar `nameserver 172.20.0.10` primeiro.
 - `Resolve-DnsName` timeout: samba leva ~60s para inicializar após `up`; `run-ad-test.sh` já aguarda healthcheck.

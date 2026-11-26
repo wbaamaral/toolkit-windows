@@ -463,3 +463,6 @@ tmtags
 # ---> TortoiseGit
 # Project-level settings
 /.tgitconfig
+
+# Segredos do lab Docker: gerados localmente por run-ad-test.sh (ADR 0005)
+tests/lab-docker/secrets/

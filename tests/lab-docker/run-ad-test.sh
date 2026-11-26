@@ -7,6 +7,15 @@ echo "=== WBA Lab Docker — teste AD sem VMs ==="
 echo "Toolkit: $TOOLKIT_ROOT"
 echo ""
 
+# 0) Senha do administrador do Samba: gerada localmente, nunca versionada (ADR 0005).
+SECRET_FILE="$SCRIPT_DIR/secrets/samba-admin-password"
+if [ ! -s "$SECRET_FILE" ]; then
+  mkdir -p "$SCRIPT_DIR/secrets"
+  # Prefixo/sufixo fixos garantem a complexidade exigida pelo Samba (maiuscula, minuscula, digito, simbolo).
+  ( umask 077; printf "Wba-%s-9a" "$(LC_ALL=C tr -dc "A-Za-z0-9" < /dev/urandom | head -c 20)" > "$SECRET_FILE" )
+  echo "Senha do lab gerada em $SECRET_FILE (arquivo ignorado pelo git)."
+fi
+
 # 1) Sobe lab
 echo "[1/4] Subindo samba-dc (wba.test) ..."
 docker compose -f "$SCRIPT_DIR/docker-compose.yml" up -d

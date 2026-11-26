@@ -128,7 +128,7 @@ function global:Invoke-ExternalCommand {
 }
 
 # Mock Credencial e confirmação — auto Yes
-function global:Get-Credential { param($Message) Write-Host "[MOCK] Get-Credential: $Message -> mock cred" -ForegroundColor Yellow; return [pscustomobject]@{ UserName="WBA\Administrator"; Password=(ConvertTo-SecureString "LabPass123!" -AsPlainText -Force) } }
+function global:Get-Credential { param($Message) Write-Host "[MOCK] Get-Credential: $Message -> mock cred" -ForegroundColor Yellow; return [pscustomobject]@{ UserName="WBA\Administrator"; Password=(ConvertTo-SecureString ([guid]::NewGuid().ToString("N")) -AsPlainText -Force) } }
 function global:Read-YesNo { param($Question,$DefaultYes) Write-Host "[MOCK] Read-YesNo: $Question -> Yes" -ForegroundColor Yellow; return $true }
 function global:Sync-ComputerTime { param($Apply,$Confirm,$NtpServer,$TimeZoneId)
     Write-Host "[MOCK] Sync-ComputerTime Apply=$Apply" -ForegroundColor Yellow
