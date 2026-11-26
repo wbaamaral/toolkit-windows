@@ -71,14 +71,28 @@
 
     $xprOutput = if ($rawXpr -and $rawXpr.Lines) { $rawXpr.Lines -join ' ' } else { '' }
 
-    if ($xprOutput -match '(\d{1,2})/(\d{1,2})/(\d{4})') {
-        try {
-            $expirationDate = [datetime]::ParseExact(
-                $Matches[0], 'M/d/yyyy',
-                [System.Globalization.CultureInfo]::InvariantCulture)
+    # Fonte primaria: GracePeriodRemaining (minutos) do proprio produto, independente do
+    # idioma. O texto do 'slmgr /xpr' e localizado: em pt-BR a data sai como dd/MM/yyyy e
+    # era lida como M/d/yyyy (dia e mes trocados, ou falha quando o dia passa de 12).
+    $graceMinutes = 0
+    if ($product.PSObject.Properties['GracePeriodRemaining'] -and $null -ne $product.GracePeriodRemaining) {
+        $graceMinutes = [int64]$product.GracePeriodRemaining
+    }
+
+    if ($graceMinutes -gt 0) {
+        $expirationDate = (Get-Date).AddMinutes($graceMinutes)
+        $daysRemaining = [int][math]::Floor($graceMinutes / 1440)
+    }
+    elseif ($xprOutput -match '(\d{1,2})/(\d{1,2})/(\d{4})') {
+        # Fallback: interpreta a data na cultura atual, a mesma em que o slmgr escreveu.
+        $parsed = [datetime]::MinValue
+        if ([datetime]::TryParse($Matches[0], (Get-Culture), [System.Globalization.DateTimeStyles]::None, [ref]$parsed)) {
+            $expirationDate = $parsed
             $daysRemaining = ($expirationDate - (Get-Date)).Days
         }
-        catch { Write-Verbose "Falha ao parsear data de expiracao: $($_.Exception.Message)" }
+        else {
+            Write-Verbose "Falha ao parsear data de expiracao '$($Matches[0])' na cultura $((Get-Culture).Name)."
+        }
     }
     elseif ($xprOutput -match '(\d+)\s+dias?\s+restante') {
         $daysRemaining = [int]$Matches[1]

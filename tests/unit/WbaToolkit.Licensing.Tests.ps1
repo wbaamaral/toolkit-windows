@@ -552,3 +552,65 @@ Describe 'gerenciar-licenciamento.ps1 - salvaguardas das acoes mutantes (BCK-065
         $script:licText | Should -Match 'Reinicializacao necessaria'
     }
 }
+
+Describe 'Licensing - datas, SKU e descoberta de backup (BCK-065)' {
+    BeforeAll {
+        function global:New-GraceProduct {
+            param([int]$LicenseStatus, [int64]$GraceMinutes)
+            [pscustomobject]@{
+                Name = 'Windows 10 Pro'; Description = 'VOLUME_KMSCLIENT channel'; LicenseStatus = $LicenseStatus
+                PartialProductKey = 'ABCDE'; ID = 'id'; InstallationID = 'inst'; ApplicationId = 'app'; Version = '10.0'
+                GracePeriodRemaining = $GraceMinutes
+            }
+        }
+    }
+
+    It 'Usa GracePeriodRemaining em vez do texto localizado do /xpr' {
+        Mock Get-SoftwareLicensingProduct { New-GraceProduct -LicenseStatus 1 -GraceMinutes (10 * 1440 + 30) }
+        Mock Get-SoftwareLicensingService { [pscustomobject]@{ KeyManagementServiceMachine = $null; KeyManagementServicePort = $null; RemainingWindowsReArmCount = 3 } }
+        Mock Invoke-Slmgr { [pscustomobject]@{ ExitCode = 0; Lines = @('A ativacao expira em 03/01/2030 10:00:00') } }
+
+        $c = Get-LicenseCycleStatus
+        $c.DaysRemaining | Should -Be 10
+        $c.ExpirationDate.Date | Should -Be (Get-Date).AddMinutes(10 * 1440 + 30).Date
+    }
+
+    It 'No fallback, le a data do /xpr na cultura atual (pt-BR dd/MM/yyyy)' {
+        Mock Get-SoftwareLicensingProduct { New-GraceProduct -LicenseStatus 1 -GraceMinutes 0 }
+        Mock Get-SoftwareLicensingService { [pscustomobject]@{ KeyManagementServiceMachine = $null; KeyManagementServicePort = $null; RemainingWindowsReArmCount = 3 } }
+        Mock Invoke-Slmgr { [pscustomobject]@{ ExitCode = 0; Lines = @('A ativacao expira em 25/12/2030 10:00:00') } }
+        Mock Get-Culture { [System.Globalization.CultureInfo]::GetCultureInfo('pt-BR') }
+
+        $c = Get-LicenseCycleStatus
+        $c.ExpirationDate.Day | Should -Be 25
+        $c.ExpirationDate.Month | Should -Be 12
+    }
+
+    It 'Consulta somente o produto com chave instalada' {
+        Mock Get-CimInstance { @() }
+
+        Get-SoftwareLicensingProduct | Out-Null
+
+        Should -Invoke Get-CimInstance -Times 1 -Exactly -ParameterFilter { $Filter -match 'PartialProductKey IS NOT NULL' }
+    }
+
+    It '-AutoDiscover encontra o backup gravado pela sessao do script' {
+        $raiz = Join-Path $TestDrive 'raiz-relatorios'
+        $antigo = Join-Path $raiz 'licenciamento\01012026_100000\licenciamento-backup-20260101_100000'
+        $recente = Join-Path $raiz 'licenciamento\02012026_100000\licenciamento-backup-20260102_100000'
+        New-Item -ItemType Directory -Path $antigo, $recente -Force | Out-Null
+        '{"foo":"antigo"}' | Set-Content -LiteralPath (Join-Path $antigo 'license-backup.json') -Encoding UTF8
+        (Get-Item -LiteralPath (Join-Path $antigo 'license-backup.json')).LastWriteTimeUtc = [datetime]'2026-01-01'
+        '{"foo":"recente"}' | Set-Content -LiteralPath (Join-Path $recente 'license-backup.json') -Encoding UTF8
+        Mock Get-ToolkitReportsRoot { $raiz }
+        Mock Get-SoftwareLicensingProduct { New-GraceProduct -LicenseStatus 1 -GraceMinutes 0 }
+        Mock Get-SoftwareLicensingService { [pscustomobject]@{ KeyManagementServiceMachine = $null; KeyManagementServicePort = $null; RemainingWindowsReArmCount = 3 } }
+        Mock Get-LicenseCycleStatus { [pscustomobject]@{ Channel = 'Retail' } }
+
+        $r = Restore-LicenseState -AutoDiscover -DryRun
+
+        # O arquivo foi encontrado (antes: 'Nenhum backup encontrado'); como o JSON de teste
+        # e propositalmente invalido, a restauracao para na validacao.
+        $r.Message | Should -Match 'Backup invalido'
+    }
+}

@@ -56,18 +56,22 @@
     $jsonFile = $null
 
     if ($AutoDiscover) {
-        $backupRoot = Join-Path "C:\WBA\Relatorios\licenciamento" 'backups'
+        # Backup-LicenseState grava em <raiz>\licenciamento\<sessao>\licenciamento-backup-<ts>\
+        # (via script) ou <raiz>\licenciamento\<sessao>\backups\<ts>\ (sem -Path); nunca em
+        # <raiz>\licenciamento\backups\, onde esta busca procurava. Procura o arquivo em
+        # qualquer nivel e usa o mais recente.
+        $backupRoot = 'C:\WBA\Relatorios\licenciamento'
         if (Get-Command -Name Get-ToolkitReportsRoot -ErrorAction SilentlyContinue) {
             $root = Get-ToolkitReportsRoot
-            if ($root) { $backupRoot = Join-Path $root 'licenciamento\backups' }
+            if ($root) { $backupRoot = Join-Path $root 'licenciamento' }
         }
 
         if (Test-Path -LiteralPath $backupRoot -PathType Container) {
-            $latest = Get-ChildItem -LiteralPath $backupRoot -Directory |
-                Sort-Object Name -Descending |
+            $latest = Get-ChildItem -LiteralPath $backupRoot -Recurse -File -Filter 'license-backup.json' -ErrorAction Stop |
+                Sort-Object LastWriteTimeUtc -Descending |
                 Select-Object -First 1
             if ($latest) {
-                $jsonFile = Join-Path $latest.FullName 'license-backup.json'
+                $jsonFile = $latest.FullName
             }
         }
 
