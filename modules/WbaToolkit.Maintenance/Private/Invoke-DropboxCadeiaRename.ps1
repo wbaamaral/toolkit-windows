@@ -35,29 +35,75 @@ function Invoke-DropboxCadeiaRename {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [object[]]$Cadeia
+        [object[]]$Cadeia,
+
+        # Mapa compartilhado entre cadeias (caminho original -> caminho atual) dos
+        # diretorios ja renomeados. Cadeias de diretorios diferentes podem conter o
+        # mesmo ancestral: sem o mapa, a segunda cadeia procurava o ancestral pelo
+        # caminho original (ja renomeado) e falhava. O mapa e atualizado aqui.
+        [System.Collections.IDictionary]$RenomeadosMap
     )
+
+    if ($null -eq $RenomeadosMap) { $RenomeadosMap = @{} }
+
+    # Traduz um caminho original para o caminho atual usando o prefixo renomeado mais longo.
+    $traduzir = {
+        param([string]$CaminhoOriginal)
+        $melhor = $null
+        foreach ($chave in @($RenomeadosMap.Keys)) {
+            $k = [string]$chave
+            if ($CaminhoOriginal.Equals($k, [System.StringComparison]::OrdinalIgnoreCase) -or
+                $CaminhoOriginal.StartsWith($k + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)) {
+                if ($null -eq $melhor -or $k.Length -gt $melhor.Length) { $melhor = $k }
+            }
+        }
+        if ($null -eq $melhor) { return $CaminhoOriginal }
+        return [string]$RenomeadosMap[$melhor] + $CaminhoOriginal.Substring($melhor.Length)
+    }
 
     $niveisResultado = New-Object System.Collections.Generic.List[pscustomobject]
     $caminhoAcumulado = $null
-    $caminhoOriginalAnterior = $null
     $sucesso = $true
     $primeiroErro = ''
 
     foreach ($nivelItem in ($Cadeia | Sort-Object nivel)) {
-        if ($null -eq $caminhoAcumulado) {
-            $origemReal = $nivelItem.caminho_original
+        $caminhoOriginal = [string]$nivelItem.caminho_original
+        $jaRenomeado = $RenomeadosMap.Contains($caminhoOriginal)
+
+        if ($jaRenomeado) {
+            # Ancestral comum ja renomeado por outra cadeia: nada a fazer neste nivel.
+            $origemReal = $caminhoOriginal
+            $destino = [string]$RenomeadosMap[$caminhoOriginal]
         }
         else {
-            $sufixo = ([string]$nivelItem.caminho_original).Substring($caminhoOriginalAnterior.Length)
-            $origemReal = $caminhoAcumulado + $sufixo
+            $origemReal = & $traduzir $caminhoOriginal
+            $destino = Join-Path (Split-Path -Parent $origemReal) $nivelItem.nome_proposto
         }
-        $destino = Join-Path (Split-Path -Parent $origemReal) $nivelItem.nome_proposto
 
         $nivelStatus = 'Sucesso'
         $nivelErro = ''
 
-        if ($sucesso) {
+        if (-not $sucesso) {
+            $nivelStatus = 'NaoExecutado'
+        }
+        elseif ($jaRenomeado) {
+            if ((Split-Path -Leaf $destino) -ne $nivelItem.nome_proposto) {
+                $nivelStatus = 'Erro'
+                $nivelErro = "Diretorio ja renomeado por outra cadeia para '$(Split-Path -Leaf $destino)', diferente do proposto '$($nivelItem.nome_proposto)': $caminhoOriginal"
+                $sucesso = $false
+                $primeiroErro = $nivelErro
+            }
+            elseif (-not (Test-Path -LiteralPath $destino -PathType Container)) {
+                $nivelStatus = 'Erro'
+                $nivelErro = "Diretorio renomeado anteriormente nao encontrado: $destino"
+                $sucesso = $false
+                $primeiroErro = $nivelErro
+            }
+            else {
+                $nivelStatus = 'JaAplicado'
+            }
+        }
+        else {
             try {
                 if (-not (Test-Path -LiteralPath $origemReal -PathType Container)) {
                     throw "Diretorio nao encontrado: $origemReal"
@@ -68,6 +114,7 @@ function Invoke-DropboxCadeiaRename {
                     }
                     Rename-Item -LiteralPath $origemReal -NewName $nivelItem.nome_proposto -ErrorAction Stop
                 }
+                $RenomeadosMap[$caminhoOriginal] = $destino
             }
             catch {
                 $nivelStatus = 'Erro'
@@ -75,9 +122,6 @@ function Invoke-DropboxCadeiaRename {
                 $sucesso = $false
                 if ([string]::IsNullOrEmpty($primeiroErro)) { $primeiroErro = $nivelErro }
             }
-        }
-        else {
-            $nivelStatus = 'NaoExecutado'
         }
 
         [void]$niveisResultado.Add([pscustomobject]@{
@@ -89,7 +133,6 @@ function Invoke-DropboxCadeiaRename {
         })
 
         $caminhoAcumulado = $destino
-        $caminhoOriginalAnterior = $nivelItem.caminho_original
     }
 
     return [pscustomobject]@{

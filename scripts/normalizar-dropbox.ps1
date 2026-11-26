@@ -769,6 +769,9 @@ elseif ($Modo -eq 'Aplicar') {
     $resultados = New-Object System.Collections.Generic.List[pscustomobject]
     $contador = 0
     $totalArquivosAfetados = 0
+    # Ancestrais compartilhados entre cadeias: o primeiro rename atualiza o mapa e as
+    # cadeias seguintes enderecam o ancestral pelo caminho ja renomeado.
+    $renomeadosMap = @{}
 
     foreach ($dir in $diretoriosParaAplicar) {
         $contador++
@@ -777,7 +780,7 @@ elseif ($Modo -eq 'Aplicar') {
 
         Write-Step "Processando diretorio $contador de $($diretoriosParaAplicar.Count)" ([math]::Round(($contador / $diretoriosParaAplicar.Count) * 100))
 
-        $aplicacaoCadeia = Invoke-DropboxCadeiaRename -Cadeia $cadeiaOrdenada
+        $aplicacaoCadeia = Invoke-DropboxCadeiaRename -Cadeia $cadeiaOrdenada -RenomeadosMap $renomeadosMap
 
         $resultado = [pscustomobject]@{
             id                = $dir.id

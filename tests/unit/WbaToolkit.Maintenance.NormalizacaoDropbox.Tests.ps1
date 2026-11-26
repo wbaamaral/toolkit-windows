@@ -879,6 +879,71 @@ Describe 'Invoke-DropboxCadeiaRename' {
     }
 }
 
+Describe 'Invoke-DropboxCadeiaRename com mapa compartilhado' {
+    BeforeAll {
+        $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+        . (Join-Path $repoRoot 'modules\WbaToolkit.Maintenance\Private\Invoke-DropboxCadeiaRename.ps1')
+    }
+
+    Context 'Cadeias de diretorios diferentes com ancestral comum (BCK-065/A-MNT-3)' {
+        It 'A segunda cadeia usa o ancestral ja renomeado pela primeira' {
+            $raiz = Join-Path $TestDrive 'raiz-ancestral-comum'
+            $ancestral = Join-Path $raiz 'AncestralNomeGrande'
+            $filhoA = Join-Path $ancestral 'FilhoA'
+            $filhoB = Join-Path $ancestral 'FilhoB'
+            New-Item -ItemType Directory -Path $filhoA, $filhoB -Force | Out-Null
+
+            $cadeiaA = @(
+                [pscustomobject]@{ nivel = 1; caminho_original = $ancestral; nome_proposto = 'Anc' }
+                [pscustomobject]@{ nivel = 2; caminho_original = $filhoA; nome_proposto = 'FA' }
+            )
+            $cadeiaB = @(
+                [pscustomobject]@{ nivel = 1; caminho_original = $ancestral; nome_proposto = 'Anc' }
+                [pscustomobject]@{ nivel = 2; caminho_original = $filhoB; nome_proposto = 'FB' }
+            )
+            $mapa = @{}
+
+            $resultadoA = Invoke-DropboxCadeiaRename -Cadeia $cadeiaA -RenomeadosMap $mapa
+            $resultadoB = Invoke-DropboxCadeiaRename -Cadeia $cadeiaB -RenomeadosMap $mapa
+
+            $resultadoA.sucesso | Should -BeTrue
+            $resultadoB.sucesso | Should -BeTrue
+            $resultadoB.niveis[0].status | Should -Be 'JaAplicado'
+            $resultadoB.caminho_final | Should -Be (Join-Path (Join-Path $raiz 'Anc') 'FB')
+            Test-Path -LiteralPath (Join-Path (Join-Path $raiz 'Anc') 'FA') -PathType Container | Should -BeTrue
+            Test-Path -LiteralPath (Join-Path (Join-Path $raiz 'Anc') 'FB') -PathType Container | Should -BeTrue
+        }
+
+        It 'Cadeia so com o filho encontra o pai renomeado por outra cadeia' {
+            $raiz = Join-Path $TestDrive 'raiz-filho-solto'
+            $pai = Join-Path $raiz 'PaiNomeGrande'
+            $filho = Join-Path $pai 'FilhoNomeGrande'
+            New-Item -ItemType Directory -Path $filho -Force | Out-Null
+            $mapa = @{}
+
+            $r1 = Invoke-DropboxCadeiaRename -Cadeia @([pscustomobject]@{ nivel = 1; caminho_original = $pai; nome_proposto = 'Pai' }) -RenomeadosMap $mapa
+            $r2 = Invoke-DropboxCadeiaRename -Cadeia @([pscustomobject]@{ nivel = 1; caminho_original = $filho; nome_proposto = 'Filho' }) -RenomeadosMap $mapa
+
+            $r1.sucesso | Should -BeTrue
+            $r2.sucesso | Should -BeTrue
+            Test-Path -LiteralPath (Join-Path (Join-Path $raiz 'Pai') 'Filho') -PathType Container | Should -BeTrue
+        }
+
+        It 'Falha visivel quando o ancestral comum foi renomeado para outro nome' {
+            $raiz = Join-Path $TestDrive 'raiz-conflito'
+            $ancestral = Join-Path $raiz 'AncestralX'
+            New-Item -ItemType Directory -Path (Join-Path $ancestral 'F1'), (Join-Path $ancestral 'F2') -Force | Out-Null
+            $mapa = @{}
+
+            Invoke-DropboxCadeiaRename -Cadeia @([pscustomobject]@{ nivel = 1; caminho_original = $ancestral; nome_proposto = 'NomeUm' }) -RenomeadosMap $mapa | Out-Null
+            $r = Invoke-DropboxCadeiaRename -Cadeia @([pscustomobject]@{ nivel = 1; caminho_original = $ancestral; nome_proposto = 'NomeDois' }) -RenomeadosMap $mapa
+
+            $r.sucesso | Should -BeFalse
+            $r.erro | Should -Match 'ja renomeado'
+        }
+    }
+}
+
 Describe 'corrigir-arquivos-dropbox.ps1 -Correcao MudancaLocalizacao (BCK-063/C4)' {
     It 'Preserva o conteudo de arquivos homonimos de pastas diferentes' {
         $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
@@ -911,5 +976,48 @@ Describe 'corrigir-arquivos-dropbox.ps1 -Correcao MudancaLocalizacao (BCK-063/C4
 
         $backups = @(Get-ChildItem -LiteralPath (Join-Path $saida 'backups') -File | ForEach-Object { Get-Content -LiteralPath $_.FullName }) | Sort-Object
         $backups | Should -Be @('conteudo A', 'conteudo B')
+    }
+}
+
+Describe 'normalizar-dropbox.ps1 -Modo Aplicar com ancestral comum (BCK-065/A-MNT-3)' {
+    It 'Aplica as duas cadeias que compartilham o ancestral' {
+        $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+        $scriptPath = Join-Path $repoRoot 'scripts\normalizar-dropbox.ps1'
+        $raiz = Join-Path $TestDrive 'dropbox-e2e'
+        $ancestral = Join-Path $raiz 'AncestralNomeMuitoGrande'
+        $filhoA = Join-Path $ancestral 'FilhoA'
+        $filhoB = Join-Path $ancestral 'FilhoB'
+        New-Item -ItemType Directory -Path $filhoA, $filhoB -Force | Out-Null
+
+        $proposta = [pscustomobject]@{
+            metadata   = [pscustomobject]@{ diagnostico_origem = $raiz }
+            diretorios = @(
+                [pscustomobject]@{
+                    id = 1; diretorio = $filhoA; nome_original = 'FilhoA'; nome_proposto = 'FA'; total_arquivos = 0; selecionado = $true
+                    cadeia = @(
+                        [pscustomobject]@{ nivel = 1; caminho_original = $ancestral; nome_proposto = 'Anc' }
+                        [pscustomobject]@{ nivel = 2; caminho_original = $filhoA; nome_proposto = 'FA' }
+                    )
+                }
+                [pscustomobject]@{
+                    id = 2; diretorio = $filhoB; nome_original = 'FilhoB'; nome_proposto = 'FB'; total_arquivos = 0; selecionado = $true
+                    cadeia = @(
+                        [pscustomobject]@{ nivel = 1; caminho_original = $ancestral; nome_proposto = 'Anc' }
+                        [pscustomobject]@{ nivel = 2; caminho_original = $filhoB; nome_proposto = 'FB' }
+                    )
+                }
+            )
+        }
+        $propostaPath = Join-Path $TestDrive 'proposta-ancestral.json'
+        $proposta | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $propostaPath -Encoding UTF8
+        $saida = Join-Path $TestDrive 'saida-ancestral'
+
+        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $scriptPath -Modo Aplicar -PropostaFile $propostaPath `
+            -DiretorioSaida $saida -NonInteractive *> $null
+
+        Test-Path -LiteralPath (Join-Path $raiz 'Anc\FA') -PathType Container | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $raiz 'Anc\FB') -PathType Container | Should -BeTrue
+        $resultado = Get-Content -LiteralPath (Join-Path $saida 'correcoes-aplicadas.json') -Raw | ConvertFrom-Json
+        $resultado.metadata.diretorios_falha | Should -Be 0
     }
 }
