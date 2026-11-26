@@ -4,7 +4,8 @@
         Remove pontos de restauracao.
     .DESCRIPTION
         Remove restore points por idade, quantidade ou sequencia especifica.
-        Usa vssadmin delete shadows para remocao.
+        Usa a API SRRemoveRestorePoint (srclient.dll) para remover cada ponto pelo
+        SequenceNumber e reporta quantos foram de fato removidos.
     .PARAMETER OlderThanDays
         Remove restore points mais antigos que N dias.
     .PARAMETER KeepLast
@@ -56,20 +57,28 @@
 
     $count = ($toRemove | Measure-Object).Count
     if ($PSCmdlet.ShouldProcess("$count restore point(s)", 'Remover')) {
+        # A saida do vssadmin nao traz o SequenceNumber; a remocao usa a API oficial
+        # SRRemoveRestorePoint e so conta o que de fato foi removido.
+        $removedCount = 0
+        $failedCount = 0
         foreach ($pt in $toRemove) {
             try {
-                $shadowId = vssadmin list shadows 2>&1 | Select-String -Pattern "SeqID: $($pt.SequenceNumber)" -Context 0,2
-                if ($shadowId) {
-                    $idLine = ($shadowId -split "`n" | Where-Object { $_ -match 'Shadow Copy ID:' }) | Select-Object -First 1
-                    if ($idLine -match '\{.+\}') {
-                        $guid = $Matches[0]
-                        & vssadmin delete shadows /shadow=$guid /quiet 2>&1 | Out-Null
-                    }
+                $code = Invoke-SRRemoveRestorePoint -SequenceNumber ([int]$pt.SequenceNumber)
+                if ($code -eq 0) {
+                    $removedCount++
+                }
+                else {
+                    $failedCount++
+                    Write-Warning ("Falha ao remover restore point {0}: codigo Win32 {1}." -f $pt.SequenceNumber, $code)
                 }
             } catch {
-                Write-Warning "Falha ao remover restore point $($pt.SequenceNumber): $_"
+                $failedCount++
+                Write-Warning "Falha ao remover restore point $($pt.SequenceNumber): $($_.Exception.Message)"
             }
         }
-        Write-Output "$count restore point(s) removido(s)."
+        Write-Output "$removedCount de $count restore point(s) removido(s)."
+        if ($failedCount -gt 0) {
+            Write-Error "$failedCount restore point(s) nao foram removidos."
+        }
     }
 }
