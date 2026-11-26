@@ -424,6 +424,8 @@ TSWLatexianTemp*
 
 # Kile
 *.backup
+# Em Windows (core.ignorecase=true) "*.backup" casaria com o modulo WbaToolkit.Backup.
+!/modules/WbaToolkit.Backup/
 
 # gummi
 .*.swp
