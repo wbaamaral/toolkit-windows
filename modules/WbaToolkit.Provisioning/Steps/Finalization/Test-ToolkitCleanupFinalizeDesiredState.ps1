@@ -37,11 +37,24 @@
     $configCopyExists = Test-Path -LiteralPath $configCopyPath -PathType Leaf
     $secretsExist     = (Test-Path -LiteralPath $secretsDir) -and (@(Get-ChildItem -LiteralPath $secretsDir -Force -ErrorAction SilentlyContinue).Count -gt 0)
 
+    # Envelopes consumidos: <Secrets>\<secretRef>.cms (SPEC-PROVISIONING-SECURITY, Logs e retencao).
+    $remainingEnvelopes = @(
+        foreach ($ref in @(Get-ToolkitProvisioningSecretRef -InputObject $Context.Config)) {
+            $envelopePath = Join-Path $Context.Paths.Secrets "$ref.cms"
+            if (Test-Path -LiteralPath $envelopePath -PathType Leaf) { $envelopePath }
+        }
+    )
+
     $mustRemoveConfig = ($policy -eq 'RemoveSecretsAndConfig')
 
-    $pending = ($secretsExist) -or ($mustRemoveConfig -and $configCopyExists)
+    $pending = ($secretsExist) -or ($remainingEnvelopes.Count -gt 0) -or ($mustRemoveConfig -and $configCopyExists)
 
-    $evidence = [pscustomobject]@{ Policy = $policy; ConfigCopyExists = $configCopyExists; SecretsExist = $secretsExist }
+    $evidence = [pscustomobject]@{
+        Policy             = $policy
+        ConfigCopyExists   = $configCopyExists
+        SecretsExist       = $secretsExist
+        RemainingEnvelopes = $remainingEnvelopes.Count
+    }
 
     if (-not $pending) {
         return [pscustomobject]@{ Status = 'Compliant'; Message = 'Limpeza ja aplicada.'; Evidence = $evidence }

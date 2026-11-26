@@ -487,6 +487,73 @@ Describe 'Etapa cleanup.finalize' {
             (Test-ToolkitCleanupFinalizeDesiredState -Context $context).Status | Should -Be 'Compliant'
         }
     }
+
+    It 'Remove os envelopes .cms consumidos e preserva os nao referenciados (BCK-064/A-PRV-5)' {
+        InModuleScope WbaToolkit.Provisioning -Parameters @{ WorkDir = $script:workDir; SecretsDir = $script:secretsDir } {
+            param($WorkDir, $SecretsDir)
+            $secretsRoot = Split-Path -Parent $SecretsDir
+            New-Item -Path $secretsRoot -ItemType Directory -Force | Out-Null
+            foreach ($name in @('local-admin-password.cms', 'win-product-key.cms', 'outro-deployment.cms')) {
+                Set-Content -LiteralPath (Join-Path $secretsRoot $name) -Value 'envelope' -Encoding ASCII
+            }
+            $paths = [pscustomobject]@{ Work = (Split-Path -Parent $WorkDir); Secrets = $secretsRoot }
+            $config = @{
+                schemaVersion = 1; deploymentId = 'x'
+                policy        = @{ cleanup = 'RemoveSecretsOnly' }
+                accounts      = @(@{ name = 'admin'; password = @{ secretRef = 'local-admin-password' } })
+                activation    = @{ productKeySecretRef = 'win-product-key' }
+            } | ConvertTo-Json -Depth 6 | ConvertFrom-Json
+            $context = [pscustomobject]@{ Config = $config; Paths = $paths; DeploymentId = 'x' }
+
+            (Test-ToolkitCleanupFinalizeDesiredState -Context $context).Status | Should -Be 'Changed'
+            $result = Set-ToolkitCleanupFinalizeDesiredState -Context $context -Confirm:$false
+
+            Test-Path -LiteralPath (Join-Path $secretsRoot 'local-admin-password.cms') | Should -BeFalse
+            Test-Path -LiteralPath (Join-Path $secretsRoot 'win-product-key.cms') | Should -BeFalse
+            Test-Path -LiteralPath (Join-Path $secretsRoot 'outro-deployment.cms') | Should -BeTrue
+            @($result.Evidence.RemovedPaths).Count | Should -Be 2
+            (Test-ToolkitCleanupFinalizeDesiredState -Context $context).Status | Should -Be 'Compliant'
+            # RemoveSecretsOnly preserva a copia da configuracao.
+            Test-Path -LiteralPath (Join-Path $WorkDir 'provisioning.json') | Should -BeTrue
+        }
+    }
+
+    It 'secretRef fora do formato nao aponta para fora da pasta de segredos' {
+        InModuleScope WbaToolkit.Provisioning -Parameters @{ WorkDir = $script:workDir; SecretsDir = $script:secretsDir } {
+            param($WorkDir, $SecretsDir)
+            $secretsRoot = Split-Path -Parent $SecretsDir
+            New-Item -Path $secretsRoot -ItemType Directory -Force | Out-Null
+            $outside = Join-Path (Split-Path -Parent $secretsRoot) 'fora.cms'
+            Set-Content -LiteralPath $outside -Value 'x' -Encoding ASCII
+            $config = '{ "activation": { "productKeySecretRef": "..\fora" } }' | ConvertFrom-Json
+
+            @(Get-ToolkitProvisioningSecretRef -InputObject $config).Count | Should -Be 0
+            $context = [pscustomobject]@{
+                Config = $config; DeploymentId = 'x'
+                Paths  = [pscustomobject]@{ Work = (Split-Path -Parent $WorkDir); Secrets = $secretsRoot }
+            }
+            Set-ToolkitCleanupFinalizeDesiredState -Context $context -Confirm:$false | Out-Null
+            Test-Path -LiteralPath $outside | Should -BeTrue
+        }
+    }
+
+    It 'RetainAll nao remove envelope nem segredos do deployment' {
+        InModuleScope WbaToolkit.Provisioning -Parameters @{ WorkDir = $script:workDir; SecretsDir = $script:secretsDir } {
+            param($WorkDir, $SecretsDir)
+            New-Item -Path $SecretsDir -ItemType Directory -Force | Out-Null
+            Set-Content -LiteralPath (Join-Path $SecretsDir 'cache.bin') -Value 'x' -Encoding ASCII
+            $secretsRoot = Split-Path -Parent $SecretsDir
+            Set-Content -LiteralPath (Join-Path $secretsRoot 'k.cms') -Value 'x' -Encoding ASCII
+            $config = '{ "policy": { "cleanup": "RetainAll" }, "activation": { "productKeySecretRef": "k" } }' | ConvertFrom-Json
+            $context = [pscustomobject]@{
+                Config = $config; DeploymentId = 'x'
+                Paths  = [pscustomobject]@{ Work = (Split-Path -Parent $WorkDir); Secrets = $secretsRoot }
+            }
+            Set-ToolkitCleanupFinalizeDesiredState -Context $context -Confirm:$false | Out-Null
+            Test-Path -LiteralPath (Join-Path $SecretsDir 'cache.bin') | Should -BeTrue
+            Test-Path -LiteralPath (Join-Path $secretsRoot 'k.cms') | Should -BeTrue
+        }
+    }
 }
 
 Describe 'Invoke-ToolkitProvisioning - fluxo fim-a-fim mockado' {
