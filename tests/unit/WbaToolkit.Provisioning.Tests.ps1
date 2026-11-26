@@ -673,3 +673,68 @@ Describe 'Invoke-ToolkitProvisioning - fluxo fim-a-fim mockado' {
         }
     }
 }
+
+Describe 'Invoke-ToolkitProvisioningEngine - estados terminais (BCK-065/A-PRV-2)' {
+    BeforeEach {
+        InModuleScope WbaToolkit.Provisioning {
+            Mock Enter-ToolkitProvisioningLock { New-Object System.Threading.Mutex }
+            Mock Exit-ToolkitProvisioningLock { }
+            Mock Write-ToolkitProvisioningState { }
+            Mock Request-ToolkitProvisioningReboot { [pscustomobject]@{ Action = 'Restart' } }
+            Mock Complete-ToolkitProvisioning { [pscustomobject]@{ GlobalState = $State.GlobalState } }
+            Mock Get-ToolkitProvisioningStepRegistry { @{ falso = $true } }
+            Mock Resolve-ToolkitProvisioningPlan {
+                @(@{ Id = 'a' }, @{ Id = 'b' }, @{ Id = 'c' })
+            }
+        }
+    }
+
+    It 'onError=Continue com etapa falha termina Failed, executa as demais e desabilita a tarefa' {
+        InModuleScope WbaToolkit.Provisioning {
+            Mock Invoke-ToolkitProvisioningStep {
+                [pscustomobject]@{ StepId = $StepManifest.Id; Status = $(if ($StepManifest.Id -eq 'b') { 'Failed' } else { 'Changed' }) }
+            }
+            $config = '{ "policy": { "onError": "Continue", "maxAttemptsPerStep": 1 } }' | ConvertFrom-Json
+
+            $r = Invoke-ToolkitProvisioningEngine -DeploymentId 'd1' -Config $config -ConfigHash 'h' -SchemaVersion 1 `
+                -ModuleVersion '1.0' -Paths ([pscustomobject]@{ Work = $TestDrive }) -ExistingState $null
+
+            $r.GlobalState | Should -Be 'Failed'
+            $r.FailureReason | Should -Match "'?b'?"
+            Should -Invoke Invoke-ToolkitProvisioningStep -Times 1 -Exactly -ParameterFilter { $StepManifest.Id -eq 'c' }
+            Should -Invoke Complete-ToolkitProvisioning -Times 1 -Exactly -ParameterFilter { $State.GlobalState -eq 'Failed' }
+        }
+    }
+
+    It 'onError=Stop gera relatorio e desabilita a tarefa ao falhar' {
+        InModuleScope WbaToolkit.Provisioning {
+            Mock Invoke-ToolkitProvisioningStep { [pscustomobject]@{ StepId = $StepManifest.Id; Status = 'Failed' } }
+            $config = '{ "policy": { "onError": "Stop", "maxAttemptsPerStep": 1 } }' | ConvertFrom-Json
+
+            $r = Invoke-ToolkitProvisioningEngine -DeploymentId 'd2' -Config $config -ConfigHash 'h' -SchemaVersion 1 `
+                -ModuleVersion '1.0' -Paths ([pscustomobject]@{ Work = $TestDrive }) -ExistingState $null
+
+            $r.GlobalState | Should -Be 'Failed'
+            Should -Invoke Invoke-ToolkitProvisioningStep -Times 1 -Exactly
+            Should -Invoke Complete-ToolkitProvisioning -Times 1 -Exactly
+        }
+    }
+
+    It 'Nao reinicia alem do limite de boots' {
+        InModuleScope WbaToolkit.Provisioning {
+            Mock Invoke-ToolkitProvisioningStep { [pscustomobject]@{ StepId = $StepManifest.Id; Status = 'RebootRequired' } }
+            $existing = [pscustomobject]@{
+                DeploymentId = 'd3'; ConfigHash = 'h'; SchemaVersion = 1; ModuleVersion = '1.0'
+                GlobalState = 'RebootPending'; CurrentStepId = 'a'; BootCount = 10; StepResults = @()
+                CreatedAt = ''; UpdatedAt = ''
+            }
+
+            $r = Invoke-ToolkitProvisioningEngine -DeploymentId 'd3' -Config $null -ConfigHash 'h' -SchemaVersion 1 `
+                -ModuleVersion '1.0' -Paths ([pscustomobject]@{ Work = $TestDrive }) -ExistingState $existing -WarningAction SilentlyContinue
+
+            $r.GlobalState | Should -Be 'Failed'
+            Should -Invoke Request-ToolkitProvisioningReboot -Times 0 -Exactly
+            Should -Invoke Complete-ToolkitProvisioning -Times 1 -Exactly
+        }
+    }
+}

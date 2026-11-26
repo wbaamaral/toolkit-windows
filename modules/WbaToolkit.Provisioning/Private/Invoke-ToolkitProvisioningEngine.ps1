@@ -9,6 +9,11 @@
         imediatamente ao pedir reboot (sem tentar a proxima etapa) e finaliza com o
         relatorio sanitizado quando todas as etapas do plano estiverem concluidas.
 
+        Estados terminais: Completed so quando nenhuma etapa falhou. Falha com onError=Stop,
+        etapas falhas com onError=Continue ou limite de 10 boots atingido terminam em Failed;
+        em ambos os casos o relatorio e gravado e a tarefa de boot e desabilitada, exigindo
+        retomada explicita (Failed -> Running).
+
     .PARAMETER DeploymentId
     .PARAMETER Config
         Configuracao ja validada (objeto convertido de JSON).
@@ -82,6 +87,29 @@
             if ((Test-ToolkitPropertyPresent -InputObject $Config.policy -Name 'reboot')) { $rebootPolicy = [string]$Config.policy.reboot }
         }
 
+        # Limite de boots do deployment: evita loop de reinicializacao quando uma etapa
+        # pede reboot indefinidamente (SPEC-PROVISIONING-EXECUTION, Concorrencia e repeticao).
+        $maxBoots = 10
+        $failedStepIds = New-Object System.Collections.Generic.List[string]
+
+        # Estado terminal (Completed ou Failed): persiste, gera relatorio e desabilita a tarefa
+        # de boot (Complete-ToolkitProvisioning), para que uma falha nao se repita a cada boot.
+        $finishTerminal = {
+            param([string]$GlobalState, [string]$Reason)
+            $state.GlobalState   = $GlobalState
+            $state.CurrentStepId = $null
+            $state.UpdatedAt     = (Get-Date).ToUniversalTime().ToString('o')
+            Write-ToolkitProvisioningState -StateDirectory $workDir -State $state
+            $finalReport = Complete-ToolkitProvisioning -State $state -Paths $Paths
+            [pscustomobject]@{
+                GlobalState      = $GlobalState
+                RebootAction     = 'None'
+                Report           = $finalReport
+                AlreadyCompleted = $false
+                FailureReason    = $Reason
+            }
+        }
+
         $state.GlobalState = 'Running'
         Write-ToolkitProvisioningState -StateDirectory $workDir -State $state
 
@@ -109,6 +137,11 @@
             $state.UpdatedAt   = (Get-Date).ToUniversalTime().ToString('o')
 
             if ($result.Status -eq 'RebootRequired') {
+                if ([int]$state.BootCount -ge $maxBoots) {
+                    # Limite de boots (SPEC-PROVISIONING-EXECUTION): falha terminal em vez de loop de reinicializacao.
+                    Write-Warning "Etapa '$($step.Id)' pediu reboot apos $($state.BootCount) boots (limite $maxBoots); provisionamento encerrado em Failed."
+                    return (& $finishTerminal 'Failed' "Limite de $maxBoots boots atingido na etapa '$($step.Id)'.")
+                }
                 $state.GlobalState = 'RebootPending'
                 $state.BootCount   = [int]$state.BootCount + 1
                 Write-ToolkitProvisioningState -StateDirectory $workDir -State $state
@@ -117,11 +150,12 @@
             }
 
             if ($result.Status -eq 'Failed') {
-                $state.GlobalState = 'Failed'
-                Write-ToolkitProvisioningState -StateDirectory $workDir -State $state
+                $failedStepIds.Add($step.Id)
                 if ($onError -eq 'Stop') {
-                    return [pscustomobject]@{ GlobalState = 'Failed'; RebootAction = 'None'; Report = $null; AlreadyCompleted = $false }
+                    return (& $finishTerminal 'Failed' "Etapa '$($step.Id)' falhou (onError=Stop).")
                 }
+                # onError=Continue: segue para as proximas etapas, mas o deployment nao termina Completed.
+                Write-ToolkitProvisioningState -StateDirectory $workDir -State $state
                 continue
             }
 
@@ -129,12 +163,11 @@
             Write-ToolkitProvisioningState -StateDirectory $workDir -State $state
         }
 
-        $state.GlobalState   = 'Completed'
-        $state.CurrentStepId = $null
-        Write-ToolkitProvisioningState -StateDirectory $workDir -State $state
-        $report = Complete-ToolkitProvisioning -State $state -Paths $Paths
+        if ($failedStepIds.Count -gt 0) {
+            return (& $finishTerminal 'Failed' ("Etapas com falha (onError=Continue): {0}." -f ($failedStepIds -join ', ')))
+        }
 
-        return [pscustomobject]@{ GlobalState = 'Completed'; RebootAction = 'None'; Report = $report; AlreadyCompleted = $false }
+        return (& $finishTerminal 'Completed' $null)
     }
     finally {
         Exit-ToolkitProvisioningLock -Mutex $mutex
