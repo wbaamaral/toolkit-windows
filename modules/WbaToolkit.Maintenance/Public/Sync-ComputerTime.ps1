@@ -32,7 +32,7 @@
     )
 
     # Mock para lab Docker/Linux (WBA_MOCK_AD) — simula sucesso sem w32tm real
-    if ($env:WBA_MOCK_AD) {
+    if (Test-ToolkitLabMock) {
         $computerMock = try { Get-CimInstance -ClassName Win32_ComputerSystem -ErrorAction SilentlyContinue } catch { $null }
         $tzMock = try { Get-TimeZone -ErrorAction SilentlyContinue } catch { $null }
         $mockSource = '172.20.0.10 (mock WBA_MOCK_AD)'

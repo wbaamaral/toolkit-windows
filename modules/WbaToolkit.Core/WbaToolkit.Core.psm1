@@ -17,6 +17,7 @@ if (Test-Path -LiteralPath $publicPath) {
 
 Export-ModuleMember -Function @(
     'Test-IsAdministrator',
+    'Test-ToolkitLabMock',
     'Invoke-Safe',
     'Format-FileSize',
     'Write-Ok',

@@ -37,3 +37,35 @@ Describe 'Xtudo launcher' {
         ($script:launcherContent.Contains("`$input -match '^(0|q|quit|sair)$'")) | Should -BeTrue
     }
 }
+
+Describe 'Test-ToolkitLabMock (BCK-065: mocks do lab fora de producao)' {
+    BeforeAll {
+        $root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+        . (Join-Path $root 'modules/WbaToolkit.Core/Public/Test-ToolkitLabMock.ps1')
+        $script:savedMock = $env:WBA_MOCK_AD
+    }
+
+    AfterAll {
+        $env:WBA_MOCK_AD = $script:savedMock
+    }
+
+    It 'Sem WBA_MOCK_AD nunca habilita mocks' {
+        $env:WBA_MOCK_AD = $null
+        Test-ToolkitLabMock | Should -BeFalse
+    }
+
+    It 'Com WBA_MOCK_AD so habilita fora do Windows' {
+        $env:WBA_MOCK_AD = '1'
+        $isWindowsPlatform = [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
+        Test-ToolkitLabMock | Should -Be (-not $isWindowsPlatform)
+    }
+
+    It 'Nenhum modulo ou script consulta WBA_MOCK_AD sem o gate ou sem exigir Linux' {
+        $root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+        $violacoes = @(Get-ChildItem (Join-Path $root 'modules'), (Join-Path $root 'scripts') -Recurse -File |
+            Where-Object { $_.Extension -in @('.ps1', '.psm1') -and $_.Name -ne 'Test-ToolkitLabMock.ps1' } |
+            Select-String -Pattern '\$env:WBA_MOCK_AD' |
+            Where-Object { $_.Line -notmatch '^\s*#' -and $_.Line -notmatch '\$IsLinux' })
+        ($violacoes | ForEach-Object { "$($_.Path):$($_.LineNumber)" }) | Should -BeNullOrEmpty
+    }
+}

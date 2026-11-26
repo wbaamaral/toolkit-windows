@@ -24,7 +24,7 @@
     )
 
     # Mock para lab Docker/Linux (WBA_MOCK_AD) — permite testar diagnóstico AD sem binários Windows
-    if ($env:WBA_MOCK_AD -and $FilePath -match '^(w32tm|nltest|gpresult|wevtutil|powercfg|dxdiag)(\.exe)?$') {
+    if ((Test-ToolkitLabMock) -and $FilePath -match '^(w32tm|nltest|gpresult|wevtutil|powercfg|dxdiag)(\.exe)?$') {
         $joined = ($ArgumentList -join ' ').ToLowerInvariant()
         if ($FilePath -match 'w32tm' -and $joined -match '/query.*\/source') {
             return [PSCustomObject]@{ ExitCode = 0; Output = '172.20.0.10 (mock WBA_MOCK_AD)' }

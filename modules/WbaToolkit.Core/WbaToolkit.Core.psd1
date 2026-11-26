@@ -8,6 +8,7 @@
     PowerShellVersion = '5.1'
     FunctionsToExport = @(
         'Test-IsAdministrator',
+        'Test-ToolkitLabMock',
         'Invoke-Safe',
         'Format-FileSize',
         'Write-Ok',

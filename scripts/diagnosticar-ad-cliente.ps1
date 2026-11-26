@@ -459,7 +459,7 @@ function Test-AdShares {
         $path = "\\$shareHost\$share"
         $hasAccess = $false
         # Em lab Docker/Linux (WBA_MOCK_AD) UNC não funciona — valida via SMB 445 + dig
-        if ($env:WBA_MOCK_AD -or $IsLinux) {
+        if ((Test-ToolkitLabMock) -or $IsLinux) {
             # Se LDAP e SMB já OK, assume SYSVOL acessível em mock
             $hasAccess = Test-AdPort -HostName $shareHost -Port 445
             if (-not $hasAccess) { $hasAccess = Test-Path -LiteralPath $path }
@@ -943,7 +943,7 @@ if ($Help) { Show-Help; exit 0 }
 
 if (-not (Test-IsAdministrator)) {
     # Em lab Docker/Linux (pwsh sem elevação Windows) permitir execução com aviso — usado por tests/lab-docker
-    if ($IsLinux -or $IsMacOS -or $env:WBA_MOCK_AD -or $env:CI) {
+    if ($IsLinux -or $IsMacOS -or (Test-ToolkitLabMock)) {
         Write-Warn 'Executando sem privilégio de Administrador (ambiente não-Windows/mock) — continuando sem elevação.'
     } else {
         Write-Warn 'Privilegio de Administrador necessario. Solicitando elevacao...'

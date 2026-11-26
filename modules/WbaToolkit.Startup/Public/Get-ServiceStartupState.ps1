@@ -38,7 +38,7 @@
     )
 
     # Mock/Linux: Get-Service não existe no pwsh Linux — em lab Docker/WBA_MOCK_AD retornar Running
-    if ($IsLinux -or $IsMacOS -or $env:WBA_MOCK_AD) {
+    if ($IsLinux -or $IsMacOS -or (Test-ToolkitLabMock)) {
         return @($ServiceName | ForEach-Object {
             [pscustomobject]@{
                 Name        = $_

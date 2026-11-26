@@ -55,6 +55,7 @@ Describe 'Sincronização de relógio' {
 
 Describe 'Sync-ComputerTime -Apply (BCK-065/A-NET-2)' {
     BeforeAll {
+        . (Join-Path $script:repoRoot 'modules/WbaToolkit.Core/Public/Test-ToolkitLabMock.ps1')
         . (Join-Path $script:repoRoot 'modules/WbaToolkit.Maintenance/Private/Invoke-W32tm.ps1')
         . $script:functionPath
         $script:savedMockAd = $env:WBA_MOCK_AD
