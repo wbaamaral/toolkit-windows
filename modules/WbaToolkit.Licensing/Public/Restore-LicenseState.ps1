@@ -279,13 +279,14 @@
         foreach ($r in $restorable) {
             switch ($r.Field) {
                 'KmsServer' {
-                    if ($backupKms) {
+                    $kmsCommand = if ($backupKms) {
                         $port = if ($backupKmsPort) { $backupKmsPort } else { '1688' }
-                        Write-Host "    slmgr.vbs /skms ${backupKms}:$port" -ForegroundColor Yellow
+                        "/skms ${backupKms}:$port"
                     }
                     else {
-                        Write-Host "    slmgr.vbs /ckms" -ForegroundColor Yellow
+                        '/ckms'
                     }
+                    Write-Host "    slmgr.vbs $kmsCommand" -ForegroundColor Yellow
                 }
                 'KmsPort' {
                     $port = if ($backupKmsPort) { $backupKmsPort } else { '1688' }
