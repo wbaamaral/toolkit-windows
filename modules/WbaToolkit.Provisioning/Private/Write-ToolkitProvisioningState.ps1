@@ -51,9 +51,13 @@
         throw "Falha ao validar o estado gravado antes da promocao: $($_.Exception.Message)"
     }
 
-    if (Test-Path -LiteralPath $finalPath) {
-        Copy-Item -LiteralPath $finalPath -Destination $previousPath -Force
+    if (Test-Path -LiteralPath $finalPath -PathType Leaf) {
+        # File.Replace troca state.json pelo temporario numa unica operacao do NTFS e grava a
+        # versao anterior em state.previous.json. Move-Item -Force no PS 5.1 apaga o destino
+        # antes de mover: uma interrupcao nesse intervalo deixava o deployment sem state.json.
+        [System.IO.File]::Replace($tempPath, $finalPath, $previousPath)
     }
-
-    Move-Item -LiteralPath $tempPath -Destination $finalPath -Force
+    else {
+        [System.IO.File]::Move($tempPath, $finalPath)
+    }
 }

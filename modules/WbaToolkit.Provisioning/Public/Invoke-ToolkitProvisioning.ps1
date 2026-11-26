@@ -44,6 +44,10 @@
     $workDir      = Join-Path $paths.Work $deploymentId
 
     $existing = Read-ToolkitProvisioningState -StateDirectory $workDir
+    if ($existing.CorruptionDetected -and $null -eq $existing.State) {
+        # SPEC-PROVISIONING-ENGINE: estado invalido nao e ignorado nem reiniciado do zero.
+        throw "Estado do deployment '$deploymentId' corrompido (state.json e state.previous.json invalidos em '$workDir'). Intervencao necessaria: preserve os arquivos para analise e use Reset-ToolkitProvisioningState ou remova o estado manualmente."
+    }
     if ($existing.Found -and $existing.State -and $existing.State.GlobalState -eq 'Completed') {
         throw "Deployment '$deploymentId' ja esta concluido. Use Reset-ToolkitProvisioningState para reexecutar."
     }

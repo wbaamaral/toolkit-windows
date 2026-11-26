@@ -320,6 +320,37 @@ Describe 'Estado atomico (Write/Read-ToolkitProvisioningState)' {
         }
     }
 
+    It 'Segunda gravacao: state.json novo, previous com o anterior e sem temporarios (BCK-065/A-PRV-3)' {
+        InModuleScope WbaToolkit.Provisioning -Parameters @{ StateDir = $script:stateDir } {
+            param($StateDir)
+            $state = New-ToolkitProvisioningState -DeploymentId 'x' -ConfigHash 'hash1' -SchemaVersion 1 -ModuleVersion '0.1.0'
+            Write-ToolkitProvisioningState -StateDirectory $StateDir -State $state
+            $state.GlobalState = 'Running'
+            Write-ToolkitProvisioningState -StateDirectory $StateDir -State $state
+            $state.GlobalState = 'RebootPending'
+            Write-ToolkitProvisioningState -StateDirectory $StateDir -State $state
+
+            (Get-Content -LiteralPath (Join-Path $StateDir 'state.json') -Raw | ConvertFrom-Json).GlobalState | Should -Be 'RebootPending'
+            (Get-Content -LiteralPath (Join-Path $StateDir 'state.previous.json') -Raw | ConvertFrom-Json).GlobalState | Should -Be 'Running'
+            @(Get-ChildItem -LiteralPath $StateDir -Filter '*.tmp').Count | Should -Be 0
+        }
+    }
+
+    It 'Recupera de state.previous.json quando state.json esta ausente (BCK-065/A-PRV-3)' {
+        InModuleScope WbaToolkit.Provisioning -Parameters @{ StateDir = $script:stateDir } {
+            param($StateDir)
+            $state = New-ToolkitProvisioningState -DeploymentId 'x' -ConfigHash 'hash1' -SchemaVersion 1 -ModuleVersion '0.1.0'
+            Write-ToolkitProvisioningState -StateDirectory $StateDir -State $state
+            Write-ToolkitProvisioningState -StateDirectory $StateDir -State $state
+            Remove-Item -LiteralPath (Join-Path $StateDir 'state.json')
+
+            $read = Read-ToolkitProvisioningState -StateDirectory $StateDir -WarningAction SilentlyContinue
+            $read.Found | Should -BeTrue
+            $read.RecoveredFromPrevious | Should -BeTrue
+            $read.State.DeploymentId | Should -Be 'x'
+        }
+    }
+
     It 'Retorna Found=$false quando nao ha estado' {
         InModuleScope WbaToolkit.Provisioning -Parameters @{ StateDir = (Join-Path $TestDrive 'inexistente') } {
             param($StateDir)
@@ -735,6 +766,34 @@ Describe 'Invoke-ToolkitProvisioningEngine - estados terminais (BCK-065/A-PRV-2)
             $r.GlobalState | Should -Be 'Failed'
             Should -Invoke Request-ToolkitProvisioningReboot -Times 0 -Exactly
             Should -Invoke Complete-ToolkitProvisioning -Times 1 -Exactly
+        }
+    }
+}
+
+Describe 'Invoke-ToolkitProvisioning com estado corrompido (BCK-065/A-PRV-3)' {
+    It 'Recusa reiniciar do zero quando state.json e state.previous.json estao corrompidos' {
+        InModuleScope WbaToolkit.Provisioning -Parameters @{ Root = (Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))) } {
+            param($Root)
+            Mock Test-IsAdministrator { $true }
+            Mock Invoke-ToolkitProvisioningEngine { throw 'O motor nao deveria ser chamado.' }
+            Mock Get-ToolkitProvisioningPaths {
+                [pscustomobject]@{
+                    Root = $Root; Inbox = Join-Path $Root 'Inbox'; Work = Join-Path $Root 'Work'; Logs = Join-Path $Root 'Logs'
+                    Results = Join-Path $Root 'Results'; Secrets = Join-Path $Root 'Secrets'; Quarantine = Join-Path $Root 'Quarantine'
+                }
+            }.GetNewClosure()
+
+            $inboxDir = Join-Path $Root 'Inbox'
+            New-Item -Path $inboxDir -ItemType Directory -Force | Out-Null
+            @{ schemaVersion = 1; deploymentId = 'corrompido-001'; policy = @{ reboot = 'Never'; cleanup = 'RetainAll' } } |
+                ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $inboxDir 'provisioning.json') -Encoding UTF8
+            $stateDir = Join-Path $Root 'Work/corrompido-001'
+            New-Item -Path $stateDir -ItemType Directory -Force | Out-Null
+            Set-Content -LiteralPath (Join-Path $stateDir 'state.json') -Value '{ nao e json' -Encoding UTF8
+            Set-Content -LiteralPath (Join-Path $stateDir 'state.previous.json') -Value '{ tambem nao' -Encoding UTF8
+
+            { Invoke-ToolkitProvisioning -Confirm:$false -WarningAction SilentlyContinue } | Should -Throw '*corrompido*'
+            Should -Invoke Invoke-ToolkitProvisioningEngine -Times 0 -Exactly
         }
     }
 }
