@@ -963,6 +963,18 @@ Describe 'WbaToolkit.Maintenance' {
                 Should -Invoke -CommandName 'reg' -ParameterFilter { $args -contains 'unload' } -Times 2 -Exactly
             }
         }
+        It 'Desmonta mesmo quando o ScriptBlock sai por controle de fluxo (BCK-065)' {
+            InModuleScope WbaToolkit.Maintenance {
+                Mock -CommandName 'Get-DefaultUserHivePath' -MockWith { 'C:\fake\NTUSER.DAT' }
+                Mock -CommandName 'Test-Path' -MockWith { $false }
+                Mock -CommandName 'reg' -MockWith { $global:LASTEXITCODE = 0 }
+                # 'break' (como 'exit' ou Ctrl+C) nao passa pelo catch; so o finally roda.
+                foreach ($i in 1) {
+                    Invoke-WithDefaultUserHive -ScriptBlock { break } | Out-Null
+                }
+                Should -Invoke -CommandName 'reg' -ParameterFilter { $args -contains 'unload' } -Times 1 -Exactly
+            }
+        }
     }
 }
 

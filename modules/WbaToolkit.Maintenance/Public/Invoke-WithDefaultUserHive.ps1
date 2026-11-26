@@ -53,28 +53,31 @@
         throw "Falha ao montar hive do perfil Default em '$mountKey': $($loadOutput -join ' ')"
     }
 
-    $resultado  = $null
-    $erroScript = $null
+    $resultado    = $null
+    $erroScript   = $null
+    $desmontado   = $false
+    $unloadOutput = ''
     try {
         $resultado = & $ScriptBlock $mountName
     }
     catch {
         $erroScript = $_
     }
-
-    # Desmonta com retry: handles do registro podem demorar a liberar; o GC entre
-    # tentativas libera RegistryKey finalizaveis que mantem o hive aberto.
-    $desmontado   = $false
-    $unloadOutput = ''
-    for ($tentativa = 1; $tentativa -le 3; $tentativa++) {
-        [System.GC]::Collect()
-        [System.GC]::WaitForPendingFinalizers()
-        $prevEAP2 = $ErrorActionPreference
-        $ErrorActionPreference = 'Continue'
-        $unloadOutput = & reg unload $mountKey 2>&1
-        $ErrorActionPreference = $prevEAP2
-        if ($LASTEXITCODE -eq 0) { $desmontado = $true; break }
-        Start-Sleep -Milliseconds 400
+    finally {
+        # No finally: Ctrl+C (pipeline interrompido) e 'exit' dentro do ScriptBlock nao
+        # passam pelo catch, e antes deixavam o hive do perfil Default montado.
+        # Desmonta com retry: handles do registro podem demorar a liberar; o GC entre
+        # tentativas libera RegistryKey finalizaveis que mantem o hive aberto.
+        for ($tentativa = 1; $tentativa -le 3; $tentativa++) {
+            [System.GC]::Collect()
+            [System.GC]::WaitForPendingFinalizers()
+            $prevEAP2 = $ErrorActionPreference
+            $ErrorActionPreference = 'Continue'
+            $unloadOutput = & reg unload $mountKey 2>&1
+            $ErrorActionPreference = $prevEAP2
+            if ($LASTEXITCODE -eq 0) { $desmontado = $true; break }
+            Start-Sleep -Milliseconds 400
+        }
     }
 
     # Erro do ScriptBlock tem prioridade — nao mascarar a causa original.
