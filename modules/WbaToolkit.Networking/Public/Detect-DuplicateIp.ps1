@@ -15,6 +15,14 @@
         Nao exige privilegios administrativos: ping e leitura do cache ARP sao
         operacoes de usuario comum no Windows.
 
+        Limitacao: o cache ARP do Windows guarda um unico MAC por IP em cada
+        interface. Dois hosts disputando o mesmo IP no mesmo segmento aparecem
+        como uma unica entrada (o ultimo MAC que respondeu), entao Status 'OK'
+        nao prova ausencia de conflito. 'DUPLICADO' aparece quando o mesmo IP
+        e visto com MACs diferentes em interfaces distintas ou quando a fonte
+        de coleta (arp -a) lista mais de uma entrada. Para confirmar um conflito
+        no proprio host, consulte o evento Tcpip 4199 no log System.
+
     .PARAMETER Range
         Faixa no formato CIDR ("192.168.1.0/24"), intervalo completo
         ("192.168.1.1-192.168.1.254"), intervalo compacto ("192.168.1.10-50")
@@ -120,8 +128,13 @@
         })
     }
 
-    # Garante ordem estavel para o relatorio: duplicados primeiro, depois IP.
-    $results = @($results | Sort-Object @{Expression = 'Status'; Descending = $true}, 'IP')
+    # Garante ordem estavel para o relatorio: duplicados primeiro, depois IP em ordem numerica.
+    # Ordenar a string Status em ordem decrescente colocava 'OK' antes de 'DUPLICADO'; e IP
+    # como texto colocava .10 antes de .2.
+    $results = @($results | Sort-Object `
+        @{ Expression = { $_.Status -eq 'DUPLICADO' }; Descending = $true },
+        @{ Expression = { $v = $null; if ([version]::TryParse([string]$_.IP, [ref]$v)) { $v } else { [version]'0.0' } }; Descending = $false },
+        @{ Expression = 'IP'; Descending = $false })
 
     $totalDup = @($results | Where-Object Status -eq 'DUPLICADO').Count
 

@@ -274,6 +274,22 @@ Describe 'Detect-DuplicateIp (ocupados e livres)' {
         $markdown | Should -Match '192\.168\.1\.2'
         $markdown | Should -Match '192\.168\.1\.4'
     }
+
+    It 'Lista duplicados primeiro e IPs em ordem numerica (BCK-065/A-NET-1)' {
+        Mock Invoke-ArpSweep {
+            @(
+                [pscustomobject]@{ IP = '192.168.1.10'; MAC = 'aa-bb-cc-dd-ee-10' }
+                [pscustomobject]@{ IP = '192.168.1.2'; MAC = 'aa-bb-cc-dd-ee-02' }
+                [pscustomobject]@{ IP = '192.168.1.20'; MAC = 'aa-bb-cc-dd-ee-21' }
+                [pscustomobject]@{ IP = '192.168.1.20'; MAC = 'aa-bb-cc-dd-ee-22' }
+            )
+        } -ModuleName WbaToolkit.Networking
+
+        $result = @(Detect-DuplicateIp -Range '192.168.1.1-30' -OutputPath (Join-Path $TestDrive 'ordem') -ErrorAction Stop)
+
+        ($result | ForEach-Object { $_.IP }) -join ',' | Should -Be '192.168.1.20,192.168.1.2,192.168.1.10'
+        $result[0].Status | Should -Be 'DUPLICADO'
+    }
 }
 
 Describe 'detectar-ip-duplicado.ps1 (wrapper operacional)' {
