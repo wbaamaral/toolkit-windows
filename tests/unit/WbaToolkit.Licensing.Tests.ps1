@@ -515,3 +515,40 @@ Describe 'Product Key nunca exposta (BCK-064/C8, ADR 0028)' {
         $script:scriptContent | Should -Match 'Read-Host[^\r\n]*-AsSecureString'
     }
 }
+
+Describe 'gerenciar-licenciamento.ps1 - salvaguardas das acoes mutantes (BCK-065/A-LIC-2)' {
+    BeforeAll {
+        $path = Join-Path $repoRoot 'scripts/gerenciar-licenciamento.ps1'
+        $tokens = $null; $errors = $null
+        $script:licAst = [System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$tokens, [ref]$errors)
+        $script:licText = $script:licAst.Extent.Text
+
+        function script:Get-FirstOffset([string]$Pattern) {
+            $m = [regex]::Match($script:licText, $Pattern)
+            if ($m.Success) { $m.Index } else { -1 }
+        }
+    }
+
+    It 'Declara SupportsShouldProcess com ConfirmImpact High' {
+        $binding = $script:licAst.ParamBlock.Attributes | Where-Object { $_.TypeName.Name -eq 'CmdletBinding' }
+        $named = @{}
+        foreach ($arg in $binding.NamedArguments) { $named[$arg.ArgumentName] = $arg.Argument.Extent.Text }
+        $named['SupportsShouldProcess'] | Should -Be '$true'
+        $named['ConfirmImpact'] | Should -Be "'High'"
+    }
+
+    It 'Confirma (ShouldProcess) e valida o contexto antes de slmgr e da instalacao da chave' {
+        $shouldProcess = Get-FirstOffset '\$PSCmdlet\.ShouldProcess\(\$env:COMPUTERNAME'
+        $adminCheck = Get-FirstOffset 'Test-LicenseAdminContext'
+        $shouldProcess | Should -BeGreaterThan 0
+        $adminCheck | Should -BeGreaterThan 0
+        $adminCheck | Should -BeLessThan $shouldProcess
+        $shouldProcess | Should -BeLessThan (Get-FirstOffset 'Invoke-Slmgr -ArgumentList')
+        $shouldProcess | Should -BeLessThan (Get-FirstOffset 'Install-LicenseProductKey -ProductKey')
+    }
+
+    It 'Recusa Rearm com contador 0 ou desconhecido e avisa reinicializacao' {
+        $script:licText | Should -Match "\`$Acao -eq 'Rearm' -and \[int\]\`$cycleStatus\.RearmCount -le 0"
+        $script:licText | Should -Match 'Reinicializacao necessaria'
+    }
+}

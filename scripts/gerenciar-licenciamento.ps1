@@ -11,6 +11,11 @@
     O script é SOMENTE LEITURA por padrão (modo Diagnostico). Ações de
     escrita exigem flags explícitos (-Ativar, -InstalarChave, etc.).
 
+    Ações mutantes pedem confirmação (ConfirmImpact High) e aceitam -WhatIf;
+    para execução desassistida use -Confirm:$false. Antes de mutar, o contexto
+    administrativo é verificado (fail-closed) e Rearm é recusado quando o
+    contador restante é 0 ou desconhecido; após o Rearm é preciso reiniciar.
+
 .PARAMETER Acao
     Ação a executar: Diagnostico (padrão), Ativar, InstalarChave, Rearm, DefinirKMS.
 
@@ -63,7 +68,7 @@
 #>
 #Requires -Version 5.1
 
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
 param(
     [ValidateSet('Diagnostico', 'Ativar', 'InstalarChave', 'Rearm', 'DefinirKMS', 'Restaurar')]
     [string]$Acao = 'Diagnostico',
@@ -345,6 +350,37 @@ if ($Acao -ne 'Diagnostico') {
         }
     }
     else {
+        # RF-12: rearm so com contador conhecido e positivo (fail-closed quando desconhecido).
+        if ($Acao -eq 'Rearm' -and [int]$cycleStatus.RearmCount -le 0) {
+            $motivo = if ([int]$cycleStatus.RearmCount -eq 0) { 'nao ha rearm disponivel (contador 0)' } else { 'contador de rearm desconhecido' }
+            Write-Fail "Rearm recusado: $motivo."
+            if ($transcriptActive) { Stop-Transcript }
+            exit 1
+        }
+
+        if (-not $DryRun) {
+            # RF-11: contexto administrativo e CIM verificados antes de qualquer mutacao (fail-closed).
+            try { Test-LicenseAdminContext | Out-Null }
+            catch {
+                Write-Fail "Contexto administrativo invalido: $($_.Exception.Message)"
+                if ($transcriptActive) { Stop-Transcript }
+                exit 1
+            }
+
+            # RF-11: confirmacao (ConfirmImpact High) e -WhatIf para toda acao mutante.
+            $descricaoAcao = switch ($Acao) {
+                'Ativar'        { 'Ativar o Windows (slmgr /ato)' }
+                'InstalarChave' { "Instalar a Product Key $(ConvertTo-LicensePartialKey -ProductKey $ProductKey)" }
+                'Rearm'         { "Rearm do licenciamento (restam $($cycleStatus.RearmCount))" }
+                'DefinirKMS'    { "Definir servidor KMS $KmsServer" }
+            }
+            if (-not $PSCmdlet.ShouldProcess($env:COMPUTERNAME, $descricaoAcao)) {
+                Write-Warn "Acao '$Acao' nao executada (cancelada ou -WhatIf)."
+                if ($transcriptActive) { Stop-Transcript }
+                exit 0
+            }
+        }
+
         if (-not $DryRun) {
             Write-Host "  Salvando backup do estado atual..." -ForegroundColor Cyan
             $backup = Backup-LicenseState -Path $ReportSession.Path
@@ -400,6 +436,10 @@ if ($Acao -ne 'Diagnostico') {
                     foreach ($line in $result.Lines) {
                         Write-Host "    $line"
                     }
+                }
+                if ($Acao -eq 'Rearm') {
+                    # RF-12: o rearm so vale apos reiniciar; o script nao reinicia sozinho.
+                    Write-Warn "Reinicializacao necessaria para concluir o rearm."
                 }
             }
             else {
