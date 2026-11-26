@@ -292,6 +292,34 @@ Describe 'Detect-DuplicateIp (ocupados e livres)' {
     }
 }
 
+Describe 'Get-NetworkContext - adaptador da rota padrao (BCK-065)' {
+    It 'Escolhe o adaptador da rota padrao de menor metrica, nao o primeiro Up' {
+        Mock Get-NetAdapter -ModuleName WbaToolkit.Networking {
+            @(
+                [pscustomobject]@{ Name = 'vEthernet (Hyper-V)'; InterfaceIndex = 5; Status = 'Up'; InterfaceDescription = 'Hyper-V Virtual Ethernet Adapter' }
+                [pscustomobject]@{ Name = 'Ethernet'; InterfaceIndex = 12; Status = 'Up'; InterfaceDescription = 'Intel(R) Ethernet' }
+            )
+        }
+        Mock Get-NetRoute -ModuleName WbaToolkit.Networking {
+            @(
+                [pscustomobject]@{ InterfaceIndex = 12; RouteMetric = 0; InterfaceMetric = 25 }
+                [pscustomobject]@{ InterfaceIndex = 99; RouteMetric = 0; InterfaceMetric = 5 }
+            )
+        }
+        Mock Get-NetIPAddress -ModuleName WbaToolkit.Networking { [pscustomobject]@{ IPAddress = '10.0.0.20'; PrefixLength = 24 } }
+        Mock Get-NetIPConfiguration -ModuleName WbaToolkit.Networking { [pscustomobject]@{ IPv4DefaultGateway = [pscustomobject]@{ NextHop = '10.0.0.1' } } }
+        Mock Get-DnsClientServerAddress -ModuleName WbaToolkit.Networking { [pscustomobject]@{ ServerAddresses = @('10.0.0.1') } }
+        Mock Get-CimInstance -ModuleName WbaToolkit.Networking { [pscustomobject]@{ Caption = 'Windows'; Version = '10.0' } }
+
+        (Get-NetworkContext).InterfaceAlias | Should -Be 'Ethernet'
+        Should -Invoke Get-NetRoute -ModuleName WbaToolkit.Networking -Times 1 -Exactly
+
+        # Mesma lista, rota padrao no outro adaptador: a escolha acompanha a rota.
+        Mock Get-NetRoute -ModuleName WbaToolkit.Networking { @([pscustomobject]@{ InterfaceIndex = 5; RouteMetric = 0; InterfaceMetric = 15 }) }
+        (Get-NetworkContext).InterfaceAlias | Should -Be 'vEthernet (Hyper-V)'
+    }
+}
+
 Describe 'detectar-ip-duplicado.ps1 (wrapper operacional)' {
     It 'Existe em scripts/ (kebab-case ADR 0024)' {
         Test-Path -LiteralPath (Join-Path (Get-XtudoScriptsRoot) 'detectar-ip-duplicado.ps1') | Should -BeTrue

@@ -26,10 +26,21 @@
     }
 
     try {
-        $adapter = Get-NetAdapter -ErrorAction Stop |
-            Where-Object { $_.Status -eq 'Up' -and $_.InterfaceDescription -notmatch 'Loopback' } |
-            Sort-Object InterfaceMetric |
-            Select-Object -First 1
+        $upAdapters = @(Get-NetAdapter -ErrorAction Stop |
+            Where-Object { $_.Status -eq 'Up' -and $_.InterfaceDescription -notmatch 'Loopback' })
+
+        # O adaptador de contexto e o da rota padrao de menor metrica efetiva. Get-NetAdapter
+        # nao tem InterfaceMetric: ordenar por ela nao fazia nada e o resultado era um
+        # adaptador "Up" qualquer (VPN, Hyper-V...).
+        $defaultRoutes = @()
+        try { $defaultRoutes = @(Get-NetRoute -DestinationPrefix '0.0.0.0/0' -AddressFamily IPv4 -ErrorAction Stop) }
+        catch { Write-Verbose "Nao foi possivel consultar a rota padrao: $($_.Exception.Message)" }
+        $adapter = $null
+        foreach ($route in @($defaultRoutes | Sort-Object { [int]$_.RouteMetric + [int]$_.InterfaceMetric })) {
+            $adapter = $upAdapters | Where-Object { $_.InterfaceIndex -eq $route.InterfaceIndex } | Select-Object -First 1
+            if ($adapter) { break }
+        }
+        if (-not $adapter) { $adapter = $upAdapters | Select-Object -First 1 }
 
         if ($adapter) {
             $result.InterfaceAlias = $adapter.Name
