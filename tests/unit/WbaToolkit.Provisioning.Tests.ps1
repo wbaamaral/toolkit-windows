@@ -797,3 +797,27 @@ Describe 'Invoke-ToolkitProvisioning com estado corrompido (BCK-065/A-PRV-3)' {
         }
     }
 }
+
+Describe 'Reset-ToolkitProvisioningState (BCK-065)' {
+    It 'Zera BootCount, etapas e estado para a nova execucao' {
+        InModuleScope WbaToolkit.Provisioning -Parameters @{ Root = (Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))) } {
+            param($Root)
+            Mock Get-ToolkitProvisioningPaths {
+                [pscustomobject]@{ Root = $Root; Work = Join-Path $Root 'Work'; Results = Join-Path $Root 'Results' }
+            }.GetNewClosure()
+            $stateDir = Join-Path $Root 'Work/reset-001'
+            $state = New-ToolkitProvisioningState -DeploymentId 'reset-001' -ConfigHash 'h' -SchemaVersion 1 -ModuleVersion '1.0'
+            $state.GlobalState = 'Failed'
+            $state.BootCount = 10
+            $state.StepResults = @([pscustomobject]@{ StepId = 'a'; Status = 'Failed' })
+            Write-ToolkitProvisioningState -StateDirectory $stateDir -State $state
+
+            Reset-ToolkitProvisioningState -DeploymentId 'reset-001' -Confirm:$false | Out-Null
+
+            $after = (Read-ToolkitProvisioningState -StateDirectory $stateDir).State
+            $after.GlobalState | Should -Be 'Planned'
+            $after.BootCount | Should -Be 0
+            @($after.StepResults).Count | Should -Be 0
+        }
+    }
+}

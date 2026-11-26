@@ -47,6 +47,9 @@
     $resetState.GlobalState   = 'Planned'
     $resetState.CurrentStepId = $null
     $resetState.StepResults   = @()
+    # Contador de boots zerado: com o limite de boots do motor, um deployment resetado
+    # herdaria os boots da execucao anterior e poderia falhar ja no primeiro reboot.
+    $resetState.BootCount     = 0
     $resetState.UpdatedAt     = (Get-Date).ToUniversalTime().ToString('o')
 
     Write-ToolkitProvisioningState -StateDirectory $stateDirectory -State $resetState
