@@ -192,6 +192,8 @@ try {
     Write-Warning "Nao foi possivel iniciar o log de transcricao: $($_.Exception.Message)"
 }
 
+# Codigo de saida: 1 quando alguma operacao falha (antes saia 0 mesmo com erro).
+$script:exitCode = 0
 try {
     Write-Title "Gerenciamento de Copia de Sombra (VSS)"
     Write-Host ""
@@ -295,14 +297,14 @@ try {
                     Write-Host "    Volume: $($result.Volume)" -ForegroundColor Gray
                     Write-Host "    Criado: $($result.CreatedAt)" -ForegroundColor Gray
                 } else {
-                    Write-Fail "Falha ao criar shadow copy."
+                    Write-Fail "Falha ao criar shadow copy."; $script:exitCode = 1
                 }
             }
         }
 
         'Remover' {
             if (-not $ShadowCopyId) {
-                Write-Fail "Parametro -ShadowCopyId obrigatorio para acao Remover."
+                Write-Fail "Parametro -ShadowCopyId obrigatorio para acao Remover."; $script:exitCode = 1
                 return
             }
             Write-Section "Removendo Shadow Copy"
@@ -326,7 +328,7 @@ try {
 
         'ConfigurarEspaco' {
             if ($LimiteGB -le 0 -and $Percentual -le 0) {
-                Write-Fail "Parametro -LimiteGB ou -Percentual obrigatorio."
+                Write-Fail "Parametro -LimiteGB ou -Percentual obrigatorio."; $script:exitCode = 1
                 return
             }
             Write-Section "Configurando Espaco do Shadow Storage"
@@ -413,7 +415,9 @@ $($shadows | ForEach-Object {
     Write-Ok "Gerenciamento de copia de sombra concluido."
 
 } catch {
-    Write-Fail "Erro: $($_.Exception.Message)"
+    Write-Fail "Erro: $($_.Exception.Message)"; $script:exitCode = 1
 } finally {
     if ($transcriptActive) { Stop-Transcript }
+    # No finally: os caminhos que encerram com return tambem devolvem o codigo correto.
+    exit $script:exitCode
 }

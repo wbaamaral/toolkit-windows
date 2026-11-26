@@ -190,6 +190,8 @@ try {
     Write-Warning "Nao foi possivel iniciar o log de transcricao: $($_.Exception.Message)"
 }
 
+# Codigo de saida: 1 quando alguma operacao falha (antes saia 0 mesmo com erro).
+$script:exitCode = 0
 try {
     Write-Title "Gerenciamento de Agendamentos (Task Scheduler)"
     Write-Host ""
@@ -258,7 +260,7 @@ try {
 
         'Detalhar' {
             if (-not $NomeTarefa) {
-                Write-Fail "Parametro -NomeTarefa obrigatorio para acao Detalhar."
+                Write-Fail "Parametro -NomeTarefa obrigatorio para acao Detalhar."; $script:exitCode = 1
                 return
             }
             Write-Section "Detalhes da Tarefa: $NomeTarefa"
@@ -301,7 +303,7 @@ try {
 
         'Executar' {
             if (-not $NomeTarefa) {
-                Write-Fail "Parametro -NomeTarefa obrigatorio para acao Executar."
+                Write-Fail "Parametro -NomeTarefa obrigatorio para acao Executar."; $script:exitCode = 1
                 return
             }
             Write-Section "Executando Tarefa: $NomeTarefa"
@@ -315,7 +317,7 @@ try {
 
         'Habilitar' {
             if (-not $NomeTarefa) {
-                Write-Fail "Parametro -NomeTarefa obrigatorio para acao Habilitar."
+                Write-Fail "Parametro -NomeTarefa obrigatorio para acao Habilitar."; $script:exitCode = 1
                 return
             }
             Write-Section "Habilitando Tarefa: $NomeTarefa"
@@ -329,7 +331,7 @@ try {
 
         'Desabilitar' {
             if (-not $NomeTarefa) {
-                Write-Fail "Parametro -NomeTarefa obrigatorio para acao Desabilitar."
+                Write-Fail "Parametro -NomeTarefa obrigatorio para acao Desabilitar."; $script:exitCode = 1
                 return
             }
             Write-Section "Desabilitando Tarefa: $NomeTarefa"
@@ -343,7 +345,7 @@ try {
 
         'Remover' {
             if (-not $NomeTarefa) {
-                Write-Fail "Parametro -NomeTarefa obrigatorio para acao Remover."
+                Write-Fail "Parametro -NomeTarefa obrigatorio para acao Remover."; $script:exitCode = 1
                 return
             }
             Write-Section "Removendo Tarefa: $NomeTarefa"
@@ -358,7 +360,7 @@ try {
 
         'Exportar' {
             if (-not $NomeTarefa) {
-                Write-Fail "Parametro -NomeTarefa obrigatorio para acao Exportar."
+                Write-Fail "Parametro -NomeTarefa obrigatorio para acao Exportar."; $script:exitCode = 1
                 return
             }
             Write-Section "Exportando Tarefa: $NomeTarefa"
@@ -374,7 +376,7 @@ try {
 
         'Importar' {
             if (-not $CaminhoXml) {
-                Write-Fail "Parametro -CaminhoXml obrigatorio para acao Importar."
+                Write-Fail "Parametro -CaminhoXml obrigatorio para acao Importar."; $script:exitCode = 1
                 return
             }
             Write-Section "Importando Tarefa de XML"
@@ -429,7 +431,9 @@ $($summary.TopPaths | ForEach-Object { "<tr><td>$($_.Path)</td><td>$($_.Count)</
     Write-Ok "Gerenciamento de agendamentos concluido."
 
 } catch {
-    Write-Fail "Erro: $($_.Exception.Message)"
+    Write-Fail "Erro: $($_.Exception.Message)"; $script:exitCode = 1
 } finally {
     if ($transcriptActive) { Stop-Transcript }
+    # No finally: os caminhos que encerram com return tambem devolvem o codigo correto.
+    exit $script:exitCode
 }

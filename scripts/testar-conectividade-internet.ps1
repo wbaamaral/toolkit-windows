@@ -228,3 +228,8 @@ if ($transcriptActive) { Stop-Transcript }
 
 Write-Host ""
 Write-Ok "Teste de conectividade concluido."
+
+# Codigo de saida para automacao: 1 quando o resultado geral e FALHA ou BLOQUEADO
+# (antes saia 0 mesmo sem conectividade). AVISO continua 0.
+if ($report.Blocked -or $overall -eq 'FALHA') { exit 1 }
+exit 0

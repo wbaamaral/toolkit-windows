@@ -196,6 +196,8 @@ try {
     Write-Warning "Nao foi possivel iniciar o log de transcricao: $($_.Exception.Message)"
 }
 
+# Codigo de saida: 1 quando alguma operacao falha (antes saia 0 mesmo com erro).
+$script:exitCode = 0
 try {
     Write-Title "Gerenciamento de Copias e Pontos de Restauracao"
     Write-Host ""
@@ -249,7 +251,7 @@ try {
                 if ($result.Success) {
                     Write-Ok "Restore point criado: $Descricao"
                 } else {
-                    Write-Fail "Falha: $($result.Error)"
+                    Write-Fail "Falha: $($result.Error)"; $script:exitCode = 1
                 }
             }
         }
@@ -271,7 +273,7 @@ try {
 
         'Restaurar' {
             if (-not $SequenceNumber) {
-                Write-Fail "Parametro -SequenceNumber obrigatorio."
+                Write-Fail "Parametro -SequenceNumber obrigatorio."; $script:exitCode = 1
                 return
             }
             Write-Section "Restaurar Sistema para Ponto #$SequenceNumber"
@@ -301,7 +303,7 @@ try {
 
         'LimparAntigos' {
             if (-not $Dias) {
-                Write-Fail "Parametro -Dias obrigatorio."
+                Write-Fail "Parametro -Dias obrigatorio."; $script:exitCode = 1
                 return
             }
             Write-Section "Limpando Restore Points Antigos (>$Dias dias)"
@@ -323,7 +325,7 @@ try {
                 if ($result.AllSuccess) {
                     Write-Ok "Backup concluido com sucesso."
                 } else {
-                    Write-Fail "Backup concluido com erros."
+                    Write-Fail "Backup concluido com erros."; $script:exitCode = 1
                 }
                 Write-Host "    Destino: $($result.BackupPath)" -ForegroundColor Gray
             }
@@ -331,7 +333,7 @@ try {
 
         'RestaurarUsuario' {
             if (-not $CaminhoDestino) {
-                Write-Fail "Parametro -CaminhoDestino obrigatorio (caminho do backup a restaurar)."
+                Write-Fail "Parametro -CaminhoDestino obrigatorio (caminho do backup a restaurar)."; $script:exitCode = 1
                 return
             }
             Write-Section "Restaurando Dados do Usuario"
@@ -342,7 +344,7 @@ try {
                 if ($result.AllSuccess) {
                     Write-Ok "Restauracao concluida com sucesso."
                 } else {
-                    Write-Fail "Restauracao concluida com erros."
+                    Write-Fail "Restauracao concluida com erros."; $script:exitCode = 1
                 }
             }
         }
@@ -365,7 +367,7 @@ try {
 
         'LimparBackups' {
             if (-not $Dias) {
-                Write-Fail "Parametro -Dias obrigatorio."
+                Write-Fail "Parametro -Dias obrigatorio."; $script:exitCode = 1
                 return
             }
             Write-Section "Limpando Backups Antigos (>$Dias dias)"
@@ -470,7 +472,9 @@ $($points | ForEach-Object {
     Write-Ok "Gerenciamento de copias concluido."
 
 } catch {
-    Write-Fail "Erro: $($_.Exception.Message)"
+    Write-Fail "Erro: $($_.Exception.Message)"; $script:exitCode = 1
 } finally {
     if ($transcriptActive) { Stop-Transcript }
+    # No finally: os caminhos que encerram com return tambem devolvem o codigo correto.
+    exit $script:exitCode
 }
