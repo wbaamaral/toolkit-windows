@@ -115,8 +115,9 @@ python spec/tools/wba-validar-quadro.py      # requer Python 3 + PyYAML (pip ins
 python spec/tools/wba-gerar-painel.py painel.html
 ```
 
-Nesta estação Windows o Python ainda não está instalado: há só o atalho da Microsoft Store. Se não puder rodar
-o validador, revise manualmente as regras acima.
+No Windows, chame `python`, não `python3`: o `python3` cai no atalho da Microsoft Store. Defina
+`$env:PYTHONUTF8 = '1'` se a saída sair com acentos quebrados. Não use `python -I`, porque essa opção ignora o
+PyYAML instalado com `pip install --user`.
 
 ---
 
