@@ -35,7 +35,8 @@
     # Executar script em job para nao bloquear o spinner
     $job = Start-Job -ScriptBlock $ScriptBlock
 
-    while (-not $job.HasExited) {
+    # Job do PowerShell nao tem HasExited (isso e de Process): o estado vem de $job.State.
+    while ($job.State -in 'NotStarted', 'Running') {
         $elapsed = $stopwatch.Elapsed
         $ts = '{0:00}:{1:00}:{2:00}' -f $elapsed.Hours, $elapsed.Minutes, $elapsed.Seconds
         $frame = $frames[$i % 4]

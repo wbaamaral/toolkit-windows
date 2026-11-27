@@ -17,6 +17,9 @@
   em erros de severidade Error (ADR-0016)
 
 ### Corrigido
+- `limpar-windows.ps1` (BCK-067): o script ficava parado para sempre no SFC /scannow (e no DISM
+  RestoreHealth e no modo `-RepararSistema`) mesmo depois de o comando terminar; o spinner de
+  progresso do `Show-Spinner` nunca detectava o fim da tarefa
 - `Get-DropboxProblemFileFlags` (BCK-060): exceção ao detectar nome reservado em item com
   caractere de caminho inválido — só reproduzia em Windows PowerShell real
 - `Get-DropboxFileReport` (BCK-060): auditoria abortava inteira por uma única subpasta com
