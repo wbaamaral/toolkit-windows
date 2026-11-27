@@ -192,14 +192,27 @@ Pré-requisitos da versão:
 Os scripts `.sh` em `tools/` (`publish-release.sh`, `publish-codeberg-release.sh`, `publish-all-releases.sh`) são
 a versão Linux antiga, que publica só no Codeberg. No Windows, use o `.ps1`.
 
-### 0.5. Armadilha conhecida: objetos Git LFS ausentes
+### 0.5. Objetos Git LFS e push de tags antigas
 
-Tags antigas referenciam versões antigas dos PDFs em LFS (`docs/` e `manuais/`). Algumas **não existem no Gitea**
-(o servidor responde 404). Se o push das tags falhar com `Git LFS upload failed ... (missing)`, busque os objetos
-no Codeberg e repita o push:
+Tags antigas referenciam versões antigas dos PDFs em LFS (`docs/` e `manuais/`). Um clone comum baixa só os
+objetos do checkout atual. Por isso, enviar todas as tags a partir dele falha com
+`Git LFS upload failed ... (missing)`, porque faltam localmente os objetos das tags antigas.
+
+**Desde 2026-11-27 o Gitea tem todos os 14 objetos LFS do histórico.** Quatro deles faltavam no Gitea e
+respondiam 404; eles foram recuperados do Codeberg e enviados com `git lfs push origin --all`. A conferência foi
+feita com um clone vazio que baixou tudo sem erro. Os três remotos estão completos.
+
+Se o push das tags falhar por objeto ausente, baixe todos os objetos do Gitea e repita o push:
+
+```powershell
+git lfs fetch origin --all
+```
+
+Se o Gitea voltar a responder 404 para algum objeto, use o Codeberg como fonte e depois complete o Gitea:
 
 ```powershell
 git lfs fetch https://codeberg.org/wbaamaral/wba-windows-toolkit.git --all
+git lfs push origin --all
 ```
 
 Nunca contorne com `lfs.allowincompletepush`.
