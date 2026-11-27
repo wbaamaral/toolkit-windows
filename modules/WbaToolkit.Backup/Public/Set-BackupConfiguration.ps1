@@ -26,7 +26,9 @@
     $targetPath = if ($configPath) { $configPath } else { Join-Path $configDir 'config-backup.json' }
 
     if ($Reset) {
-        $default = Get-BackupConfiguration
+        # Os padroes vem de Get-BackupDefaultConfiguration: Get-BackupConfiguration
+        # devolveria o proprio arquivo atual quando ele existe.
+        $default = Get-BackupDefaultConfiguration
         if ($PSCmdlet.ShouldProcess($targetPath, 'Restaurar configuracao padrao')) {
             $default | ConvertTo-Json -Depth 8 | Set-Content -Path $targetPath -Encoding UTF8
             Write-Output "Configuracao restaurada para padrao."

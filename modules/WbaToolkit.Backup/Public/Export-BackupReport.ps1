@@ -20,8 +20,9 @@
     )
 
     $health = Test-VssHealth
-    $restorePoints = Get-RestorePointInfo
-    $history = Get-BackupHistory
+    # @(): no Windows PowerShell 5.1, .Count de um objeto unico e $null.
+    $restorePoints = @(Get-RestorePointInfo)
+    $history = @(Get-BackupHistory)
     $config = Get-BackupConfiguration
 
     $report = [pscustomobject]@{

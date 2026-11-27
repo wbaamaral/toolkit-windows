@@ -27,16 +27,23 @@
 
     $metaFiles = Get-ChildItem -Path $BackupRoot -Recurse -Filter 'metadados.json' -ErrorAction SilentlyContinue
 
-    $metaFiles | ForEach-Object {
+    $entries = foreach ($metaFile in $metaFiles) {
         try {
-            $meta = Get-Content -Path $_.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+            $meta = Get-Content -Path $metaFile.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
             [pscustomobject]@{
                 BackupPath  = $meta.BackupPath
-                CreatedAt   = $meta.CreatedAt
+                CreatedAt   = ConvertFrom-BackupCreatedAt -Value $meta.CreatedAt
                 AllSuccess  = $meta.AllSuccess
-                SourceCount = if ($meta.SourcePaths) { $meta.SourcePaths.Count } else { 0 }
-                Folder      = $_.DirectoryName
+                SourceCount = if ($meta.SourcePaths) { @($meta.SourcePaths).Count } else { 0 }
+                Folder      = $metaFile.DirectoryName
             }
-        } catch { Write-Verbose "Metadados de backup invalidos em '$($_.FullName)' foram ignorados: $($_.Exception.Message)" }
-    } | Sort-Object CreatedAt -Descending
+        } catch { Write-Verbose "Metadados de backup invalidos em '$($metaFile.FullName)' foram ignorados: $($_.Exception.Message)" }
+    }
+
+    # Backup-UserData grava o mesmo metadados.json na sessao e em <sessao>\data:
+    # agrupa por backup (caminho + data) e mantem a entrada da pasta mais externa.
+    $entries |
+        Group-Object { '{0}|{1}' -f $_.BackupPath, $(if ($_.CreatedAt) { $_.CreatedAt.Ticks } else { $_.Folder }) } |
+        ForEach-Object { $_.Group | Sort-Object { $_.Folder.Length } | Select-Object -First 1 } |
+        Sort-Object CreatedAt -Descending
 }

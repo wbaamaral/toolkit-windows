@@ -25,20 +25,21 @@
         $points = $points | Select-Object -Last $LastN
     }
 
-    $points | ForEach-Object {
+    foreach ($point in $points) {
+        # Dentro do catch, $_ e o erro, nao o ponto: usar a variavel do laco.
         $creationTime = $null
         try {
-            $creationTime = [System.Management.ManagementDateTimeConverter]::ToDateTime($_.CreationTime)
+            $creationTime = [System.Management.ManagementDateTimeConverter]::ToDateTime($point.CreationTime)
         } catch {
-            $creationTime = $_.CreationTime
+            $creationTime = $point.CreationTime
         }
 
         [pscustomobject]@{
-            SequenceNumber = $_.SequenceNumber
-            Description    = $_.Description
+            SequenceNumber = $point.SequenceNumber
+            Description    = $point.Description
             CreationTime   = $creationTime
-            RestorePointType = $_.RestorePointType
-            EventType      = $_.EventType
+            RestorePointType = $point.RestorePointType
+            EventType      = $point.EventType
         }
     }
 }

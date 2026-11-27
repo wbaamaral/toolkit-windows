@@ -17,6 +17,11 @@
   em erros de severidade Error (ADR-0016)
 
 ### Corrigido
+- `WbaToolkit.Backup` (BCK-069): `Get-BackupHistory` listava cada backup duas vezes e mostrava a data
+  como `@{value=...}` no Windows PowerShell 5.1, ordenando errado; `Set-BackupConfiguration -Reset`
+  não restaurava os padrões quando o arquivo de configuração já existia; `Get-RestorePointInfo`
+  perdia a data quando ela não estava no formato WMI; `Export-BackupReport` mostrava a contagem
+  vazia de pontos de restauração e de backups quando havia um só
 - `limpar-windows.ps1` (BCK-067): o script ficava parado para sempre no SFC /scannow (e no DISM
   RestoreHealth e no modo `-RepararSistema`) mesmo depois de o comando terminar; o spinner de
   progresso do `Show-Spinner` nunca detectava o fim da tarefa
