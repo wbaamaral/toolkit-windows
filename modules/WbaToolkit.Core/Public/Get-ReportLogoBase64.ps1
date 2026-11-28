@@ -36,8 +36,9 @@
 
     # Resolver caminho do logo
     if (-not $LogoPath) {
-        # Procurar na estrutura padrao: assets/images/logo.svg
-        $toolkitRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+        # Procurar na estrutura padrao: assets/images/logo.svg na raiz do toolkit.
+        # $PSScriptRoot e modules\WbaToolkit.Core\Public, entao a raiz fica tres niveis acima.
+        $toolkitRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
         $LogoPath = Join-Path $toolkitRoot 'assets\images\logo.svg'
     }
 

@@ -38,7 +38,6 @@
     }
 
     $data['ReportsRoot'] = $resolvedPath
-    $encoding = [System.Text.UTF8Encoding]::new($true)
     try {
         Write-TextFileUtf8 -Path $ConfigPath -Content ($data | ConvertTo-Json -Depth 6)
     }

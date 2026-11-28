@@ -34,21 +34,33 @@
 
     # WBA-DOCS: Category=Core; Related=Test-IsAdministrator; Manual=Relancamento elevado seguro para arrays/espacos
 
-    $escapeValue = { param($Value) [System.Management.Automation.Language.CodeGeneration]::EscapeSingleQuotedStringContent([string]$Value) }
+    # Os chamadores passam o comando por Start-Process, que junta -ArgumentList sem aspas. O powershell.exe
+    # remonta o -Command a partir dos argumentos: tira aspas duplas, e tabulacoes, quebras de linha e espacos
+    # repetidos viram um espaco so. Valores com esses caracteres vao em base64 e sao decodificados no processo
+    # elevado; os demais seguem como literal entre aspas simples, legivel no log.
+    $toLiteral = {
+        param($Value)
+        $text = [string]$Value
+        if ($text -match '"|\s{2,}|[^\S ]') {
+            $base64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($text))
+            return "([System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('$base64')))"
+        }
+        return "'{0}'" -f [System.Management.Automation.Language.CodeGeneration]::EscapeSingleQuotedStringContent($text)
+    }
 
     $parts = [System.Collections.Generic.List[string]]::new()
-    $parts.Add("& '{0}'" -f (& $escapeValue $ScriptPath))
+    $parts.Add('& {0}' -f (& $toLiteral $ScriptPath))
 
     foreach ($kv in $BoundParameters.GetEnumerator()) {
         if ($kv.Value -is [switch]) {
             if ($kv.Value.IsPresent) { $parts.Add("-$($kv.Key)") }
         }
         elseif ($kv.Value -is [System.Collections.IEnumerable] -and $kv.Value -isnot [string]) {
-            $values = @($kv.Value | ForEach-Object { "'{0}'" -f (& $escapeValue $_) }) -join ','
+            $values = @($kv.Value | ForEach-Object { & $toLiteral $_ }) -join ','
             if ($values) { $parts.Add("-$($kv.Key) $values") }
         }
         else {
-            $parts.Add("-$($kv.Key) '{0}'" -f (& $escapeValue $kv.Value))
+            $parts.Add("-$($kv.Key) {0}" -f (& $toLiteral $kv.Value))
         }
     }
 
