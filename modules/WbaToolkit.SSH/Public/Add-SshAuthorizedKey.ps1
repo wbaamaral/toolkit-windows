@@ -84,7 +84,7 @@
         }
     }
     else {
-        $userDir = Join-Path "C:\Users\$UserName" '.ssh'
+        $userDir = Join-Path (Get-SshUserProfilePath -UserName $UserName) '.ssh'
         if (-not (Test-Path -LiteralPath $userDir)) {
             New-Item -ItemType Directory -Path $userDir -Force | Out-Null
         }
@@ -106,17 +106,28 @@
     }
 
     try {
+        # UTF-8 sem BOM: no Windows PowerShell 5.1, Add-Content -Encoding UTF8 cria o arquivo com BOM e o
+        # OpenSSH deixa de reconhecer a primeira chave. Se a ultima linha nao terminar em quebra de linha,
+        # a chave nova iria colada nela.
         $entry = $PublicKey.Trim()
-        Add-Content -LiteralPath $keyFile -Value $entry -Encoding UTF8 -ErrorAction Stop
+        $prefix = ''
+        if (Test-Path -LiteralPath $keyFile -PathType Leaf) {
+            $current = [System.IO.File]::ReadAllText($keyFile)
+            if ($current.Length -gt 0 -and -not $current.EndsWith("`n")) { $prefix = "`r`n" }
+        }
+        [System.IO.File]::AppendAllText($keyFile, "$prefix$entry`r`n", (New-Object System.Text.UTF8Encoding($false)))
 
         if ($isAdmin -and $keyFile -eq $paths.AdminAuthorizedKeys) {
             $acl = Get-Acl -LiteralPath $keyFile
             $acl.SetAccessRuleProtection($true, $false)
 
+            # SIDs bem-conhecidos (ADR 0034): 'SYSTEM' e 'Administrators' nao resolvem no Windows em portugues.
+            $systemSid = New-Object System.Security.Principal.SecurityIdentifier('S-1-5-18')
+            $adminSid = New-Object System.Security.Principal.SecurityIdentifier('S-1-5-32-544')
             $systemRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
-                'SYSTEM', 'FullControl', 'Allow')
+                $systemSid, 'FullControl', 'Allow')
             $adminRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
-                'Administrators', 'FullControl', 'Allow')
+                $adminSid, 'FullControl', 'Allow')
             $acl.SetAccessRule($systemRule)
             $acl.SetAccessRule($adminRule)
             Set-Acl -LiteralPath $keyFile -AclObject $acl -ErrorAction Stop

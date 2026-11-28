@@ -35,11 +35,16 @@
 
     $portOpen = $false
     $banner = $null
+    $connectionMs = $null
+    $tcpClient = $null
 
     try {
         $tcpClient = New-Object System.Net.Sockets.TcpClient
+        $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
         $connectTask = $tcpClient.ConnectAsync($Host, $Port)
         $portOpen = $connectTask.Wait($TimeoutMs)
+        $stopwatch.Stop()
+        if ($portOpen) { $connectionMs = [int]$stopwatch.ElapsedMilliseconds }
 
         if ($portOpen -and $tcpClient.Connected) {
             $stream = $tcpClient.GetStream()
@@ -56,19 +61,22 @@
 
             $stream.Close()
         }
-
-        $tcpClient.Dispose()
     }
     catch {
         Write-Verbose "Falha na conexao: $($_.Exception.Message)"
     }
+    finally {
+        if ($tcpClient) { $tcpClient.Dispose() }
+    }
 
+    # ConnectionMs e o tempo medido ate conectar (nulo quando a porta nao abriu); antes repetia o TimeoutMs.
+    # ServiceResponding exige o banner do protocolo SSH, nao qualquer servico que responda na porta.
     [pscustomobject]@{
         Host             = $Host
         Port             = $Port
         PortOpen         = $portOpen
-        ServiceResponding = $portOpen -and ($banner -ne $null)
+        ServiceResponding = [bool]($portOpen -and $banner -and $banner.StartsWith('SSH-'))
         Banner           = $banner
-        ConnectionMs     = $TimeoutMs
+        ConnectionMs     = $connectionMs
     }
 }

@@ -4,15 +4,16 @@
         Le e retorna o sshd_config como hashtable estruturado.
 
     .DESCRIPTION
-        Parseia o arquivo sshd_config e retorna cada diretriz como par chave-valor.
+        Parseia o arquivo sshd_config e retorna cada diretriz global como par chave-valor.
         Diretivas duplicadas sao retornadas como array. Comentarios e linhas vazias
-        sao ignorados.
+        sao ignorados. Diretivas dentro de blocos Match valem so para quem atende ao
+        criterio, por isso ficam em MatchBlocks e nao entram em Config.
 
     .PARAMETER Path
         Caminho do sshd_config. Padrao: %programdata%\ssh\sshd_config.
 
     .OUTPUTS
-        PSCustomObject com: Config (hashtable), RawLines[], Path.
+        PSCustomObject com: Config (hashtable global), MatchBlocks[] (Criteria, Config), RawLines[], Path, Exists.
 
     .EXAMPLE
         $config = Get-SshdConfig
@@ -31,50 +32,51 @@
 
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
         return [pscustomobject]@{
-            Config   = @{}
-            RawLines = @()
-            Path     = $Path
-            Exists   = $false
+            Config      = @{}
+            MatchBlocks = @()
+            RawLines    = @()
+            Path        = $Path
+            Exists      = $false
         }
     }
 
-    $rawLines = Get-Content -LiteralPath $Path -ErrorAction SilentlyContinue
+    $addValue = {
+        param([hashtable]$Target, [string]$Key, [string]$Value)
+        if ($Target.ContainsKey($Key)) {
+            $Target[$Key] = @($Target[$Key]) + $Value
+        }
+        else {
+            $Target[$Key] = $Value
+        }
+    }
+
+    $rawLines = @(Get-Content -LiteralPath $Path -ErrorAction SilentlyContinue)
     $config = @{}
-    $currentMatch = $null
+    $matchBlocks = [System.Collections.Generic.List[object]]::new()
+    $target = $config
 
     foreach ($line in $rawLines) {
         $trimmed = $line.Trim()
 
         if ($trimmed -eq '' -or $trimmed.StartsWith('#')) { continue }
 
-        if ($trimmed -match '^Match\s+') {
-            $currentMatch = $trimmed
+        if ($trimmed -match '^Match\s+(.+)$') {
+            $block = [pscustomobject]@{ Criteria = $Matches[1].Trim(); Config = @{} }
+            $matchBlocks.Add($block)
+            $target = $block.Config
             continue
         }
 
         if ($trimmed -match '^(\S+)\s+(.+)$') {
-            $key = $Matches[1]
-            $value = $Matches[2].Trim()
-
-            if ($config.ContainsKey($key)) {
-                $existing = $config[$key]
-                if ($existing -is [array]) {
-                    $config[$key] = $existing + $value
-                }
-                else {
-                    $config[$key] = @($existing, $value)
-                }
-            }
-            else {
-                $config[$key] = $value
-            }
+            & $addValue $target $Matches[1] $Matches[2].Trim()
         }
     }
 
     [pscustomobject]@{
-        Config   = $config
-        RawLines = $rawLines
-        Path     = $Path
-        Exists   = $true
+        Config      = $config
+        MatchBlocks = $matchBlocks.ToArray()
+        RawLines    = $rawLines
+        Path        = $Path
+        Exists      = $true
     }
 }

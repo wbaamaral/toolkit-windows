@@ -41,7 +41,7 @@
         $UserName = $env:USERNAME
     }
 
-    $userProfile = "C:\Users\$UserName"
+    $userProfile = Get-SshUserProfilePath -UserName $UserName
     $sshDir = Join-Path $userProfile '.ssh'
 
     $plannedKeyName = if ([string]::IsNullOrWhiteSpace($KeyName)) { "id_$KeyType" } else { $KeyName }
@@ -94,8 +94,16 @@
     if ((Test-Path -LiteralPath $keyPath) -and $Force) {
         $backupPath = "${keyPath}.bak.$((Get-Date).ToString('yyyyMMdd_HHmmss'))"
         Copy-Item -LiteralPath $keyPath -Destination $backupPath -Force -ErrorAction Stop
-        Copy-Item -LiteralPath $pubKeyPath -Destination "${backupPath}.pub" -Force -ErrorAction Stop
+        if (Test-Path -LiteralPath $pubKeyPath -PathType Leaf) {
+            Copy-Item -LiteralPath $pubKeyPath -Destination "${backupPath}.pub" -Force -ErrorAction Stop
+        }
         Write-Verbose "Backup da chave existente: $backupPath"
+        # Com a chave antiga no lugar, o ssh-keygen pergunta "Overwrite (y/n)?" e o processo fica
+        # parado esperando resposta. O backup ja foi feito, entao remove o par antigo.
+        Remove-Item -LiteralPath $keyPath -Force -ErrorAction Stop
+        if (Test-Path -LiteralPath $pubKeyPath -PathType Leaf) {
+            Remove-Item -LiteralPath $pubKeyPath -Force -ErrorAction Stop
+        }
     }
 
     $sshKeygenArgs = @('-t', $KeyType, '-f', "`"$keyPath`"", '-N', '""', '-q')

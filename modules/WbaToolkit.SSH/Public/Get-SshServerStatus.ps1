@@ -29,7 +29,9 @@
     }
     catch { Write-Verbose "Falha ao consultar capability do OpenSSH Server: $($_.Exception.Message)" }
 
-    $featureInstalled = $feature.State -eq 'Installed'
+    # Com StrictMode, ler .State de $null lanca erro: acontece quando Get-WindowsCapability falha
+    # (servico DISM indisponivel, por exemplo) ou nao lista a capability.
+    $featureInstalled = [bool]($feature -and $feature.State -eq 'Installed')
 
     $service = $null
     try { $service = Get-Service -Name sshd -ErrorAction Stop }
@@ -39,8 +41,9 @@
     if ($featureInstalled -and (Test-Path -LiteralPath $paths.SshdConfig)) {
         try {
             $configContent = Get-Content -LiteralPath $paths.SshdConfig -ErrorAction Stop
-            $portLine = $configContent | Where-Object { $_ -match '^\s*Port\s+(\d+)' }
-            if ($portLine -match 'Port\s+(\d+)') {
+            # Primeira linha Port: com mais de uma, -match sobre o array nao preenche $Matches.
+            $portLine = $configContent | Where-Object { $_ -match '^\s*Port\s+(\d+)' } | Select-Object -First 1
+            if ($portLine -and $portLine -match 'Port\s+(\d+)') {
                 $port = [int]$Matches[1]
             }
         }

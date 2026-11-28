@@ -35,7 +35,7 @@
         $keyFile = $paths.AdminAuthorizedKeys
     }
     else {
-        $userDir = Join-Path "C:\Users\$UserName" '.ssh'
+        $userDir = Join-Path (Get-SshUserProfilePath -UserName $UserName) '.ssh'
         $keyFile = Join-Path $userDir 'authorized_keys'
     }
 
