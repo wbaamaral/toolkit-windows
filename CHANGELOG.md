@@ -17,6 +17,35 @@
   em erros de severidade Error (ADR-0016)
 
 ### Corrigido
+- Relançamento elevado dos scripts (BCK-070, ADR 0025): `New-ToolkitElevationCommand` perdia aspas
+  duplas, tabulações e espaços repetidos dos parâmetros ao relançar como administrador; esses valores
+  agora seguem em base64 e chegam intactos
+- `Get-ReportLogoBase64` (BCK-070): sem `-LogoPath`, procurava o logo em `modules\assets` em vez da
+  pasta `assets` na raiz do toolkit
+- `WbaToolkit.SSH` (BCK-070): `Add-SshAuthorizedKey` criava o `authorized_keys` com BOM no Windows
+  PowerShell 5.1 (o OpenSSH ignorava a primeira chave), colava a chave nova na última linha quando o
+  arquivo não terminava com quebra de linha e aplicava a ACL por nome (`SYSTEM`, `Administrators`),
+  que não resolve em Windows em português; agora usa SIDs (ADR 0034). `Add-SshAuthorizedKey`,
+  `Get-SshAuthorizedKey` e `New-SshUserKey` montavam o perfil como `C:\Users\<nome>`, errando perfis
+  de domínio (`usuario.DOMINIO`); agora resolvem pelo SID. `New-SshUserKey -Force` travava esperando
+  o `ssh-keygen` confirmar a sobrescrita. `Get-SshdConfig` misturava diretivas de blocos `Match` com
+  as globais (agora em `MatchBlocks`). `Get-SshServerStatus` falhava quando a consulta da capability
+  OpenSSH não retornava nada e ignorava a porta com mais de uma linha `Port`. `Test-SshConnectivity`
+  devolvia o tempo limite como tempo de conexão e contava qualquer serviço como SSH respondendo
+- `WbaToolkit.ScheduledTask` (BCK-070): detalhes de gatilho (início, intervalo, atraso, usuário) e
+  argumentos das ações nunca apareciam no `gerenciar-agendamentos.ps1`; tarefas que rodam por grupo
+  apareciam como `SYSTEM`; `AllowDemand` lia outra configuração. `Export-ScheduledTaskXml` gravava em
+  UTF-8 um XML que declara UTF-16 e devolvia a mensagem junto com o caminho (a tela mostrava
+  "Exportada para: Tarefa exportada para: ..."); `Import-ScheduledTaskXml` procurava um `<TaskName>`
+  que não existe no XML e agora usa o `URI` para nome e pasta
+- `WbaToolkit.ShadowCopy` (BCK-070): `Get-ShadowCopyStorage` voltava sempre vazio e o espaço alocado
+  de `Get-ShadowCopyProtectionStatus` sempre nulo, porque o texto do `vssadmin` não era o esperado (e é
+  traduzido); a leitura passou para `Win32_ShadowStorage` (ADR 0034). `Set-ShadowCopyStorageLimit` e
+  o limite de `Enable-SystemProtection` sempre falhavam por falta do `/on=` no `vssadmin resize
+  shadowstorage`; o `Enable-SystemProtection` agora avisa se o limite não for aplicado
+- `WbaToolkit.Startup` (BCK-070): habilitar uma entrada pedia uma segunda confirmação ao operador;
+  falha ao desabilitar deixava a entrada marcada como desligada mesmo ativa; reabilitar um valor
+  `REG_EXPAND_SZ` gravava o caminho já expandido em vez de `%VARIAVEL%`
 - `WbaToolkit.Backup` (BCK-069): `Get-BackupHistory` listava cada backup duas vezes e mostrava a data
   como `@{value=...}` no Windows PowerShell 5.1, ordenando errado; `Set-BackupConfiguration -Reset`
   não restaurava os padrões quando o arquivo de configuração já existia; `Get-RestorePointInfo`

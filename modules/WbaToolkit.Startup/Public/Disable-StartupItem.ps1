@@ -66,10 +66,14 @@
             continue
         }
 
+        # Se a desativacao falhar depois de gravar o store, o registro e desfeito: senao Get-StartupItem
+        # mostraria a entrada como desligada (o item do store prevalece) com ela ainda ativa.
+        $storeSaved = $false
         try {
             switch ($currentItem.SourceType) {
                 'Registry' {
                     Save-StartupStoreItem -Item $currentItem
+                    $storeSaved = $true
                     Remove-ItemProperty -LiteralPath $currentItem.Location -Name $currentItem.ValueName -ErrorAction Stop
                 }
                 'StartupFolder' {
@@ -77,10 +81,12 @@
                     New-Item -Path $disabledRoot -ItemType Directory -Force | Out-Null
                     $backupPath = Join-Path $disabledRoot ("$($currentItem.Id)-$($currentItem.ValueName)")
                     Save-StartupStoreItem -Item $currentItem -BackupPath $backupPath
+                    $storeSaved = $true
                     Move-Item -LiteralPath $currentItem.Command -Destination $backupPath -Force
                 }
                 'ScheduledTask' {
                     Save-StartupStoreItem -Item $currentItem
+                    $storeSaved = $true
                     Disable-ScheduledTask -TaskName $currentItem.ValueName -TaskPath $currentItem.Location -ErrorAction Stop | Out-Null
                 }
                 default {
@@ -92,9 +98,14 @@
             [pscustomobject]@{ Name = $currentItem.Name; Action = 'Disable'; Success = $true; Message = 'OK.' }
         }
         catch {
-            Write-Verbose "Falha ao desabilitar '$($currentItem.Name)': $($_.Exception.Message)"
-            Write-Warn "Falha ao desabilitar '$($currentItem.Name)': $($_.Exception.Message)"
-            [pscustomobject]@{ Name = $currentItem.Name; Action = 'Disable'; Success = $false; Message = $_.Exception.Message }
+            $failure = $_.Exception.Message
+            if ($storeSaved) {
+                try { Remove-StartupStoreItem -Id $currentItem.Id -Confirm:$false }
+                catch { Write-Verbose "Nao foi possivel desfazer o store de '$($currentItem.Name)': $($_.Exception.Message)" }
+            }
+            Write-Verbose "Falha ao desabilitar '$($currentItem.Name)': $failure"
+            Write-Warn "Falha ao desabilitar '$($currentItem.Name)': $failure"
+            [pscustomobject]@{ Name = $currentItem.Name; Action = 'Disable'; Success = $false; Message = $failure }
         }
     }
 

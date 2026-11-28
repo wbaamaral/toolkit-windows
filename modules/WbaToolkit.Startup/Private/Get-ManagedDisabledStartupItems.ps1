@@ -14,7 +14,9 @@
             $item = Get-ItemProperty -LiteralPath $_.PSPath -ErrorAction Stop
 
             $valueKind = if ($item.PSObject.Properties['ValueKind']) { [string]$item.ValueKind } else { 'String' }
-            $rawValue  = $item.Command
+            # Get-ItemProperty expande REG_EXPAND_SZ; le o valor bruto para restaurar %VARIAVEL% intacta.
+            $rawValue  = (Get-Item -LiteralPath $_.PSPath -ErrorAction Stop).GetValue(
+                'Command', $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
 
             $display = if ($valueKind -eq 'Binary') {
                 '[binario]'

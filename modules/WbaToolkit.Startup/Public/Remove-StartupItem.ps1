@@ -73,7 +73,7 @@
             switch ($currentItem.SourceType) {
                 'Registry' {
                     if ($currentItem.ManagedDisabled) {
-                        Remove-StartupStoreItem -Id $currentItem.Id
+                        Remove-StartupStoreItem -Id $currentItem.Id -Confirm:$false
                     }
                     elseif (Test-Path -LiteralPath $currentItem.Location) {
                         Remove-ItemProperty -LiteralPath $currentItem.Location -Name $currentItem.ValueName -ErrorAction Stop
@@ -82,7 +82,7 @@
                 'StartupFolder' {
                     if ($currentItem.ManagedDisabled -and $currentItem.BackupPath -and (Test-Path -LiteralPath $currentItem.BackupPath)) {
                         Remove-Item -LiteralPath $currentItem.BackupPath -Force
-                        Remove-StartupStoreItem -Id $currentItem.Id
+                        Remove-StartupStoreItem -Id $currentItem.Id -Confirm:$false
                     }
                     elseif ($currentItem.Command -and (Test-Path -LiteralPath $currentItem.Command)) {
                         Remove-Item -LiteralPath $currentItem.Command -Force
@@ -91,7 +91,7 @@
                 'ScheduledTask' {
                     Unregister-ScheduledTask -TaskName $currentItem.ValueName -TaskPath $currentItem.Location -Confirm:$false -ErrorAction Stop
                     if ($currentItem.ManagedDisabled) {
-                        Remove-StartupStoreItem -Id $currentItem.Id
+                        Remove-StartupStoreItem -Id $currentItem.Id -Confirm:$false
                     }
                 }
                 default {

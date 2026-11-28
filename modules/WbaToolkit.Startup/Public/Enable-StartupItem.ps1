@@ -60,6 +60,8 @@
             continue
         }
 
+        # Remove-StartupStoreItem tem ConfirmImpact High: sem -Confirm:$false ele pediria uma segunda
+        # confirmacao ao operador, depois do ShouldProcess desta funcao.
         try {
             switch ($currentItem.SourceType) {
                 'Registry' {
@@ -72,7 +74,7 @@
                     $kind  = if ($currentItem.ValueKind) { [string]$currentItem.ValueKind } else { 'String' }
                     $value = if ($null -ne $currentItem.RawValue) { $currentItem.RawValue } else { $currentItem.Command }
                     New-ItemProperty -Path $currentItem.Location -Name $currentItem.ValueName -Value $value -PropertyType $kind -Force -ErrorAction Stop | Out-Null
-                    Remove-StartupStoreItem -Id $currentItem.Id
+                    Remove-StartupStoreItem -Id $currentItem.Id -Confirm:$false
                 }
                 'StartupFolder' {
                     if (-not $currentItem.BackupPath -or -not (Test-Path -LiteralPath $currentItem.BackupPath)) {
@@ -80,11 +82,11 @@
                     }
                     New-Item -Path $currentItem.Location -ItemType Directory -Force | Out-Null
                     Move-Item -LiteralPath $currentItem.BackupPath -Destination (Join-Path $currentItem.Location $currentItem.ValueName) -Force
-                    Remove-StartupStoreItem -Id $currentItem.Id
+                    Remove-StartupStoreItem -Id $currentItem.Id -Confirm:$false
                 }
                 'ScheduledTask' {
                     Enable-ScheduledTask -TaskName $currentItem.ValueName -TaskPath $currentItem.Location -ErrorAction Stop | Out-Null
-                    Remove-StartupStoreItem -Id $currentItem.Id
+                    Remove-StartupStoreItem -Id $currentItem.Id -Confirm:$false
                 }
                 default {
                     throw "Tipo de inicializacao nao suportado: $($currentItem.SourceType)"
