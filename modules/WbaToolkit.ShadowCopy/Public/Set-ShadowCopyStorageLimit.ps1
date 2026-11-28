@@ -4,7 +4,7 @@
         Define o limite de espaco do shadow storage.
     .DESCRIPTION
         Usa vssadmin resize shadowstorage para definir o espaco maximo
-        destinado a shadow copies no volume especificado.
+        destinado a shadow copies no volume especificado. O /on vem da associacao existente.
     .PARAMETER Volume
         Volume alvo (ex: C:).
     .PARAMETER MaxSizeGB
@@ -28,12 +28,12 @@
 
     if ($PSCmdlet.ShouldProcess($volPath, 'Definir limite de shadow storage')) {
         try {
-            if ($PSCmdlet.ParameterSetName -eq 'BySize') {
-                $sizeBytes = [long]($MaxSizeGB * 1GB)
-                $result = Invoke-VssAdmin -Arguments @('resize', 'shadowstorage', "/for=${volPath}", "/maxsize=${sizeBytes}B")
+            $maxSize = if ($PSCmdlet.ParameterSetName -eq 'BySize') {
+                '{0}B' -f [long]($MaxSizeGB * 1GB)
             } else {
-                $result = Invoke-VssAdmin -Arguments @('resize', 'shadowstorage', "/for=${volPath}", "/maxsize=${MaxSizePercent}%")
+                '{0}%' -f $MaxSizePercent.ToString([System.Globalization.CultureInfo]::InvariantCulture)
             }
+            $result = Invoke-ShadowStorageResize -VolumePath $volPath -MaxSize $maxSize
 
             if ($result.ExitCode -ne 0) {
                 throw "vssadmin resize shadowstorage falhou: $($result.Output)"

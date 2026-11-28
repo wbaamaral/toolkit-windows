@@ -22,7 +22,10 @@
             Enable-ComputerRestore -Drive $volPath -ErrorAction Stop
             if ($MaxAllocationGB -gt 0) {
                 $sizeBytes = [long]($MaxAllocationGB * 1GB)
-                $null = Invoke-VssAdmin -Arguments @('resize', 'shadowstorage', "/for=${volPath}", "/maxsize=${sizeBytes}B")
+                $resize = Invoke-ShadowStorageResize -VolumePath $volPath -MaxSize "${sizeBytes}B"
+                if ($resize.ExitCode -ne 0) {
+                    Write-Warning "Protecao habilitada, mas o limite de ${MaxAllocationGB} GB nao foi aplicado: $($resize.Output)"
+                }
             }
             Write-Output "Protecao do Sistema habilitada em ${volPath}."
         } catch {
