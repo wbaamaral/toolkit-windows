@@ -17,6 +17,14 @@
   em erros de severidade Error (ADR-0016)
 
 ### Corrigido
+- `preparar-imagem-windows.ps1` para generalizar máquina virtual (BCK-072): o `sysprep.exe` agora roda
+  com `/quiet` (antes, uma falha abria janela e travava a execução sem operador) e o relatório é gravado
+  antes do `/shutdown`; a pré-verificação recusa, antes de alterar o sistema, BitLocker ou criptografia
+  de dispositivo no volume do sistema, instalação atualizada de outra versão e reinício pendente;
+  app da imagem atualizado pela Store passa a ser detectado como bloqueador Appx; generalizar de novo
+  um clone de template não é mais bloqueado (só o estado incompleto gera aviso); os backups da sessão
+  (NTUSER.DAT e diretivas) saem da imagem antes do sysprep, e `-CopiarRelatorioPara` leva a sessão
+  inteira para fora (`-ManterArtefatosNaImagem` mantém tudo)
 - Relançamento elevado dos scripts (BCK-070, ADR 0025): `New-ToolkitElevationCommand` perdia aspas
   duplas, tabulações e espaços repetidos dos parâmetros ao relançar como administrador; esses valores
   agora seguem em base64 e chegam intactos

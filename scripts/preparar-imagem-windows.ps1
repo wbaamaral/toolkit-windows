@@ -32,6 +32,15 @@
     Raiz de relatorios da sessao. Quando omitido, usa a configuracao persistente
     do toolkit ou C:\WBA\Relatorios.
 
+.PARAMETER CopiarRelatorioPara
+    Pasta fora da imagem (ex.: compartilhamento \\servidor\imagens\relatorios) para onde a
+    pasta da sessao e copiada antes do sysprep. Com a copia confirmada, a pasta local da
+    sessao e removida para nao ir para os clones (salvo com -ManterArtefatosNaImagem).
+
+.PARAMETER ManterArtefatosNaImagem
+    Mantem na imagem a pasta da sessao, incluindo os backups do NTUSER.DAT e das diretivas.
+    Sem esta opcao, os backups sao removidos antes do sysprep.
+
 .PARAMETER Help
     Exibe a ajuda resumida do script e encerra.
 
@@ -44,6 +53,9 @@
 
     Fluxo completo (tweaks + oferta de sysprep.exe):
         .\preparar-imagem-windows.ps1
+
+    Fluxo completo levando relatorio e backups para fora da imagem (VM template):
+        .\preparar-imagem-windows.ps1 -CopiarRelatorioPara '\\srv\imagens\relatorios'
 
 .NOTES
     Projeto: wba-windows-toolkit
@@ -59,6 +71,8 @@ param(
     [Alias('DiretorioSaida')]
     [string]$Path,
     [string[]]$IgnorarBloqueadoresAppx = @(),
+    [string]$CopiarRelatorioPara,
+    [switch]$ManterArtefatosNaImagem,
     [switch]$Help
 )
 
@@ -183,12 +197,15 @@ function Show-Help {
     Write-Host "  -ConfirmarSysprep  Confirma a execucao do sysprep /generalize (destrutivo)."
     Write-Host "  -DiretorioSaida '<dir>' Raiz de relatorios. Padrao: ReportsRoot persistente ou C:\WBA\Relatorios"
     Write-Host "  -IgnorarBloqueadoresAppx <pkgs> Lista de pacotes Appx a ignorar na pre-verificacao."
+    Write-Host "  -CopiarRelatorioPara '<dir>' Copia a sessao para fora da imagem antes do sysprep."
+    Write-Host "  -ManterArtefatosNaImagem Nao remove backups e sessao local antes do sysprep."
     Write-Host "  -Help              Esta ajuda."
     Write-Host ""
     Write-Host "Exemplos:"
     Write-Host "  .\$script:ScriptName -ApenasDryRun"
     Write-Host "  .\$script:ScriptName -SemSysprep"
     Write-Host "  .\$script:ScriptName -Confirmar -ConfirmarSysprep"
+    Write-Host "  .\$script:ScriptName -CopiarRelatorioPara '\\srv\imagens\relatorios'"
     Write-Host ""
 }
 
@@ -261,7 +278,9 @@ if ($appxSvc) {
     }
 }
 
-$ambiente = Test-SysprepEnvironment -AppxPolicy 'Warn'
+# BitLocker, upgrade e reinicio pendente so impedem o sysprep: com -SemSysprep viram aviso.
+$politicaEstadoSistema = if ($SemSysprep) { 'Warn' } else { 'Block' }
+$ambiente = Test-SysprepEnvironment -AppxPolicy 'Warn' -SystemStatePolicy $politicaEstadoSistema
 
 foreach ($aviso in $ambiente.Warnings) {
     Write-SysprepLog -Level 'WARN' -Message $aviso
@@ -346,7 +365,13 @@ if (-not $SemSysprep) {
     if ($IgnorarBloqueadoresAppx -and $IgnorarBloqueadoresAppx.Count -gt 0) {
         Write-Info "  [APPX] Ignorados (fora do ciclo interativo, Sysprep liberado): $($IgnorarBloqueadoresAppx -join ', ')"
     }
-    Write-Info '  [SYSPREP] sysprep.exe /oobe /generalize /shutdown  (somente apos confirmacao separada)'
+    if ($CopiarRelatorioPara) {
+        Write-Info "  [ARTEFATOS] Sessao copiada para '$CopiarRelatorioPara' antes do sysprep"
+    }
+    if (-not $ManterArtefatosNaImagem) {
+        Write-Info '  [ARTEFATOS] Backups da sessao (NTUSER.DAT, diretivas) removidos da imagem antes do sysprep'
+    }
+    Write-Info '  [SYSPREP] sysprep.exe /oobe /generalize /shutdown /quiet  (somente apos confirmacao separada)'
 }
 
 Write-Host ''
@@ -660,15 +685,71 @@ else {
             exit 1
         }
 
-        Write-SysprepLog -Message 'Iniciando sysprep.exe /oobe /generalize /shutdown.'
-        Write-Warn 'Executando sysprep.exe. O sistema sera desligado em instantes...'
-
+        # O /shutdown desliga a maquina logo que o sysprep termina: o relatorio precisa estar
+        # gravado (e copiado para fora da imagem, quando pedido) ANTES de iniciar (BCK-072).
         $sysprepEstado    = 'Iniciado'
         $sysprepExecutado = $true
-        $processo = Start-Process -FilePath $sysprepExe `
-            -ArgumentList '/oobe /generalize /shutdown' `
-            -Wait -PassThru
-        $sysprepExitCode = $processo.ExitCode
+        $jsonSaida = Save-SysprepPreparationReport `
+            -Session             $script:Session `
+            -Ambiente            $validacaoSysprep `
+            -Resultados          $resultados `
+            -SysprepEstado       $sysprepEstado `
+            -SysprepExecutado    $true `
+            -SysprepBloqueadores @($validacaoSysprep.SysprepBlockers) `
+            -MachineSid          $machineSid
+        Write-SysprepLog -Message "Relatorio gravado antes do sysprep: $jsonSaida"
+
+        Write-Section 'Artefatos da sessao'
+        try {
+            $artefatos = Move-SysprepSessionArtifact `
+                -Session      $script:Session `
+                -CopyTo       $CopiarRelatorioPara `
+                -KeepInImage:$ManterArtefatosNaImagem `
+                -Confirm:$false
+        }
+        catch {
+            Write-Fail "Falha ao tirar os artefatos da sessao da imagem: $($_.Exception.Message)"
+            Write-Fail 'Sysprep nao executado. Corrija o destino de -CopiarRelatorioPara ou use -ManterArtefatosNaImagem.'
+            Write-SysprepLog -Level 'ERROR' -Message "Falha ao mover artefatos da sessao: $($_.Exception.Message). Sysprep cancelado."
+            $null = Save-SysprepPreparationReport `
+                -Session             $script:Session `
+                -Ambiente            $validacaoSysprep `
+                -Resultados          $resultados `
+                -SysprepEstado       'BloqueadoArtefatos' `
+                -SysprepBloqueado    $true `
+                -SysprepBloqueadores @($validacaoSysprep.SysprepBlockers) `
+                -MachineSid          $machineSid
+            Write-Title "Sessao encerrada com bloqueio: $($script:Session.Path)"
+            exit 1
+        }
+
+        $script:Session = $artefatos.Session
+        if ($artefatos.CopiedTo) {
+            Write-Ok "Sessao copiada para fora da imagem: $($artefatos.CopiedTo)"
+            Write-SysprepLog -Message "Sessao copiada para $($artefatos.CopiedTo)."
+        }
+        foreach ($removido in $artefatos.RemovedPaths) {
+            Write-Ok "Removido da imagem: $removido"
+            Write-SysprepLog -Message "Removido da imagem antes do sysprep: $removido"
+        }
+        if ($ManterArtefatosNaImagem) {
+            Write-Warn "Artefatos mantidos na imagem por -ManterArtefatosNaImagem: $($script:Session.Path)"
+        }
+        elseif (-not $artefatos.CopiedTo) {
+            Write-Warn "Relatorio e log desta sessao ficam na imagem em $($script:Session.Path). Use -CopiarRelatorioPara para tira-los."
+        }
+        Write-Info "Outras pastas em $($script:Session.ReportsRoot) tambem vao para a imagem; limpe antes de capturar se necessario."
+
+        Write-SysprepLog -Message 'Iniciando sysprep.exe /oobe /generalize /shutdown /quiet.'
+        Write-Warn 'Executando sysprep.exe. O sistema sera desligado em instantes...'
+
+        try {
+            $sysprepExitCode = Invoke-SysprepGeneralize -SysprepPath $sysprepExe -Confirm:$false
+        }
+        catch {
+            $sysprepExitCode = -1
+            Write-SysprepLog -Level 'ERROR' -Message "Falha ao iniciar sysprep.exe: $($_.Exception.Message)"
+        }
         Write-SysprepLog -Message "sysprep.exe encerrado com ExitCode: $sysprepExitCode."
 
         if ($sysprepExitCode -eq 0) {

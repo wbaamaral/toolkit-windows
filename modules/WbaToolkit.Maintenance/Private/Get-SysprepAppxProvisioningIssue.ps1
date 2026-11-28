@@ -57,17 +57,38 @@
         throw "Nao foi possivel validar pacotes Appx para Sysprep: $($_.Exception.Message). Execucao do Sysprep bloqueada por seguranca."
     }
 
+    function ConvertTo-PackageVersion {
+        param($Value)
+        $parsed = $null
+        if ($null -ne $Value -and [version]::TryParse([string]$Value, [ref]$parsed)) {
+            return $parsed
+        }
+        return $null
+    }
+
     # Agrupa por Name para eliminar duplicatas (Get-AppxPackage retorna uma entrada por usuario).
     # Acumula todos os SIDs de usuarios reais que possuem o pacote em estado Installed.
     $porNome = @{}
     foreach ($pkg in $instalados) {
+        $key = $pkg.Name
+        $motivoBase = 'InstalledForUserButNotProvisioned'
+
         if ($provisionados.ContainsKey($pkg.Name)) {
-            continue
+            # App da imagem atualizado pela Store para um usuario: a versao nova nao esta
+            # provisionada e o sysprep falha do mesmo jeito (BCK-072). A chave passa a ser o
+            # PackageFullName, para a remocao mirar so a versao atualizada.
+            $versaoInstalada    = ConvertTo-PackageVersion $pkg.Version
+            $versaoProvProp     = $provisionados[$pkg.Name].PSObject.Properties['Version']
+            $versaoProvisionada = if ($versaoProvProp) { ConvertTo-PackageVersion $versaoProvProp.Value } else { $null }
+            if (-not $versaoInstalada -or -not $versaoProvisionada -or $versaoInstalada -le $versaoProvisionada) {
+                continue
+            }
+            $key = [string]$pkg.PackageFullName
+            $motivoBase = 'UpdatedForUserButProvisionedOlder'
         }
 
-        $key = $pkg.Name
         if (-not $porNome.ContainsKey($key)) {
-            $porNome[$key] = @{ Pkg = $pkg; Users = [System.Collections.Generic.List[string]]::new() }
+            $porNome[$key] = @{ Pkg = $pkg; Users = [System.Collections.Generic.List[string]]::new(); Reason = $motivoBase }
         }
 
         if (-not $pkg.PackageUserInformation) {
@@ -115,7 +136,7 @@
         $isLanguagePack = $pkg.Name -like 'Microsoft.LanguageExperiencePack*'
 
         $severity = 'Blocker'
-        $reason   = 'InstalledForUserButNotProvisioned'
+        $reason   = $entry.Reason
 
         if ($isFramework -or $isResourcePackage -or $isNonRemovable -or $isSystemApp) {
             if ($isLanguagePack) {

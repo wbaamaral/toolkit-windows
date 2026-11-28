@@ -10,11 +10,19 @@
           - Sessao elevada com privilegios de Administrador
           - Windows 10 Pro (build 10240+) ou Windows 11 (build 22000+)
           - Executavel sysprep.exe presente no sistema
-          - Sistema nao passou por sysprep anteriormente nesta instalacao
+          - Sem BitLocker no volume do sistema, sem upgrade de versao e sem reinicio
+            pendente (condicoes que o proprio sysprep recusa)
 
         Retorna objeto com IsValid = $false e lista de Errors quando alguma
         condicao obrigatoria nao e atendida. Warnings sao informativos e nao
         impedem a execucao.
+
+    .PARAMETER AppxPolicy
+        Block (padrao): pacote Appx bloqueador vira erro. Warn: vira aviso. Skip: nao verifica.
+
+    .PARAMETER SystemStatePolicy
+        Block (padrao): BitLocker, upgrade e reinicio pendente viram erro. Warn: viram aviso,
+        para quando o sysprep nao sera executado nesta sessao.
 
     .EXAMPLE
         $resultado = Test-SysprepEnvironment
@@ -24,12 +32,15 @@
 
     .OUTPUTS
         System.Management.Automation.PSCustomObject
-        Objeto com as propriedades: IsValid, OsVersion, Edition, BuildNumber, Errors, Warnings, SysprepBlockers, AppxIssues.
+        Objeto com as propriedades: IsValid, OsVersion, Edition, BuildNumber, Errors, Warnings, SysprepBlockers, AppxIssues, AutoLogonDetectado, GpoDetectado, SystemStateIssues.
     #>
     [CmdletBinding()]
     param(
         [ValidateSet('Block', 'Warn', 'Skip')]
-        [string]$AppxPolicy = 'Block'
+        [string]$AppxPolicy = 'Block',
+
+        [ValidateSet('Block', 'Warn')]
+        [string]$SystemStatePolicy = 'Block'
     )
 
     $erros     = New-Object 'System.Collections.Generic.List[string]'
@@ -86,16 +97,16 @@
         $erros.Add("sysprep.exe nao encontrado em: $sysprepExe")
     }
 
-    $pantherLog = [System.IO.Path]::Combine($env:SystemRoot, 'System32', 'Sysprep', 'Panther', 'setupact.log')
-    if (Test-Path -LiteralPath $pantherLog) {
-        try {
-            $logConteudo = [System.IO.File]::ReadAllText($pantherLog, [System.Text.Encoding]::UTF8)
-            if ($logConteudo -match 'SYSPREP_GENERALIZE_COMPLETE') {
-                $erros.Add('Este sistema ja passou por sysprep anteriormente. Executar novamente pode causar instabilidades.')
-            }
+    # Condicoes que o proprio sysprep recusa (BitLocker, upgrade, reinicio pendente) e
+    # estado de generalizacao anterior incompleto. Generalizar de novo uma maquina clonada
+    # de imagem ja generalizada e suportado e nao e mais bloqueado (BCK-072).
+    $estadoSistema = @(Get-SysprepSystemStateIssue)
+    foreach ($issue in $estadoSistema) {
+        if ($issue.Severity -eq 'Error' -and $SystemStatePolicy -eq 'Block') {
+            $erros.Add($issue.Message)
         }
-        catch {
-            $avisos.Add("Nao foi possivel verificar historico de sysprep: $($_.Exception.Message)")
+        else {
+            $avisos.Add($issue.Message)
         }
     }
 
@@ -169,5 +180,6 @@
         AppxIssues         = $appxIssues.ToArray()
         AutoLogonDetectado = $autoLogonDetectado
         GpoDetectado       = $gpoDetectado
+        SystemStateIssues  = $estadoSistema
     }
 }
