@@ -10,26 +10,28 @@
     $actions = $Task.Actions | ForEach-Object {
         [pscustomobject]@{
             Execute  = $_.Execute
-            Argument = $_.Argument
+            Argument = $_.Arguments
             WorkDir  = $_.WorkingDirectory
         }
     }
 
     $triggers = $Task.Triggers | ForEach-Object {
+        # CimInstance nao tem a propriedade CimClassName; a classe fica em CimClass.CimClassName.
+        $triggerClass = $_.CimClass.CimClassName
         $trig = [pscustomobject]@{
-            Type       = $_.CimClass.CimClassName
+            Type       = $triggerClass
             Enabled    = $_.Enabled
         }
-        if ($_.CimClassName -eq 'MSFT_TaskTimeTrigger') {
+        if ($triggerClass -eq 'MSFT_TaskTimeTrigger') {
             $trig | Add-Member -NotePropertyName 'StartBoundary' -NotePropertyValue $_.StartBoundary -Force
             if ($_.Repetition.Interval) {
                 $trig | Add-Member -NotePropertyName 'Interval' -NotePropertyValue $_.Repetition.Interval -Force
             }
         }
-        if ($_.CimClassName -eq 'MSFT_TaskBootTrigger') {
+        if ($triggerClass -eq 'MSFT_TaskBootTrigger') {
             $trig | Add-Member -NotePropertyName 'Delay' -NotePropertyValue $_.Delay -Force
         }
-        if ($_.CimClassName -eq 'MSFT_TaskLogonTrigger') {
+        if ($triggerClass -eq 'MSFT_TaskLogonTrigger') {
             $trig | Add-Member -NotePropertyName 'UserId' -NotePropertyValue $_.UserId -Force
         }
         $trig
@@ -38,14 +40,14 @@
     [pscustomobject]@{
         TaskName    = $Task.TaskName
         TaskPath    = $Task.TaskPath
-        State       = $Task.State.ToString()
+        State       = [string]$Task.State
         Description = $Task.Description
         Author      = $Task.Author
-        RunAs       = if ($Task.Principal.UserId) { $Task.Principal.UserId } else { 'SYSTEM' }
-        RunLevel    = $Task.Principal.RunLevel.ToString()
-        LogonType   = $Task.Principal.LogonType.ToString()
+        RunAs       = if ($Task.Principal.UserId) { $Task.Principal.UserId } elseif ($Task.Principal.GroupId) { $Task.Principal.GroupId } else { 'SYSTEM' }
+        RunLevel    = [string]$Task.Principal.RunLevel
+        LogonType   = [string]$Task.Principal.LogonType
         Enabled     = $Task.Settings.Enabled
-        AllowDemand  = $Task.Settings.AllowStartIfOnBatteries
+        AllowDemand  = $Task.Settings.AllowDemandStart
         DisallowNew  = $Task.Settings.DisallowStartIfOnBatteries
         ExecutionTimeLimit = $Task.Settings.ExecutionTimeLimit
         LastRunTime = if ($info) { $info.LastRunTime } else { $null }

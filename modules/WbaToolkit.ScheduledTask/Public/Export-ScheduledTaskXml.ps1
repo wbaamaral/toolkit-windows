@@ -31,7 +31,9 @@
         $OutputPath = Join-Path $PWD "$safeName.xml"
     }
 
-    $xml | Set-Content -Path $OutputPath -Encoding UTF8 -Force
-    Write-Output "Tarefa exportada para: $OutputPath"
+    # O XML do Agendador declara encoding="UTF-16"; em UTF-8 o arquivo contradiz a declaracao e leitores estritos recusam o
+    # arquivo. Devolve so o caminho: a mensagem no pipeline ia junto para quem guarda o resultado.
+    [System.IO.File]::WriteAllText($OutputPath, $xml, [System.Text.Encoding]::Unicode)
+    Write-Verbose "Tarefa exportada para: $OutputPath"
     $OutputPath
 }
